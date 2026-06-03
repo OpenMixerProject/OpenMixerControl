@@ -19,7 +19,6 @@ class PageMeters : public Page
             tabIndex0 = 1;
             tabLayer1 = objects.meterstab;
             tabIndex1 = 0;
-            led = X32_BTN_METERS;
             hideEncoders = true;            
         }
 

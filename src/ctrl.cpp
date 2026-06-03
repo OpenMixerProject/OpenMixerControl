@@ -2136,7 +2136,7 @@ void X32Ctrl::ProcessUartDataSurface()
 					lv_label_set_text_fmt(objects.header_debug, "Surface Input: BoardId 0x%02X, Class 0x%02X ('%c'), Index 0x%02X, Value 0x%04X", receivedBoardId, receivedClass, receivedClass, receivedIndex, receivedValue);
 				}
 
-				ProcessSurface((X32_BOARD)receivedBoardId, receivedClass, receivedIndex, receivedValue);
+				ProcessSurface((OMC_BOARD)receivedBoardId, receivedClass, receivedIndex, receivedValue);
             } 
         }
     }
@@ -2551,7 +2551,7 @@ void X32Ctrl::LoadAssignBank(X32AssignBankId bankId)
 //#####################################################################################################################
 
 
-void X32Ctrl::ProcessSurface(X32_BOARD board, uint8_t classid, uint8_t index, uint16_t value)
+void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, uint16_t value)
 {
 	if (classid == 'f') // Fader
 	{
@@ -2783,7 +2783,7 @@ void X32Ctrl::ProcessSurface(X32_BOARD board, uint8_t classid, uint8_t index, ui
 					uint textcount = 0;
 					uint textIndex = 0;
 
-					data->boardId = X32_BOARD::X32_BOARD_R;
+					data->boardId = OMC_BOARD::X32_BOARD_R;
 					data->color = (uint)X32_COLOR::WHITE | SURFACE_COLOR_INVERTED;
 					data->lcdIndex = i;
 					data->icon.icon = 0;

@@ -20,7 +20,6 @@ class PageSends : public Page
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 5;
-            led = X32_BTN_VIEW_MIX_BUS_SENDS;
             noLedOnRack = true;
         }
 

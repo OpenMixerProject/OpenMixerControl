@@ -16,7 +16,6 @@ class PagePrototypeGui: public Page
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 5;
-            led = X32_BTN_SETUP;
         } 
 
         void OnInit() override

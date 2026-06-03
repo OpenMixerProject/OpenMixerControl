@@ -156,6 +156,6 @@ class X32Ctrl : public X32Base
         uint8_t surfaceCalcDynamicMeter(uint8_t channel);
         void syncXRemote(bool syncAll);
 
-        void ProcessSurface(X32_BOARD board, uint8_t classid, uint8_t index, uint16_t value);
+        void ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, uint16_t value);
         void SimulatorButton(uint key);
 }; 

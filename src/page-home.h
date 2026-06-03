@@ -32,7 +32,6 @@ class PageHome : public Page
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 0;
-            led = X32_BTN_HOME;
         }
 
         void OnShow() override 

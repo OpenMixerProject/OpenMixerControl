@@ -14,43 +14,43 @@ void X32Config::SetModel(String model){
 
     if (model == "X32CORE")
     {
-        _model = X32_MODEL::CORE;
+        _model = OMC_MODEL::X32_CORE;
     }
     else if (model == "X32RACK")
     {
-        _model = X32_MODEL::RACK;
+        _model = OMC_MODEL::X32_RACK;
     }
     else if (model == "X32P")
     {
-        _model = X32_MODEL::PRODUCER;
+        _model = OMC_MODEL::X32_PRODUCER;
     }
     else if (model == "X32C")
     {
-        _model =  X32_MODEL::COMPACT;
+        _model =  OMC_MODEL::X32_COMPACT;
     }
     else if (model == "X32")
     {
-        _model = X32_MODEL::FULL;
+        _model = OMC_MODEL::X32_FULL;
     }
     else if (model == "M32" )
     {
-        _model =  X32_MODEL::M32;
+        _model =  OMC_MODEL::M32;
     }
     else if (model == "M32R" )
     {
-        _model =  X32_MODEL::M32R;
+        _model =  OMC_MODEL::M32R;
     }
     else
     {
         //x32log("ERROR: No model detected!\n");
-        _model = X32_MODEL::NONE;
+        _model = OMC_MODEL::NONE;
     }
 
     DefineSurfaceElements();
 };
 
 bool X32Config::IsModelX32Full() {
-    return (_model == X32_MODEL::FULL);
+    return (_model == OMC_MODEL::X32_FULL);
 }
 bool X32Config::IsModelX32FullOrM32() {
     return IsModelX32Full() || IsModelM32();
@@ -65,16 +65,16 @@ bool X32Config::IsModelX32CompactOrProducerOrM32R() {
     return IsModelX32Compact() || IsModelX32Producer() || IsModelM32R();
 }
 bool X32Config::IsModelX32Core() {
-    return (_model == X32_MODEL::CORE);
+    return (_model == OMC_MODEL::X32_CORE);
 }
 bool X32Config::IsModelX32Rack() {
-    return (_model == X32_MODEL::RACK);
+    return (_model == OMC_MODEL::X32_RACK);
 }
 bool X32Config::IsModelX32Producer() {
-    return (_model == X32_MODEL::PRODUCER);
+    return (_model == OMC_MODEL::X32_PRODUCER);
 }
 bool X32Config::IsModelX32Compact() {
-    return (_model == X32_MODEL::COMPACT);
+    return (_model == OMC_MODEL::X32_COMPACT);
 }
 bool X32Config::IsModelX32CompactOrM32R() {
     return IsModelX32Compact() || IsModelM32R();
@@ -86,10 +86,10 @@ bool X32Config::IsModelX32ProducerOrRackOrM32R() {
     return IsModelX32Producer() || IsModelX32Rack() || IsModelM32R();
 }
 bool X32Config::IsModelM32() {
-    return (_model == X32_MODEL::M32);
+    return (_model == OMC_MODEL::M32);
 }
 bool X32Config::IsModelM32R() {
-    return (_model == X32_MODEL::M32R);
+    return (_model == OMC_MODEL::M32R);
 }
 
 bool X32Config::HasGui()
@@ -2776,7 +2776,7 @@ SurfaceElement* X32Config::GetSurfaceElement(SurfaceElementId id)
     return sem[(uint)id];
 }
 
-SurfaceElement* X32Config::GetSurfaceElementButton(X32_BOARD board, uint16_t value)
+SurfaceElement* X32Config::GetSurfaceElementButton(OMC_BOARD board, uint16_t value)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -2794,7 +2794,7 @@ SurfaceElement* X32Config::GetSurfaceElementButton(X32_BOARD board, uint16_t val
     return 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElementEncoder(X32_BOARD board, uint8_t index)
+SurfaceElement* X32Config::GetSurfaceElementEncoder(OMC_BOARD board, uint8_t index)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -2812,7 +2812,7 @@ SurfaceElement* X32Config::GetSurfaceElementEncoder(X32_BOARD board, uint8_t ind
     return 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElementFader(X32_BOARD board, uint8_t index)
+SurfaceElement* X32Config::GetSurfaceElementFader(OMC_BOARD board, uint8_t index)
 {
     for (SurfaceElement* element : sem)
 	{

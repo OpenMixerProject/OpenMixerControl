@@ -22,7 +22,6 @@ class PageConfig : public Page
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 1;
-            led = X32_BTN_VIEW_CONFIG;
             noLedOnRack = true;
         }
 

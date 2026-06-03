@@ -14,7 +14,6 @@ class PageSetup: public Page
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 0;
-            led = X32_BTN_SETUP;
         }
 
         void OnInit() override

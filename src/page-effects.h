@@ -16,7 +16,6 @@ class PageEffects: public Page {
         PageEffects(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
             tabLayer0 = objects.maintab;
             tabIndex0 = 5;
-            led = X32_BTN_EFFECTS;
         }
 
         void OnShow() override

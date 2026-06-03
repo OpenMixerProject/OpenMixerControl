@@ -12,7 +12,6 @@
 #include "surface-event.h"
 #include "surface-message.h"
 #include "surface-fader.h"
-#include "surface-button.h"
 #include "helper.h"
 
 using namespace std;

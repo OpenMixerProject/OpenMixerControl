@@ -27,7 +27,6 @@ class Page : public X32Base
         X32_PAGE nextPage = X32_PAGE::NONE;
         X32_PAGE prevPage = X32_PAGE::NONE;
 
-        X32_BTN led = X32_BTN_NONE;
         bool noLedOnRack = false;
 
         lv_obj_t* tabLayer0 = nullptr; 
@@ -92,6 +91,4 @@ class Page : public X32Base
 
         X32_PAGE GetNextPage();
         X32_PAGE GetPrevPage();
-
-        X32_BTN GetLed();
 };

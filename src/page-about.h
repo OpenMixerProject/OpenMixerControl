@@ -11,7 +11,6 @@ class PageAbout: public Page {
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 3;
-            led = X32_BTN_SETUP;
             hideEncoders = true;
         }
 };

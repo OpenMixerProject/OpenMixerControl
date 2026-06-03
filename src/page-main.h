@@ -21,7 +21,6 @@ class PageMain : public Page
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 6;
-            led = X32_BTN_VIEW_MAIN;
             noLedOnRack = true;
         }
 

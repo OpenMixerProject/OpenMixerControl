@@ -239,15 +239,6 @@ X32_PAGE Page::GetPrevPage() {
     return prevPage;
 }
 
-X32_BTN Page::GetLed() {
-    if (!(config->IsModelX32Rack() && noLedOnRack))
-    {
-        return led;
-    }
-
-    return X32_BTN_NONE;
-}
-
 void Page::SyncEncoderWidgets(bool force)
 {
     if (hideEncoders && !config->GetBool(DISPLAY_MUTE_GROUP)) {

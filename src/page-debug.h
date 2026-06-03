@@ -13,7 +13,6 @@ class PageDebug: public Page
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 4;
-            led = X32_BTN_SETUP;
         }
 
         void OnShow() override 

@@ -13,7 +13,6 @@ class PageGate: public Page {
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 2;
-            led = X32_BTN_VIEW_GATE;
             noLedOnRack = true;
         }
 

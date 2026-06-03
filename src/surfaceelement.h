@@ -20,7 +20,7 @@ class SurfaceElement
 
         bool no_led = false;
 
-        X32_BOARD board_id;
+        OMC_BOARD board_id;
 
     public:
 
@@ -33,7 +33,7 @@ class SurfaceElement
             _name = name;
         }
 
-        SurfaceElement* DefFader(X32_BOARD board, uint faderindex)
+        SurfaceElement* DefFader(OMC_BOARD board, uint faderindex)
         {
             element_type = SurfaceElementType::Fader;
             board_id = board;
@@ -42,7 +42,7 @@ class SurfaceElement
             return this;
         }
 
-        SurfaceElement* DefButton(X32_BOARD board, uint button)
+        SurfaceElement* DefButton(OMC_BOARD board, uint button)
         {
             element_type = SurfaceElementType::Button;
             board_id = board;
@@ -51,7 +51,7 @@ class SurfaceElement
             return this;
         }
 
-        SurfaceElement* DefLcd(X32_BOARD board, uint lcd)
+        SurfaceElement* DefLcd(OMC_BOARD board, uint lcd)
         {
             element_type = SurfaceElementType::Lcd;
             board_id = board;
@@ -60,7 +60,7 @@ class SurfaceElement
             return this;
         }
 
-        SurfaceElement* DefLed(X32_BOARD board, uint led)
+        SurfaceElement* DefLed(OMC_BOARD board, uint led)
         {
             element_type = SurfaceElementType::Led;
             board_id = board;
@@ -69,7 +69,7 @@ class SurfaceElement
             return this;
         }
 
-        SurfaceElement* DefEncoder(X32_BOARD board, uint encoder, uint backlight = 0)
+        SurfaceElement* DefEncoder(OMC_BOARD board, uint encoder, uint backlight = 0)
         {
             element_type = SurfaceElementType::Encoder;
             board_id = board;
@@ -106,7 +106,7 @@ class SurfaceElement
             return element_id;
         }
 
-        X32_BOARD GetBoard()
+        OMC_BOARD GetBoard()
         {
             return board_id;
         }

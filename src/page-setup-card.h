@@ -152,7 +152,6 @@ class PageSetupCard: public Page {
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 1;
-            led = X32_BTN_SETUP;
         }
 
         void OnShow() override

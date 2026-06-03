@@ -13,7 +13,6 @@ class PageScenes: public Page
         PageScenes(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
             tabLayer0 = objects.maintab;
             tabIndex0 = 7;
-            led = X32_BTN_VIEW_SCENES;
         }
 
         void OnShow() override

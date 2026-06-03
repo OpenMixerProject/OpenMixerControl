@@ -24,7 +24,7 @@
 
 #include "surface-event.h"
 
-SurfaceEvent::SurfaceEvent(X32_BOARD _boardId, uint8_t _classId, uint8_t _index, uint16_t _value){
+SurfaceEvent::SurfaceEvent(OMC_BOARD _boardId, uint8_t _classId, uint8_t _index, uint16_t _value){
   this->boardId = _boardId;
   this->classId = _classId;
   this->index = _index;

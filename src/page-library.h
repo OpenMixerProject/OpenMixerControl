@@ -7,6 +7,5 @@ class PageLibrary: public Page {
         PageLibrary(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
             tabLayer0 = objects.maintab;
             tabIndex0 = 4;
-            led = X32_BTN_LIBRARY;
         }
 };

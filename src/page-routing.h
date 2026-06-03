@@ -16,7 +16,6 @@ class PageRouting: public Page
             tabIndex0 = 2;
             tabLayer1 = objects.routingtab;
             tabIndex1 = 0;
-            led = X32_BTN_ROUTING;
         }
 
 		void OnShow() override

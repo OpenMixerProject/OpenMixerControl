@@ -42,16 +42,11 @@ typedef union {
     int8_t s8[2];
 } data_16b;
 
-typedef struct{
-    X32_ENC encoder;
-    uint16_t encoderNr;
-} sEncoderInfo;
-
 
 // TouchControl Basic Plus - one fader at a time is touchcontrolled
 typedef struct{
     uint8_t value;
-    X32_BOARD board;
+    OMC_BOARD board;
     uint8_t faderIndex;
 } sTouchControl;
 
