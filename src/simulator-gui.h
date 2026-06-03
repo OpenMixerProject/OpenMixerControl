@@ -1,11 +1,14 @@
 #pragma once
 
+#include "defines.h"
+
 #ifdef BODYLESS_SDL2
 
-#include <lvgl/lvgl.h>
 #include <cstdint>
 #include <vector>
 #include <string>
+
+#include "../../lib_ext/lvgl/lvgl.h"
 #include "ctrl.h"
 
 // Forward declaration of X32Ctrl

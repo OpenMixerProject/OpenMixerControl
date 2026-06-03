@@ -83,7 +83,6 @@ void timer10msCallbackLvgl(_lv_timer_t* lv_timer) {
 	ui_tick(); ctrl->Tick10ms();
 }
 
-#ifndef __APPLE__
 void timer10msCallbackLinux(int timer) {
 	
 	ctrl->Tick10ms();
