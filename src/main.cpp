@@ -48,7 +48,7 @@
 
 #include "ctrl.h"
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 #include "simulator-gui.h"
 #endif
 
@@ -58,7 +58,7 @@ CLI::App* app;
 
 // LVGL
 static lv_display_t *display;
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 static lv_indev_t *mouse;
 static lv_indev_t *mouse_wheel;
 static lv_indev_t *keyboard;
@@ -145,7 +145,7 @@ void guiInit(X32Config* config) {
 	{
 		printf("bodyless mode (Development Simulator) startet\n");
 
-		#ifdef BODYLESS_SDL2
+		#ifdef TARGET_PC_SDL2
 		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
 	 	lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
 		keyboard = lv_sdl_keyboard_create();
@@ -189,7 +189,7 @@ void guiInit(X32Config* config) {
 	printf("ctrl->InitPagesAndGUI()\n");
 	ctrl->InitPagesAndGUI();
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 	if (state->bodyless) {
 		SimulatorGUI::Init(ctrl);
 	}
@@ -224,7 +224,7 @@ void guiInit(X32Config* config) {
 	uint32_t idle_time;
 	while (1)
 	{
-		#ifdef BODYLESS_SDL2
+		#ifdef TARGET_PC_SDL2
 			SimulatorGUI::Tick();
 		#endif
 		idle_time = lv_timer_handler();
@@ -235,7 +235,7 @@ void guiInit(X32Config* config) {
 
 void action_action_key(lv_event_t * e)
 {
-	#ifdef BODYLESS_SDL2
+	#ifdef TARGET_PC_SDL2
 	ctrl->SimulatorButton(lv_indev_get_key(keyboard));
 	#endif
 }

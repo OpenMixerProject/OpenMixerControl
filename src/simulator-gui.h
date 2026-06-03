@@ -2,7 +2,7 @@
 
 #include "defines.h"
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 
 #include <cstdint>
 #include <vector>

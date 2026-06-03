@@ -15,8 +15,10 @@
 
 //#################################################################################
 
+#define TARGET_PC_SDL2
+
 // bodyless mode does not compile with artnet, so disable it
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
     #define ENABLE_ARTNET 0
 #endif
 

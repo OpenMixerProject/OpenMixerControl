@@ -14,7 +14,7 @@ class X32Base
         State* state;
         Helper* helper;
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
         friend class SimulatorGUI;
 #endif
 

@@ -102,7 +102,7 @@ if [[ "${clean}" -eq 1 ]]; then
     make -C "${SRC_DIR}" -f Makefile_x64_SDL2 clean
 fi
 
-common_flags="-g -I../lib -I../lib/libartnet -I../lib/lv_port_linux -I../lib/glaze/include ${sdl_cflags} -MMD -MP -DBODYLESS_SDL2"
+common_flags="-g -I../lib -I../lib/libartnet -I../lib/lv_port_linux -I../lib/glaze/include ${sdl_cflags} -MMD -MP -DTARGET_PC_SDL2"
 
 make -C "${SRC_DIR}" -f Makefile_x64_SDL2 -j"$(jobs_count)" \
     CC="${CC:-cc}" \

@@ -124,7 +124,7 @@ class X32Ctrl : public X32Base
         uint autosavewait = 0;
         void AutoSave();
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
         friend class SimulatorGUI;
 #endif
 

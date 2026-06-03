@@ -1,6 +1,6 @@
 #include "simulator-gui.h"
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 #include "enum.h"
 #include <SDL2/SDL.h>
 #include <algorithm>

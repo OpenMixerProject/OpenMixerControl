@@ -132,7 +132,7 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
 }
 
 int Uart::Tx(MessageBase* message) {
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
     if (state->bodyless && !state->bodyless_with_surface_and_adda)
     {
         emulated_tx_buffer.insert(emulated_tx_buffer.end(), message->buffer, message->buffer + message->current_length);
@@ -178,7 +178,7 @@ int Uart::Tx(MessageBase* message) {
 }
 
 int Uart::Rx(char* buf, uint16_t bufLen) {
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
     if (state->bodyless && !state->bodyless_with_surface_and_adda)
     {
         if (emulated_rx_buffer.empty()) {
@@ -279,7 +279,7 @@ void Uart::FlushRxBuffer() {
 	while (Rx(&buf, 1) > 0);
 }
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 void Uart::WriteEmulatedRx(const char* data, size_t len) {
     emulated_rx_buffer.insert(emulated_rx_buffer.end(), data, data + len);
 }
