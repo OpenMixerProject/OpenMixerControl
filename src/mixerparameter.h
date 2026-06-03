@@ -9,6 +9,9 @@
 #include "defines.h"
 #include "enum.h"
 
+#include <stdexcept>
+#include <typeinfo>
+
 using namespace std;
 using namespace WString;
 
@@ -83,7 +86,7 @@ class Mixerparameter
         {
             if (index >= instances)
             {
-                __throw_out_of_range((String("The index ") + String(index) + String(" is bigger than the specified instances of ") + String(instances) + String(" (zero based!) of the Mixerparameter ") + GetName() + String(".")).c_str());
+                throw std::out_of_range((String("The index ") + String(index) + String(" is bigger than the specified instances of ") + String(instances) + String(" (zero based!) of the Mixerparameter ") + GetName() + String(".")).c_str());
             }
         }
 
@@ -94,7 +97,7 @@ class Mixerparameter
         {
             if (mp_value_type != value_type)
             {
-                __throw_bad_typeid();
+                throw std::bad_typeid();
             }
         }
 
@@ -104,7 +107,7 @@ class Mixerparameter
         {
             if (readonly)
             {
-                __throw_logic_error((String("The Mixerparameter ") + GetName() + String(" can not be changed, it is readonly.")).c_str());
+                throw std::logic_error((String("The Mixerparameter ") + GetName() + String(" can not be changed, it is readonly.")).c_str());
             }
         }
 
@@ -884,7 +887,7 @@ class Mixerparameter
 
             if (stepsize == 0)
             {
-                __throw_logic_error((String("Stepsize of Mixerparameter ") + GetName() + String(" is 0, so no change can happen!")).c_str());
+                throw std::logic_error((String("Stepsize of Mixerparameter ") + GetName() + String(" is 0, so no change can happen!")).c_str());
             }
 
             float newValue;

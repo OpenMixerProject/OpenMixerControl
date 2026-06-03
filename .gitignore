@@ -1,3 +1,5 @@
 src/lv_conf.h
 build/
 lib_ext
+bin
+scene*.json

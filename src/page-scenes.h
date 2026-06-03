@@ -2,10 +2,9 @@
 #include "page.h"
 
 using namespace std;
-using enum MP_ID;
-
 class PageScenes: public Page
 {
+    using enum MP_ID;
     private:
         int configindex = 0;
 

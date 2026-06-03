@@ -48,6 +48,9 @@
 
 #include "ctrl.h"
 
+#ifdef BODYLESS_SDL2
+#include "simulator-gui.h"
+#endif
 
 X32Ctrl* ctrl;
 State* state;
@@ -61,9 +64,11 @@ static lv_indev_t *mouse_wheel;
 static lv_indev_t *keyboard;
 #endif
 
+#ifndef __APPLE__
 timer_t timerid_10ms;
 struct sigevent sev_10ms;
 struct itimerspec trigger_10ms;
+#endif
 uint8_t vtimercounter = 0;
 
 void timer100msCallbackLvgl(_lv_timer_t* lv_timer) { 
@@ -77,6 +82,8 @@ void timer50msCallbackLvgl(_lv_timer_t* lv_timer) {
 void timer10msCallbackLvgl(_lv_timer_t* lv_timer) {
 	ui_tick(); ctrl->Tick10ms();
 }
+
+#ifndef __APPLE__
 void timer10msCallbackLinux(int timer) {
 	
 	ctrl->Tick10ms();
@@ -131,6 +138,7 @@ const char * getenv_default(const char * name, const char * default_val)
 
 
 void guiInit(X32Config* config) {
+	using enum MP_ID;
 
 	lv_init();
 
@@ -182,6 +190,12 @@ void guiInit(X32Config* config) {
 	printf("ctrl->InitPagesAndGUI()\n");
 	ctrl->InitPagesAndGUI();
 
+#ifdef BODYLESS_SDL2
+	if (state->bodyless) {
+		SimulatorGUI::Init(ctrl);
+	}
+#endif
+
 	// trigger first update of display header
 	printf("config->Refresh(SELECTED_CHANNEL)\n");
 	config->Refresh(SELECTED_CHANNEL);
@@ -211,6 +225,9 @@ void guiInit(X32Config* config) {
 	uint32_t idle_time;
 	while (1)
 	{
+		#ifdef BODYLESS_SDL2
+			SimulatorGUI::Tick();
+		#endif
 		idle_time = lv_timer_handler();
 		usleep(idle_time * 1000);
 	}
@@ -394,7 +411,11 @@ int main(int argc, char* argv[]) {
 	if (config->IsModelX32Core()){
 		// only necessary if LVGL is not used
 		helper->Log("Starting Timers...\n");
+#ifndef __APPLE__
 		init10msTimer_NonGUI();
+#else
+		helper->Log("Timers not supported on macOS.\n");
+#endif
 
 		helper->Log("Press Ctrl+C to terminate program.\n");
 		while (1) {

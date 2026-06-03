@@ -9,14 +9,13 @@
 #include "base.h"
 
 using namespace std;
-using enum MP_ID;
-
 #if ENABLE_ARTNET
 
 #include "artnet/artnet.h"
 
 class Artnet : public X32Base
 {
+    using enum MP_ID;
     public:
         Artnet(X32BaseParameter* basepar);
         void Init();

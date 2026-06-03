@@ -14,6 +14,10 @@ class X32Base
         State* state;
         Helper* helper;
 
+#ifdef BODYLESS_SDL2
+        friend class SimulatorGUI;
+#endif
+
     public:
         X32Base(X32BaseParameter* basepar);
 };

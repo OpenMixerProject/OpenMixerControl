@@ -1179,7 +1179,11 @@
 #endif
 
 /** Driver for /dev/fb */
+#ifdef __APPLE__
+#define LV_USE_LINUX_FBDEV      0
+#else
 #define LV_USE_LINUX_FBDEV      1
+#endif
 #if LV_USE_LINUX_FBDEV
     #define LV_LINUX_FBDEV_BSD           0
     #define LV_LINUX_FBDEV_RENDER_MODE   LV_DISPLAY_RENDER_MODE_PARTIAL

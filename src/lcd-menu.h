@@ -10,6 +10,7 @@ using namespace std;
 
 class LcdMenu : public X32Base {
     private:
+        using enum MP_ID;
         Mixer* mixer;
         Surface* surface;
         bool initDone = false;

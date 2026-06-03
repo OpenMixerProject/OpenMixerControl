@@ -20,10 +20,9 @@
 #include "card.h"
 
 using namespace std;
-using enum MP_ID;
-
 class Mixer : public X32Base
 {
+    using enum MP_ID;
     private:
 
         // solo is (somewhere) activated

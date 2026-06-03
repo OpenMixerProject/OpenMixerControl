@@ -16,11 +16,10 @@
 #include "eez/styles.h"
 
 using namespace std;
-using enum MP_ID;
-
 class Page : public X32Base
 {
     protected:
+        using enum MP_ID;
         Mixer* mixer;
         Surface* surface;
 

@@ -3,10 +3,9 @@
 #include "page.h"
 
 using namespace std;
-using enum MP_ID;
-
 class PageRoutingDsp: public Page
 {
+	using enum MP_ID;
 	private:
 
 	 	int gui_selected_item = 0;
