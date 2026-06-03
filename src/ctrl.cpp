@@ -27,32 +27,7 @@ X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 
 void X32Ctrl::Init()
 {
-	//##################################################################################
-	//#
-	//# 	Read x32ctrl configuration
-	//#
-	//##################################################################################
-
-	// first try to find what we are: Fullsize, Compact, Producer, Rack or Core
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Reading config...");
-	char model[12];
-	char serial[15];
-	char date[16];
-	char cfg[5];
-	helper->ReadConfig("/etc/x32.conf", "MDL=", model, 12);
-	helper->ReadConfig("/etc/x32.conf", "SN=", serial, 15);
-	helper->ReadConfig("/etc/x32.conf", "DATE=", date, 16);
-	helper->ReadConfig("/etc/x32.conf", "CFG", cfg, 5);
-	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
-
-	if (state->bodyless) {
-		config->SetModel("X32C");
-		//config->SetModel("X32");
-	} else if (state->raspi) {
-		config->SetModel("X32RACK");
-	} else {
-		config->SetModel(model);
-	}
+	
 
 	//##################################################################################
 	//#
@@ -76,7 +51,7 @@ void X32Ctrl::Init()
 	wsm->Init();
 
 
-	if (config->IsModelX32Core()) {
+	if (config->IsModelX32Core() || config->IsModelM32C()) {
 		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "lcdmenu->Init()");
 		lcdmenu->OnInit();
 	}
@@ -104,14 +79,17 @@ void X32Ctrl::Init()
 	DYNAMICEQ = 6
 	*/
 
-	mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // this effect takes lot of DSP-ressources
-	mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
-	mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
-	mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
-	mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
-	mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
-	mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
-	mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
+	if (config->IsModelAnyXM32())
+	{
+		mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // this effect takes lot of DSP-ressources
+		mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
+		mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+		mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
+		mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
+		mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
+		mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
+		mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
+	}
 
 	//############################################################################
 

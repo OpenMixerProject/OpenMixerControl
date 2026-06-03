@@ -231,6 +231,53 @@ int main(int argc, char* argv[]) {
     X32Config* config = new X32Config(helper);
     state = new State();
 
+	//##################################################################################
+	//#
+	//# 	Read hardware configuration, before any more classes are constructed!
+	//#
+	//##################################################################################
+
+	// first try to find what we are: Fullsize, Compact, Producer, Rack or Core
+	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Reading hardware config...");
+	char model[12];
+	char serial[15];
+	char date[16];
+	char cfg[5];
+
+	#ifdef TARGET_XM32
+	
+	helper->ReadConfig("/etc/x32.conf", "MDL=", model, 12);
+	helper->ReadConfig("/etc/x32.conf", "SN=", serial, 15);
+	helper->ReadConfig("/etc/x32.conf", "DATE=", date, 16);
+	helper->ReadConfig("/etc/x32.conf", "CFG", cfg, 5);
+
+	#elifdef TARGET_WING
+
+	// DEBUG
+	strcpy(model, "WINGC"); // asume WING Compact for now
+	strcpy(serial, "DEV_NO_SERIAL");
+	strcpy(date, "DEV_NO_DATE");
+
+	// TODO
+	// helper->ReadConfig("/etc/wing.conf", "MDL=", model, 12);
+	// helper->ReadConfig("/etc/wing.conf", "SN=", serial, 15);
+	// helper->ReadConfig("/etc/wing.conf", "DATE=", date, 16);
+	// helper->ReadConfig("/etc/wing.conf", "CFG", cfg, 5);
+
+	#endif
+
+	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
+
+	if (state->bodyless) {
+		config->SetModel("X32C");
+		//config->SetModel("X32");
+	} else if (state->raspi) {
+		config->SetModel("X32RACK");
+	} else {
+		config->SetModel(model);
+	}
+
+
 	app = new CLI::App();
 	app->description("Open Mixer Control");
 	argv = app->ensure_utf8(argv);
