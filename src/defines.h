@@ -15,17 +15,19 @@
 
 //#################################################################################
 
-#define TARGET_PC_SDL2
-
 // bodyless mode does not compile with artnet, so disable it
 #ifdef TARGET_PC_SDL2
+    #define ENABLE_ARTNET 0
+#endif
+
+#ifdef TARGET_WING
     #define ENABLE_ARTNET 0
 #endif
 
 
 typedef unsigned int uint;
 
-#define X32_CTRL_VERSION "v0.2.5"
+#define X32_CTRL_VERSION "v0.2.6"
 
 #define X32_CTRL_URL "https://github.com/OpenMixerProject/OpenX32"
 

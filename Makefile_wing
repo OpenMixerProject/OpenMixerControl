@@ -1,0 +1,121 @@
+#
+# Makefile
+#
+
+COPTS           ?= 
+CC              = arm-linux-gnueabihf-gcc
+CXX             = arm-linux-gnueabihf-g++
+AR              = arm-linux-gnueabihf-ar
+LD              = arm-linux-gnueabihf-ld
+
+BIN             = wing-omc
+BUILD_DIR       ?= build/wing
+BUILD_OBJ_DIR   = $(BUILD_DIR)/obj
+BUILD_BIN_DIR   = $(BUILD_DIR)
+
+prefix          ?= /usr
+bindir          ?= $(prefix)/bin
+
+LIB_DIR			?= lib
+LIB_EXT_DIR		?= lib_ext
+LVGL_DIR        ?= $(LIB_EXT_DIR)/lvgl
+GLAZE_DIR		?= $(LIB_EXT_DIR)/glaze/include
+LIBARTNET_DIR	?= $(LIB_EXT_DIR)/libartnet
+
+WARNINGS        := -Wall -Wshadow -Wundef -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith \
+                   -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits \
+                   -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security \
+                   -Wno-ignored-qualifiers -Wno-error=pedantic -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body \
+                   -Wshift-negative-value -Wstack-usage=2048 -Wno-unused-value
+
+DEPFLAGS        = -MMD -MP -D=TARGET_WING
+
+# normal build
+CFLAGS          ?= -std=c11 $(COPTS) -g0 -D_GNU_SOURCE -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+CXXFLAGS        ?= -std=c++23 $(COPTS) -g0 -D_GNU_SOURCE -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+
+# debug build
+#CFLAGS          ?= -std=c11 -g -D_GNU_SOURCE -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+#CXXFLAGS         ?= -std=c++23 -D_GNU_SOURCE -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+
+LDFLAGS         ?= -static -lm -lrt -lpthread #-lartnet
+
+# Collect source files recursively
+CSRCS           := $(shell find src -type f -name '*.c' -print) \
+		 	   	   $(shell find $(LIB_DIR) -type f -name '*.c' -print) \
+				   $(shell find $(LVGL_DIR)/src -type f -name '*.c' -print) \
+				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.c' -print)
+				   
+CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
+				   $(shell find $(LIB_DIR) -type f -name '*.cpp' -print) \
+				   $(shell find $(LVGL_DIR)/src -type f -name '*.cpp' -print) \
+				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.cpp' -print)
+
+
+
+all: copy default
+
+test:
+	@echo $(CSRCS)
+
+# Include LVGL sources
+#include $(LVGL_DIR)/lvgl.mk
+
+OBJEXT          ?= .o
+
+COBJS           = $(CSRCS:.c=$(OBJEXT))
+CXXOBJS         = $(CXXSRCS:.cpp=$(OBJEXT))
+AOBJS           = $(ASRCS:.S=$(OBJEXT))
+
+SRCS            = $(ASRCS) $(CSRCS) $(CXXSRCS)
+OBJS            = $(AOBJS) $(COBJS) $(CXXOBJS)
+TARGET          = $(addprefix $(BUILD_OBJ_DIR)/, $(patsubst ./%, %, $(OBJS)))
+DEPS            = $(TARGET:.o=.d)
+
+$(BUILD_OBJ_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@$(CC)  $(CFLAGS) -c $< -o $@
+	@echo "CC  $<"
+
+$(BUILD_OBJ_DIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	@$(CXX)  $(CXXFLAGS) -c $< -o $@
+	@echo "CXX $<"
+
+$(BUILD_OBJ_DIR)/%.o: %.S
+	@mkdir -p $(dir $@)
+	@$(CC)  $(CFLAGS) -c $< -o $@
+	@echo "AS  $<"
+
+copy:
+	cp files/Makefile.lvgl $(LVGL_DIR)/Makefile
+
+	@if ! diff -q files/lv_conf.h $(LVGL_DIR)/lv_conf.h >/dev/null 2>&1; then \
+		cp files/lv_conf.h $(LVGL_DIR)/lv_conf.h; \
+		echo "Update $(LVGL_DIR)/lv_conf.h (changed content)"; \
+	else \
+		echo "$(LVGL_DIR)/lv_conf.h is up to date."; \
+	fi
+
+# 	@if ! diff -q files/lv_conf.h src/lv_conf.h >/dev/null 2>&1; then \
+# 		cp files/lv_conf.h src/lv_conf.h; \
+# 		echo "Update src/lv_conf.h (changed content)"; \
+# 	else \
+# 		echo "src/lv_conf.h is up to date."; \
+# 	fi
+
+	@if ! diff -q files/libartnet_network.c $(LIBARTNET_DIR)/artnet/network.c >/dev/null 2>&1; then \
+		cp files/libartnet_network.c $(LIBARTNET_DIR)/artnet/network.c; \
+		echo "Update $(LIBARTNET_DIR)/artnet/network.c (changed content)"; \
+	else \
+		echo "$(LIBARTNET_DIR)/artnet/network.c is up to date."; \
+	fi
+
+default: $(TARGET)
+	@mkdir -p $(dir $(BUILD_BIN_DIR)/)
+	$(CXX) -o $(BUILD_BIN_DIR)/$(BIN) $(TARGET) $(LDFLAGS)
+
+-include $(DEPS)
+
+clean:
+	rm -rf $(BUILD_DIR)
