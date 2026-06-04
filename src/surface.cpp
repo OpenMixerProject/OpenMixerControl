@@ -23,9 +23,16 @@
 */
 
 #include "surface.h"
+#include "x32-fader-controller.h"
+#include "wing-fader-controller.h"
 
 Surface::Surface(X32BaseParameter* basepar): X32Base(basepar){
     uart = new Uart(basepar);
+    if (config->IsModelAnyWing()) {
+        faderController = new WingFaderController(basepar, this);
+    } else {
+        faderController = new X32FaderController(basepar, this);
+    }
 }
 
 void Surface::Init(void) {
@@ -67,10 +74,16 @@ void Surface::Init(void) {
     {
         uart->Open("/dev/ttyUSB0", 115200, true);
     }
+    else if (config->IsModelAnyWing())
+    {
+        uart->Open("/dev/ttymxc4", 115200, true);
+    }
     else
     {
         uart->Open("/dev/ttymxc1", 115200, true);
     }
+
+    faderController->Init();
 
     Reset();
 }
@@ -84,17 +97,19 @@ void Surface::Reset(void) {
     }
     else
     {  
-        int fd = open("/sys/class/leds/reset_surface/brightness", O_WRONLY);
-        write(fd, "1", 1);
-        usleep(100 * 1000);
-        write(fd, "0", 1);
-        close(fd);
-        usleep(2000 * 1000);
+        if (!config->IsModelAnyWing()) {
+            int fd = open("/sys/class/leds/reset_surface/brightness", O_WRONLY);
+            write(fd, "1", 1);
+            usleep(100 * 1000);
+            write(fd, "0", 1);
+            close(fd);
+            usleep(2000 * 1000);
+        }
     }
 
-    //Reset twice (the first faders are not reseted if we do it only once)
-    FaderReset();
-    FaderReset();
+    if (faderController) {
+        faderController->Reset();
+    }
 
     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "... Done");
 }
@@ -727,143 +742,29 @@ void Surface::Blink()
 
 
 
-// ####################################################################
-// #
-// #
-// #        Touchcontrol
-// #
-// #
-// ####################################################################
-
-/// @brief Set All Faders to 0 (-Unlimited dBFS)
 void Surface::FaderReset()
 {
-    // Reset touchcontrol wait time
-    for(uint8_t faderindex=0; faderindex<MAX_FADERS; faderindex++){
-        faders[faderindex].wait = 0;
-    }
-
-    // Reset position of faders
-    uint8_t maxfaderindex = 0;
-    if (config->IsModelX32FullOrM32()){
-        maxfaderindex = MAX_FADERS;
-    }
-    if (config->IsModelX32CompactOrProducerOrM32R()){
-        maxfaderindex = MAX_FADERS-8;
-    }
-
-    for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
-    {
-        faders[faderindex].position_real = 0;
-        SetFaderRaw(GetBoardId(faderindex), GetFaderId(faderindex), 0);
+    if (faderController) {
+        faderController->FaderReset();
     }
 }
 
-// Want to move Fader to Position
-// position = 0x0000 ... 0x0FFF
 void Surface::SetFader(uint8_t boardId, uint8_t index, uint16_t position) {
-    uint8_t faderindex = GetChannelstripIndex(boardId, index);
-
-    //if (faders[faderindex].position_real != faders[faderindex].position_wanted) {
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Want to move fader at index %d to %d", faderindex, position);
-        faders[faderindex].position_wanted = position;
-   // }
+    if (faderController) {
+        faderController->SetFader(boardId, index, position);
+    }
 }
 
-// Fader was physically moved (by us or by operator)
 void Surface::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value)
 {
-    uint8_t faderindex = GetChannelstripIndex(boardId, index);
-    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Fader at index %d moved to %d", faderindex, value);
-    faders[faderindex].position_wanted = value;
-    faders[faderindex].position_real = value;
-    faders[faderindex].wait = 10; // wait 100x 10ms
-}
-
-uint8_t Surface::GetChannelstripIndex(uint8_t boardId, uint8_t index)
-{
-    switch (boardId)
-    {
-        case X32_BOARD_L:
-            return index;
-        case X32_BOARD_M: // only X32 Full
-            return index + 8;
-        case X32_BOARD_R:
-            return index + (config->IsModelX32FullOrM32() ? 16 : 8);  // 16 - X32 Full, 8 - X32 Compact/Producer
-        default:
-            return 0;
+    if (faderController) {
+        faderController->FaderMoved(boardId, index, value);
     }
-}
-
-uint8_t Surface::GetBoardId(uint8_t faderindex) {
-    if(config->IsModelX32FullOrM32())
-    {
-        if (faderindex < 8){
-            return X32_BOARD_L;
-        }
-        if (faderindex < 16){
-            return X32_BOARD_M;
-        }
-        return X32_BOARD_R;
-    }
-
-    if(config->IsModelX32CompactOrProducerOrM32R())
-    {
-        if (faderindex < 8){
-            return X32_BOARD_L;
-        }
-        return X32_BOARD_R;
-    }
-
-    return 0;
-}
-
-uint8_t Surface::GetFaderId(uint8_t faderindex) {
-    if(config->IsModelX32FullOrM32())
-    {
-        if (faderindex < 8){
-            return faderindex;
-        }
-        if (faderindex < 16){
-            return faderindex-8;
-        }
-        return faderindex-16;
-    }
-
-    if(config->IsModelX32CompactOrProducerOrM32R())
-    {
-        if (faderindex < 8){
-            return faderindex;
-        }
-        return faderindex-8;
-    }
-
-    return 0;
 }
 
 void Surface::Touchcontrol() {
-
-    uint8_t maxfaderindex = 0;
-    if (config->IsModelX32FullOrM32()){
-        maxfaderindex = MAX_FADERS;
-    }
-    if (config->IsModelX32CompactOrProducerOrM32R()){
-        maxfaderindex = MAX_FADERS-8;
-    }
-
-    for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
-    {
-        if (faders[faderindex].wait > 0)
-        {
-            faders[faderindex].wait--;
-            helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Reduced wait time on fader at index %d to %d", faderindex, faders[faderindex].wait);
-        }
-        else if (faders[faderindex].position_real != faders[faderindex].position_wanted)
-        {
-            helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Move fader at index %d from %d to %d", faderindex, faders[faderindex].position_real, faders[faderindex].position_wanted);
-            faders[faderindex].position_real = faders[faderindex].position_wanted;
-            SetFaderRaw(GetBoardId(faderindex), GetFaderId(faderindex), faders[faderindex].position_wanted);
-        }
+    if (faderController) {
+        faderController->Touchcontrol();
     }
 }
 

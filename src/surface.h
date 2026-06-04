@@ -16,11 +16,11 @@
 
 using namespace std;
 
+class FaderController;
+
 class Surface : public X32Base
 {
     private:
-
-        SurfaceFader faders[MAX_FADERS];
 
         uint blinkwait = 0;
         bool blinkstate = false;
@@ -36,14 +36,12 @@ class Surface : public X32Base
         uint16_t CalcEncoderRingLedBalance(uint8_t pct);
         uint16_t CalcEncoderRingLedWidth(uint8_t pct);
 
-        void SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position);
-        uint8_t GetBoardId(uint8_t faderindex);
-        uint8_t GetFaderId(uint8_t faderindex);
-
         uint8_t calculateChecksum(const char* data, uint16_t len);
         int SendData(MessageBase* message, bool addChecksum);
 
     public:
+        FaderController* faderController;
+        void SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position);
     
         Surface(X32BaseParameter* basepar);
         Uart* uart;
@@ -55,9 +53,8 @@ class Surface : public X32Base
 
         void LoadX32CoreDefinitions();
 
-        uint8_t GetChannelstripIndex(uint8_t boardId, uint8_t index);
-
         void SetBrightnessAllBoards(uint8_t brightness);
+
         void SetBrightness(uint8_t boardId, uint8_t brightness);
         void SetContrastAllBoards(uint8_t contrast);
         void SetContrast(uint8_t boardId, uint8_t contrast);
