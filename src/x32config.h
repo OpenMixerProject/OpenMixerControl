@@ -102,7 +102,8 @@ class X32Config
 
         bool HasSurfaceElement(SurfaceElementId id);
         SurfaceElement* GetSurfaceElement(SurfaceElementId);
-        SurfaceElement* GetSurfaceElementButton(OMC_BOARD board, uint16_t value);
+        SurfaceElement* GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_t value);
+        SurfaceElement* GetSurfaceElementButton_Wing(uint index);
         SurfaceElement* GetSurfaceElementEncoder(OMC_BOARD board, uint8_t index);
         SurfaceElement* GetSurfaceElementFader(OMC_BOARD board, uint8_t index);
         

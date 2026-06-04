@@ -2395,170 +2395,180 @@ void X32Ctrl::ProcessUartDataSurface()
 // Bind Surfaceelements to Mixerparameter or special functions
 void X32Ctrl::LoadDefaultSurfaceBinding()
 {
-	// Display
-	config->SurfaceBind(SurfaceElementId::HOME, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::HOME));
-	config->SurfaceBind(SurfaceElementId::METERS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::METERS));
-	config->SurfaceBind(SurfaceElementId::ROUTING, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::ROUTING));
-	config->SurfaceBind(SurfaceElementId::SETUP, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP));
-	config->SurfaceBind(SurfaceElementId::LIBRARY, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::LIBRARY));
-	config->SurfaceBind(SurfaceElementId::EFFECTS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EFFECTS));
-	config->SurfaceBind(SurfaceElementId::MUTE_GRP, MixerparameterAction::TOGGLE, DISPLAY_MUTE_GROUP);
-	config->SurfaceBind(SurfaceElementId::UTILITY, MixerparameterAction::TOGGLE, DISPLAY_UTILITY);
-
-	config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
-	config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
-	config->SurfaceBind(SurfaceElementId::UP, MixerparameterAction::TOGGLE, DISPLAY_UP);
-	config->SurfaceBind(SurfaceElementId::DOWN, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
-
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	if (config->IsModelAnyXM32())
 	{
-		// Config / Preamp
-		config->SurfaceBind(SurfaceElementId::GAIN_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
-		config->SurfaceBind(SurfaceElementId::PHANTOM_48V, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHANTOM);
-		config->SurfaceBind(SurfaceElementId::PHASE_INVERT, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHASE_INVERT);
-		config->SurfaceBind(SurfaceElementId::LOW_CUT_FREQ_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
-		config->SurfaceBind(SurfaceElementId::LOW_CUT, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
-		config->SurfaceBind(SurfaceElementId::VIEW_CONFIG, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::CONFIG));
+		// Display
+		config->SurfaceBind(SurfaceElementId::HOME, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::HOME));
+		config->SurfaceBind(SurfaceElementId::METERS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::METERS));
+		config->SurfaceBind(SurfaceElementId::ROUTING, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::ROUTING));
+		config->SurfaceBind(SurfaceElementId::SETUP, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP));
+		config->SurfaceBind(SurfaceElementId::LIBRARY, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::LIBRARY));
+		config->SurfaceBind(SurfaceElementId::EFFECTS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EFFECTS));
+		config->SurfaceBind(SurfaceElementId::MUTE_GRP, MixerparameterAction::TOGGLE, DISPLAY_MUTE_GROUP);
+		config->SurfaceBind(SurfaceElementId::UTILITY, MixerparameterAction::TOGGLE, DISPLAY_UTILITY);
 
-		// Gate
-		config->SurfaceBind(SurfaceElementId::GATE_THRESHOLD_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_TRESHOLD);
-		config->SurfaceBind(SurfaceElementId::GATE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_GATE_ENABLE);
-		config->SurfaceBind(SurfaceElementId::VIEW_GATE, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::GATE));
+		config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+		config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+		config->SurfaceBind(SurfaceElementId::UP, MixerparameterAction::TOGGLE, DISPLAY_UP);
+		config->SurfaceBind(SurfaceElementId::DOWN, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
 
-		// Dynamics
-		config->SurfaceBind(SurfaceElementId::DYNAMICS_THRESHOLD_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_TRESHOLD);
-		config->SurfaceBind(SurfaceElementId::COMP_EXP, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_COMPRESSOR_ENABLE);
-		config->SurfaceBind(SurfaceElementId::VIEW_DYNAMICS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::COMPRESSOR));
-
-		// EQ
-		config->SurfaceBind(SurfaceElementId::EQ_HCUT_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::HICUT);
-		config->SurfaceBind(SurfaceElementId::EQ_HSHV_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::HIGHSHELV);
-		//config->SurfaceBind(SurfaceElementId::EQ_VEQ_LED, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::V);
-		config->SurfaceBind(SurfaceElementId::EQ_PEQ_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::PEQ);
-		config->SurfaceBind(SurfaceElementId::EQ_LSHV_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::LOWSHELV);
-		config->SurfaceBind(SurfaceElementId::EQ_LCUT_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::LOWCUT);
-		config->SurfaceBind(SurfaceElementId::EQ_MODE, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
-
-		config->SurfaceBind(SurfaceElementId::EQ_Q_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
-		config->SurfaceBind(SurfaceElementId::EQ_FREQ_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
-		config->SurfaceBind(SurfaceElementId::EQ_GAIN_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
-
-		config->SurfaceBind(SurfaceElementId::EQ_LOW, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 0);
-		config->SurfaceBind(SurfaceElementId::EQ_LOW_MID, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 1);
-		config->SurfaceBind(SurfaceElementId::EQ_HIGH_MID, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 2);
-		config->SurfaceBind(SurfaceElementId::EQ_HIGH, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 3);
-		config->SurfaceBind(SurfaceElementId::EQ, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
-		config->SurfaceBind(SurfaceElementId::VIEW_EQ, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EQ));
-
-		// Bus Sends
-		config->SurfaceBind(SurfaceElementId::VIEW_MIX_BUS_SENDS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SENDS));
-		if (config->IsModelX32FullOrM32())
+		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 		{
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_1, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND01, (uint)BANKING_BUS_SENDS, 4);
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND02, (uint)BANKING_BUS_SENDS, 4);
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND03, (uint)BANKING_BUS_SENDS, 4);
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND04, (uint)BANKING_BUS_SENDS, 4);
+			// Config / Preamp
+			config->SurfaceBind(SurfaceElementId::GAIN_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
+			config->SurfaceBind(SurfaceElementId::PHANTOM_48V, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHANTOM);
+			config->SurfaceBind(SurfaceElementId::PHASE_INVERT, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHASE_INVERT);
+			config->SurfaceBind(SurfaceElementId::LOW_CUT_FREQ_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
+			config->SurfaceBind(SurfaceElementId::LOW_CUT, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_CONFIG, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::CONFIG));
 
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_1_4, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 0);
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_5_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 1);
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_9_12, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 2);
-			config->SurfaceBind(SurfaceElementId::BUS_SEND_13_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 3);
+			// Gate
+			config->SurfaceBind(SurfaceElementId::GATE_THRESHOLD_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_TRESHOLD);
+			config->SurfaceBind(SurfaceElementId::GATE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_GATE_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_GATE, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::GATE));
+
+			// Dynamics
+			config->SurfaceBind(SurfaceElementId::DYNAMICS_THRESHOLD_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_TRESHOLD);
+			config->SurfaceBind(SurfaceElementId::COMP_EXP, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_COMPRESSOR_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_DYNAMICS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::COMPRESSOR));
+
+			// EQ
+			config->SurfaceBind(SurfaceElementId::EQ_HCUT_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::HICUT);
+			config->SurfaceBind(SurfaceElementId::EQ_HSHV_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::HIGHSHELV);
+			//config->SurfaceBind(SurfaceElementId::EQ_VEQ_LED, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::V);
+			config->SurfaceBind(SurfaceElementId::EQ_PEQ_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::PEQ);
+			config->SurfaceBind(SurfaceElementId::EQ_LSHV_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::LOWSHELV);
+			config->SurfaceBind(SurfaceElementId::EQ_LCUT_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::LOWCUT);
+			config->SurfaceBind(SurfaceElementId::EQ_MODE, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
+
+			config->SurfaceBind(SurfaceElementId::EQ_Q_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
+			config->SurfaceBind(SurfaceElementId::EQ_FREQ_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
+			config->SurfaceBind(SurfaceElementId::EQ_GAIN_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
+
+			config->SurfaceBind(SurfaceElementId::EQ_LOW, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 0);
+			config->SurfaceBind(SurfaceElementId::EQ_LOW_MID, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 1);
+			config->SurfaceBind(SurfaceElementId::EQ_HIGH_MID, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 2);
+			config->SurfaceBind(SurfaceElementId::EQ_HIGH, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 3);
+			config->SurfaceBind(SurfaceElementId::EQ, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_EQ, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EQ));
+
+			// Bus Sends
+			config->SurfaceBind(SurfaceElementId::VIEW_MIX_BUS_SENDS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SENDS));
+			if (config->IsModelX32FullOrM32())
+			{
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_1, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND01, (uint)BANKING_BUS_SENDS, 4);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND02, (uint)BANKING_BUS_SENDS, 4);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND03, (uint)BANKING_BUS_SENDS, 4);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND04, (uint)BANKING_BUS_SENDS, 4);
+
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_1_4, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 0);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_5_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 1);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_9_12, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 2);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_13_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 3);
+			}
+			
+			// Bus Mixes
+			config->SurfaceBind(SurfaceElementId::MAIN_BUS_LEVEL_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME_SUB);
+			config->SurfaceBind(SurfaceElementId::MONO_BUS, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_SUB);
+			config->SurfaceBind(SurfaceElementId::PAN_BAL_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_PANORAMA);
+			config->SurfaceBind(SurfaceElementId::MAIN_LR_BUS, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_LR);
+			config->SurfaceBind(SurfaceElementId::VIEW_MAIN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::MAIN));
+			
+			// Scenes
+			config->SurfaceBind(SurfaceElementId::VIEW_SCENES, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
+
+			// Assign
+			
+			// assign Channel 1-4 with Volume, LCD, Solo, Mute
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_1, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_1, MixerparameterAction::LCD_Channel, NONE, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_2, MixerparameterAction::LCD_Channel, NONE, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_3, MixerparameterAction::LCD_Channel, NONE, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_4, MixerparameterAction::LCD_Channel, NONE, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_5, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_7, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_8, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_9, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_10, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_11, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_12, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 3);
+
+			config->SurfaceBind(SurfaceElementId::ASSIGN_A, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_B, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_C, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 2);
+			config->SurfaceBind(SurfaceElementId::VIEW_ASSIGN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP_SURFACE));
+
+			// Remote
+			config->SurfaceBind(SurfaceElementId::DAW_REMOTE, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::REMOTE1));
+
+			// Banking of Input Section
+			if (config->IsModelX32Full())
+			{
+				config->SurfaceBind(SurfaceElementId::CH1_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_16));
+				config->SurfaceBind(SurfaceElementId::CH17_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_32));
+				config->SurfaceBind(SurfaceElementId::AUX_USB_RX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB_FX_RET));
+				config->SurfaceBind(SurfaceElementId::BUS_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_16));
+			}
+			else if (config->IsModelX32CompactOrProducerOrM32R())
+			{
+				config->SurfaceBind(SurfaceElementId::CH1_8, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_8));
+				config->SurfaceBind(SurfaceElementId::CH9_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH9_16));
+				config->SurfaceBind(SurfaceElementId::CH17_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_24));
+				config->SurfaceBind(SurfaceElementId::CH25_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH25_32));
+				config->SurfaceBind(SurfaceElementId::AUX_USB, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB));
+				config->SurfaceBind(SurfaceElementId::FX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::FX_RET));
+				config->SurfaceBind(SurfaceElementId::BUS1_8_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_8));
+				config->SurfaceBind(SurfaceElementId::BUS9_16_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS9_16));
+			}
+
+			// Banking of Bus Section
+			config->SurfaceBind(SurfaceElementId::DCA, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::DCA));
+			config->SurfaceBind(SurfaceElementId::BUS1_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS1_8));
+			config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
+			config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
+
+			LoadMainFaderSurfaceBinding();
+
+			// Mute Groups
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_1, MixerparameterAction::TOGGLE, MUTE_GROUP_1_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_2, MixerparameterAction::TOGGLE, MUTE_GROUP_2_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_3, MixerparameterAction::TOGGLE, MUTE_GROUP_3_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_4, MixerparameterAction::TOGGLE, MUTE_GROUP_4_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_5, MixerparameterAction::TOGGLE, MUTE_GROUP_5_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_6, MixerparameterAction::TOGGLE, MUTE_GROUP_6_MUTE);
 		}
-		
-		// Bus Mixes
-		config->SurfaceBind(SurfaceElementId::MAIN_BUS_LEVEL_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME_SUB);
-		config->SurfaceBind(SurfaceElementId::MONO_BUS, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_SUB);
-		config->SurfaceBind(SurfaceElementId::PAN_BAL_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_PANORAMA);
-		config->SurfaceBind(SurfaceElementId::MAIN_LR_BUS, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_LR);
-		config->SurfaceBind(SurfaceElementId::VIEW_MAIN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::MAIN));
-		
-		// Scenes
-		config->SurfaceBind(SurfaceElementId::VIEW_SCENES, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
 
-		// Assign
-		
-		// assign Channel 1-4 with Volume, LCD, Solo, Mute
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_1, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 0);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 2);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 3);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_1, MixerparameterAction::LCD_Channel, NONE, 0);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_2, MixerparameterAction::LCD_Channel, NONE, 1);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_3, MixerparameterAction::LCD_Channel, NONE, 2);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_4, MixerparameterAction::LCD_Channel, NONE, 3);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 2);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 3);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_5, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 0);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 1);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_7, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 2);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_8, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 3);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_9, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 0);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_10, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 1);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_11, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 2);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_12, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 3);
-
-		config->SurfaceBind(SurfaceElementId::ASSIGN_A, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 0);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_B, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 1);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_C, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 2);
-		config->SurfaceBind(SurfaceElementId::VIEW_ASSIGN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP_SURFACE));
-
-		// Remote
-		config->SurfaceBind(SurfaceElementId::DAW_REMOTE, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::REMOTE1));
-
-		// Banking of Input Section
-		if (config->IsModelX32Full())
+		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
 		{
-			config->SurfaceBind(SurfaceElementId::CH1_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_16));
-			config->SurfaceBind(SurfaceElementId::CH17_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_32));
-			config->SurfaceBind(SurfaceElementId::AUX_USB_RX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB_FX_RET));
-			config->SurfaceBind(SurfaceElementId::BUS_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_16));
+			config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, CLEAR_SOLO);
 		}
-		else if (config->IsModelX32CompactOrProducerOrM32R())
+
+		if (config->IsModelX32Rack())
 		{
-			config->SurfaceBind(SurfaceElementId::CH1_8, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_8));
-			config->SurfaceBind(SurfaceElementId::CH9_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH9_16));
-			config->SurfaceBind(SurfaceElementId::CH17_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_24));
-			config->SurfaceBind(SurfaceElementId::CH25_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH25_32));
-			config->SurfaceBind(SurfaceElementId::AUX_USB, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB));
-			config->SurfaceBind(SurfaceElementId::FX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::FX_RET));
-			config->SurfaceBind(SurfaceElementId::BUS1_8_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_8));
-			config->SurfaceBind(SurfaceElementId::BUS9_16_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS9_16));
+			config->SurfaceBind(SurfaceElementId::VIEW_SCENES, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
+
+			config->SurfaceBind(SurfaceElementId::CHANNEL_ENCODER, MixerparameterAction::CHANGE, SELECTED_CHANNEL);
+
+			config->SurfaceBind(SurfaceElementId::CHANNEL_SOLO, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SOLO);
+			config->SurfaceBind(SurfaceElementId::CHANNEL_MUTE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
+			config->SurfaceBind(SurfaceElementId::CHANNEL_LEVEL, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
+			config->SurfaceBind(SurfaceElementId::MAIN_LEVEL, MixerparameterAction::CHANGE, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
 		}
-
-		// Banking of Bus Section
-		config->SurfaceBind(SurfaceElementId::DCA, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::DCA));
-		config->SurfaceBind(SurfaceElementId::BUS1_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS1_8));
-		config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
-		config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
-
-        LoadMainFaderSurfaceBinding();
-
-        // Mute Groups
-		config->SurfaceBind(SurfaceElementId::MUTE_GROUP_1, MixerparameterAction::TOGGLE, MUTE_GROUP_1_MUTE);
-		config->SurfaceBind(SurfaceElementId::MUTE_GROUP_2, MixerparameterAction::TOGGLE, MUTE_GROUP_2_MUTE);
-		config->SurfaceBind(SurfaceElementId::MUTE_GROUP_3, MixerparameterAction::TOGGLE, MUTE_GROUP_3_MUTE);
-		config->SurfaceBind(SurfaceElementId::MUTE_GROUP_4, MixerparameterAction::TOGGLE, MUTE_GROUP_4_MUTE);
-		config->SurfaceBind(SurfaceElementId::MUTE_GROUP_5, MixerparameterAction::TOGGLE, MUTE_GROUP_5_MUTE);
-		config->SurfaceBind(SurfaceElementId::MUTE_GROUP_6, MixerparameterAction::TOGGLE, MUTE_GROUP_6_MUTE);
-
 	}
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
+	if (config->IsModelAnyWing())
 	{
-		config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, CLEAR_SOLO);
-	}
-
-	if (config->IsModelX32Rack())
-	{
-		config->SurfaceBind(SurfaceElementId::VIEW_SCENES, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
-
-		config->SurfaceBind(SurfaceElementId::CHANNEL_ENCODER, MixerparameterAction::CHANGE, SELECTED_CHANNEL);
-
-		config->SurfaceBind(SurfaceElementId::CHANNEL_SOLO, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SOLO);
-		config->SurfaceBind(SurfaceElementId::CHANNEL_MUTE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
-		config->SurfaceBind(SurfaceElementId::CHANNEL_LEVEL, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
-		config->SurfaceBind(SurfaceElementId::MAIN_LEVEL, MixerparameterAction::CHANGE, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+		config->SurfaceBind(SurfaceElementId::ASSIGN_1, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+		config->SurfaceBind(SurfaceElementId::ASSIGN_2, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+		config->SurfaceBind(SurfaceElementId::ASSIGN_4, MixerparameterAction::TOGGLE, DISPLAY_UP);
+		config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
 	}
 }
 
@@ -2820,7 +2830,15 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 	else if (classid == 'b') // Button
 	{
 		// find surfaceelement
-		SurfaceElement* button = config->GetSurfaceElementButton(board, value);
+		SurfaceElement* button;
+		if(config->IsModelAnyXM32())
+		{
+			button = config->GetSurfaceElementButton_XM32(board, value);
+		}
+		else if (config->IsModelAnyWing())
+		{
+			button = config->GetSurfaceElementButton_Wing(index);
+		}
 		if (button == 0) 
 		{
 			helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Button is not defined!");
@@ -2829,7 +2847,12 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 
 		SurfaceBindingParameter* bindingParameterButton = config->GetSurfaceBinding(button->GetId());
 
+		#ifdef TARGET_XM32
 		bool isButtonPressed = (value >> 7) == 1;
+		#endif
+		#ifdef TARGET_WING
+		bool isButtonPressed = value;
+		#endif
 
 		// Logic for double button press
 		if (isButtonPressed) {

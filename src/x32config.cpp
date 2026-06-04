@@ -2860,6 +2860,16 @@ void X32Config::DefineSurfaceElements()
 
     /* Define just the elements the detected hardware has! */
 
+    GetSurfaceElement(SurfaceElementId::ASSIGN_1)                       ->DefButton_Wing(0x38);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_2)                       ->DefButton_Wing(0x39);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_3)                       ->DefButton_Wing(0x3A);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_4)                       ->DefButton_Wing(0x3B);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_5)                       ->DefButton_Wing(0x3C);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_6)                       ->DefButton_Wing(0x3D);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_7)                       ->DefButton_Wing(0x3E);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_8)                       ->DefButton_Wing(0x3F);
+    GetSurfaceElement(SurfaceElementId::ASSIGN_9)                       ->DefButton_Wing(0x40);
+
     uint max_faders = 0;
     if (IsModelWingFull())
     {
@@ -2897,7 +2907,7 @@ SurfaceElement* X32Config::GetSurfaceElement(SurfaceElementId id)
     return sem[(uint)id];
 }
 
-SurfaceElement* X32Config::GetSurfaceElementButton(OMC_BOARD board, uint16_t value)
+SurfaceElement* X32Config::GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_t value)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -2906,6 +2916,23 @@ SurfaceElement* X32Config::GetSurfaceElementButton(OMC_BOARD board, uint16_t val
             element->element_type == SurfaceElementType::Button &&
             element->GetBoard() == board &&
             element->GetIndex() == (value & 0x7F)
+        )
+        {
+            return element;
+        }
+    }
+
+    return 0;
+}
+
+SurfaceElement* X32Config::GetSurfaceElementButton_Wing(uint index)
+{
+    for (SurfaceElement* element : sem)
+	{
+        if (
+            element != 0 &&
+            element->element_type == SurfaceElementType::Button &&
+            element->GetIndex() == index
         )
         {
             return element;

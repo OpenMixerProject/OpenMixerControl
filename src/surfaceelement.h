@@ -51,6 +51,14 @@ class SurfaceElement
             return this;
         }
 
+        SurfaceElement* DefButton_Wing(uint index)
+        {
+            element_type = SurfaceElementType::Button;
+            element_index = index;
+
+            return this;
+        }
+
         SurfaceElement* DefLcd(OMC_BOARD board, uint lcd)
         {
             element_type = SurfaceElementType::Lcd;
