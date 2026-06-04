@@ -1,15 +1,19 @@
 #pragma once
 
-#include "fader-controller.h"
-#include "surface-fader.h"
 #include "defines.h"
+
+#include "surface.h"
+#include "surface-fader.h"
+#include "surface-fader-controller.h"
+
+
 
 class Surface;
 
 class X32FaderController : public FaderController {
 private:
     Surface* surface;
-    SurfaceFader faders[MAX_FADERS];
+    SurfaceFader faders[XM32_MAX_FADERS];
 
     uint8_t GetBoardId(uint8_t faderindex);
     uint8_t GetFaderId(uint8_t faderindex);

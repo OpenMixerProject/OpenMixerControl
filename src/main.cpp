@@ -207,14 +207,21 @@ void guiInit(X32Config* config) {
 		#ifdef BUILD_DEBUG
 		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)\n");
 		#endif
-		config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16);
+		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
 	}
 	else if (config->IsModelX32CompactOrProducerOrM32R())
 	{
 		#ifdef BUILD_DEBUG
 		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)\n");
 		#endif
-		config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8);
+		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
+	}
+	else if (config->IsModelWingCompact())
+	{
+		#ifdef BUILD_DEBUG
+		printf("config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12)\n");
+		#endif
+		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
 	}
 	
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())

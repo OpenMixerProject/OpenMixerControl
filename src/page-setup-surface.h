@@ -26,7 +26,7 @@ class PageSetupSurface: public Page
         vector<MixerparameterAction> actions;
         vector<MP_ID> mixerparameters;
 
-        X32AssignBank* bank;
+        OMCAssignBank* bank;
         SurfaceBindingParameter* binding_parameter;
 
         void FillGroups()

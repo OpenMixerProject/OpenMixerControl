@@ -26,7 +26,7 @@ void X32Config::SetModel(String model){
     }
     else if (model == "X32C")
     {
-        _model =  OMC_MODEL::X32_COMPACT;
+        _model = OMC_MODEL::X32_COMPACT;
     }
     else if (model == "X32")
     {
@@ -431,11 +431,11 @@ void X32Config::DefineMixerparameters() {
 
     DefParameter(BANKING_INPUT, cat, "Banking Input")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, (uint)(X32BankId::__ELEMENT_COUNTER_DO_NOT_MOVE), 1);
+    ->DefMinMaxStandard_Uint(0, (uint)(OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE), 1);
 
     DefParameter(BANKING_BUS, cat, "Banking Bus")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, (uint)(X32BankId::__ELEMENT_COUNTER_DO_NOT_MOVE), 13);
+    ->DefMinMaxStandard_Uint(0, (uint)(OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE), 13);
 
     DefParameter(BANKING_BUS_SENDS, cat, "Banking Bus Sends")
     ->DefNoConfig()
@@ -1765,9 +1765,21 @@ void X32Config::DefineSurfaceElements()
 
     /*
     
-    Create all(!) possible Surfaceelements
+    Create all(!) possible Surfaceelements, really ALL of all posible models!
     
     */
+
+    //#############################################
+    //
+    //  ##      ## ##     ## ########    #####   
+    //   ##    ##  ###   ###        ## ##     ## 
+    //    ##  ##   #### ####        ##        ## 
+    //     ####    ## ### ##  #######       ##   
+    //    ##  ##   ##     ##        ##   ##      
+    //   ##    ##  ##     ##        ## ##        
+    //  ##      ## ##     ## ########  ######### 
+    //
+    //#############################################
 
     // Board Main
 
@@ -1851,12 +1863,7 @@ void X32Config::DefineSurfaceElements()
     DefSurfaceElements(MAIN_LR_BUS, "STEREO BUS");
     DefSurfaceElements(VIEW_MAIN, "VIEW MAIN BUS");
 
-    DefSurfaceElements(DISPLAY_ENCODER_1, "Display Encoder 1");
-    DefSurfaceElements(DISPLAY_ENCODER_2, "Display Encoder 2");
-    DefSurfaceElements(DISPLAY_ENCODER_3, "Display Encoder 3");
-    DefSurfaceElements(DISPLAY_ENCODER_4, "Display Encoder 4");
-    DefSurfaceElements(DISPLAY_ENCODER_5, "Display Encoder 5");
-    DefSurfaceElements(DISPLAY_ENCODER_6, "Display Encoder 6");
+
 
     DefSurfaceElements(DISPLAY_ENCODER_BUTTON_1, "Display Encoder Button 1");
     DefSurfaceElements(DISPLAY_ENCODER_BUTTON_2, "Display Encoder Button 2");
@@ -1982,11 +1989,52 @@ void X32Config::DefineSurfaceElements()
         DefSurfaceElements((SurfaceElementId)(((int)BOARD_R_FADER_1)+i), String("BOARD R FADER ") + indexString);
     }
 
+
+    //########################################
+    //
+    //  ##      ## #### ##    ##  ######   
+    //  ##  ##  ##  ##  ###   ## ##    ##  
+    //  ##  ##  ##  ##  ####  ## ##        
+    //  ##  ##  ##  ##  ## ## ## ##   #### 
+    //  ##  ##  ##  ##  ##  #### ##    ##  
+    //  ##  ##  ##  ##  ##   ### ##    ##  
+    //  ###  ###  #### ##    ##  ######   
+    //
+    //########################################
+
+    for (uint i = 0; i < WING_MAX_FADERS; i++)
+    {
+        String indexString = String(i+1);
+        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_LCD_1)+i), String("LCD ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_SELECT_1)+i), String("SELECT ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_SOLO_1)+i), String("SOLO ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_VUMETER_1)+i), String("VUMETER ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_MUTE_1)+i), String("MUTE ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_FADER_1)+i), String("FADER ") + indexString);
+    }
+
+
+
+//##############################################################################################################################
+//
+//  ##     ##  #######  ########  ######## ##       ##        ######  ########  ########  ######  #### ######## ####  ######  
+//  ###   ### ##     ## ##     ## ##       ##       ##       ##    ## ##     ## ##       ##    ##  ##  ##        ##  ##    ## 
+//  #### #### ##     ## ##     ## ##       ##       ##       ##       ##     ## ##       ##        ##  ##        ##  ##       
+//  ## ### ## ##     ## ##     ## ######   ##       ##        ######  ########  ######   ##        ##  ######    ##  ##       
+//  ##     ## ##     ## ##     ## ##       ##       ##             ## ##        ##       ##        ##  ##        ##  ##       
+//  ##     ## ##     ## ##     ## ##       ##       ##       ##    ## ##        ##       ##    ##  ##  ##        ##  ##    ## 
+//  ##     ##  #######  ########  ######## ######## ########  ######  ##        ########  ######  #### ##       ####  ######  
+//
+//##############################################################################################################################
+
+
     /*
     
     Define modelspecific details
 
     */
+
+    #ifdef TARGET_XM32
 
     if (IsModelX32Full())
     {
@@ -2560,7 +2608,7 @@ void X32Config::DefineSurfaceElements()
         GetSurfaceElement(LEFT)                         ->DefButton(X32_BOARD_MAIN, 0x1E)->DefNoLed();
         GetSurfaceElement(RIGHT)                        ->DefButton(X32_BOARD_MAIN, 0x1F)->DefNoLed();
         GetSurfaceElement(DOWN)                         ->DefButton(X32_BOARD_MAIN, 0x20)->DefNoLed();
-     
+    
         // Monitor
         GetSurfaceElement(MONITOR_MONO)                 ->DefButton(X32_BOARD_MAIN, 0x2B);
         GetSurfaceElement(MONITOR_DIM)                  ->DefButton(X32_BOARD_MAIN, 0x2C);
@@ -2789,19 +2837,44 @@ void X32Config::DefineSurfaceElements()
             GetSurfaceElement((SurfaceElementId)(((int)BOARD_R_FADER_1)+i))     ->DefFader(X32_BOARD_R, i);
         }
     }
+    #endif
 
-    if (IsModelAnyWing())
+    //########################################
+    //
+    //  ##      ## #### ##    ##  ######   
+    //  ##  ##  ##  ##  ###   ## ##    ##  
+    //  ##  ##  ##  ##  ####  ## ##        
+    //  ##  ##  ##  ##  ## ## ## ##   #### 
+    //  ##  ##  ##  ##  ##  #### ##    ##  
+    //  ##  ##  ##  ##  ##   ### ##    ##  
+    //  ###  ###  #### ##    ##  ######   
+    //
+    //########################################
+
+    #ifdef TARGET_WING
+
+    /* Define just the elements the detected hardware has! */
+
+    uint max_faders = 0;
+    if (IsModelWingFull())
     {
-        for (uint i = 0; i < 8; i++)
-        {
-            GetSurfaceElement((SurfaceElementId)(((int)BOARD_L_FADER_1)+i))     ->DefFader(X32_BOARD_L, i);
-        }
-        for (uint i = 0; i < 4; i++)
-        {
-            GetSurfaceElement((SurfaceElementId)(((int)BOARD_R_FADER_1)+i))     ->DefFader(X32_BOARD_R, i);
-        }
-        GetSurfaceElement(BOARD_R_FADER_MAIN)           ->DefFader(X32_BOARD_R, 0x08);
+        max_faders = WING_MAX_FADERS;
     }
+    else if (IsModelWingCompact())
+    {
+        max_faders = 13;
+    }
+
+    for (uint i = 0; i < max_faders; i++)
+    {
+        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_SELECT_1)+i))    ->DefButton(OMC_BOARD_WING, 0x20 + i);
+        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_SOLO_1)+i))      ->DefButton(OMC_BOARD_WING, 0x30 + i);
+        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_LCD_1)+i))       ->DefLcd(OMC_BOARD_WING, i);
+        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_MUTE_1)+i))      ->DefButton(OMC_BOARD_WING, 0x40 + i);
+        GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_FADER_1)+i))     ->DefFader(OMC_BOARD_WING, i);
+    }
+    
+    #endif
 }
 
 SurfaceElementId X32Config::CalcSurfaceElementId(SurfaceElementId id, int amount)
@@ -2976,13 +3049,13 @@ SurfaceBindingParameter* X32Config::GetSurfaceBinding(SurfaceElementId elementId
 
 void X32Config::InitAssignBanks()
 {
-    assingBanks[(uint)X32AssignBankId::Bank_A] = new X32AssignBank(X32AssignBankId::Bank_A, String("Assign A"));
-    assingBanks[(uint)X32AssignBankId::Bank_B] = new X32AssignBank(X32AssignBankId::Bank_B, String("Assign B"));
-    assingBanks[(uint)X32AssignBankId::Bank_C] = new X32AssignBank(X32AssignBankId::Bank_C, String("Assign C"));
+    assingBanks[(uint)X32AssignBankId::Bank_A] = new OMCAssignBank(X32AssignBankId::Bank_A, String("Assign A"));
+    assingBanks[(uint)X32AssignBankId::Bank_B] = new OMCAssignBank(X32AssignBankId::Bank_B, String("Assign B"));
+    assingBanks[(uint)X32AssignBankId::Bank_C] = new OMCAssignBank(X32AssignBankId::Bank_C, String("Assign C"));
 
-    if(true) //IsModelX32Full())
+    if(IsModelX32Full())
 	{
-		X32AssignBank* bank = assingBanks[(uint)X32AssignBankId::Bank_A];
+		OMCAssignBank* bank = assingBanks[(uint)X32AssignBankId::Bank_A];
 
 		bank->bindingMap->at(SurfaceElementId::ASSIGN_ENCODER_1)->FillBindingParameter(MixerparameterAction::CHANGE, CHANNEL_VOLUME, 0);
 		bank->bindingMap->at(SurfaceElementId::ASSIGN_ENCODER_2)->FillBindingParameter(MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
@@ -3050,7 +3123,7 @@ void X32Config::InitAssignBanks()
 	}
 }
 
-X32AssignBank* X32Config::GetAssignBank(X32AssignBankId id)
+OMCAssignBank* X32Config::GetAssignBank(X32AssignBankId id)
 {
     return assingBanks[(uint)id];
 }

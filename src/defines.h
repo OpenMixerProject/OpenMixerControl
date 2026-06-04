@@ -12,6 +12,11 @@
 
 #define BUILD_DEBUG 1 // build with or without debug functions
 
+// ###########
+// #  DEV    #
+// ###########
+
+#define TARGET_WING 1
 
 //#################################################################################
 
@@ -196,7 +201,9 @@ typedef unsigned int uint;
 #define CARD_CHANNELMODE_8IN_8OUT       4
 #define CARD_CHANNELMODE_2IN_2OUT       5
 
-#define MAX_FADERS 25   // counted on X32 Full
+#define XM32_MAX_FADERS 25   // counted on X32 Full
+#define WING_MAX_FADERS 24   // counted on WING Full
+
 
 // Maximal mögliche Paketlänge inklusive Startbyte, Endbyte und Checksumme
 // Langes Paket: 0xFE (1) + BoardID (1) + ID (1) + Value_MSB (1) + Value_LSB (1) + 0xFE (1) + CHECKSUM (1) = 7 Bytes

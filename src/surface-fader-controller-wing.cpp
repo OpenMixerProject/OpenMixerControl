@@ -1,40 +1,46 @@
-#include "wing-fader-controller.h"
-#include "surface.h"
-#include <cstdio>
+#include "surface-fader-controller-wing.h"
 
-WingFaderController::WingFaderController(X32BaseParameter* basepar, Surface* surface)
-    : FaderController(basepar), surface(surface) {
+WingFaderController::WingFaderController(X32BaseParameter* basepar, Surface* surface) : FaderController(basepar), surface(surface)
+{
     memset(&parser, 0, sizeof(parser));
 }
 
-void WingFaderController::Init() {
+void WingFaderController::Init()
+{
     // UART already opened in Surface::Init()
     Reset();
 }
 
-void WingFaderController::Reset() {
+void WingFaderController::Reset()
+{
     FaderReset();
 }
 
-void WingFaderController::FaderReset() {
-    for (uint8_t i = 0; i < 13; ++i) {
+void WingFaderController::FaderReset()
+{
+    for (uint8_t i = 0; i < 13; ++i)
+    {
         faders[i].wait = 0;
         faders[i].position_real = 0;
         SetFaderRaw(i, 0);
     }
 }
 
-void WingFaderController::SetFader(uint8_t boardId, uint8_t index, uint16_t position) {
+void WingFaderController::SetFader(uint8_t boardId, uint8_t index, uint16_t position)
+{
     uint8_t wingFaderIndex = GetWingFaderIndex(boardId, index);
-    if (wingFaderIndex != 255) {
+    if (wingFaderIndex != 255)
+    {
         helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Want to move WING fader at index %d to %d", wingFaderIndex, position);
         faders[wingFaderIndex].position_wanted = position;
     }
 }
 
-void WingFaderController::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value) {
+void WingFaderController::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value)
+{
     uint8_t wingFaderIndex = GetWingFaderIndex(boardId, index);
-    if (wingFaderIndex != 255) {
+    if (wingFaderIndex != 255)
+    {
         helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WING fader at index %d moved to %d", wingFaderIndex, value);
         faders[wingFaderIndex].position_wanted = value;
         faders[wingFaderIndex].position_real = value;
@@ -42,11 +48,16 @@ void WingFaderController::FaderMoved(uint8_t boardId, uint8_t index, uint16_t va
     }
 }
 
-void WingFaderController::Touchcontrol() {
-    for (uint8_t i = 0; i < 13; ++i) {
-        if (faders[i].wait > 0) {
+void WingFaderController::Touchcontrol()
+{
+    for (uint8_t i = 0; i < 13; ++i)
+    {
+        if (faders[i].wait > 0)
+        {
             faders[i].wait--;
-        } else if (faders[i].position_real != faders[i].position_wanted) {
+        }
+        else if (faders[i].position_real != faders[i].position_wanted)
+        {
             helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Move WING fader at index %d from %d to %d", i, faders[i].position_real, faders[i].position_wanted);
             faders[i].position_real = faders[i].position_wanted;
             SetFaderRaw(i, faders[i].position_wanted);
@@ -54,20 +65,9 @@ void WingFaderController::Touchcontrol() {
     }
 }
 
-uint8_t WingFaderController::GetWingFaderIndex(uint8_t boardId, uint8_t index) {
-    if (boardId == X32_BOARD_L) {
-        if (index < 8) {
-            return index; // WING fader 1-8
-        }
-    } else if (boardId == X32_BOARD_R) {
-        if (index == 8) { // Master fader
-            return 12;
-        }
-        if (index < 4) {
-            return 8 + index; // WING fader 9-12
-        }
-    }
-    return 255;
+uint8_t WingFaderController::GetWingFaderIndex(uint8_t boardId, uint8_t index)
+{
+    return index;
 }
 
 uint8_t WingFaderController::CalculateWingChecksum(const uint8_t *payload, size_t len) {
@@ -78,7 +78,8 @@ uint8_t WingFaderController::CalculateWingChecksum(const uint8_t *payload, size_
     return (uint8_t)(((sum & 0xffu) ^ (len & 0xffu)) | 0x80u);
 }
 
-void WingFaderController::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len) {
+void WingFaderController::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+{
     MessageBase msg;
     msg.AddRawByte(0x2a); // WING_FRAME_STAR
     
@@ -110,7 +111,8 @@ void WingFaderController::SendWingFrame(uint8_t cmd, const uint8_t* payload, siz
     surface->uart->Tx(&msg);
 }
 
-void WingFaderController::SetFaderRaw(uint8_t wingFaderIndex, uint16_t position) {
+void WingFaderController::SetFaderRaw(uint8_t wingFaderIndex, uint16_t position)
+{
     if (wingFaderIndex > 12 || position > 4095) return;
 
     uint8_t payload[3];
@@ -169,43 +171,38 @@ void WingFaderController::ParserFeed(uint8_t byte) {
     }
 }
 
-void WingFaderController::HandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len) {
+void WingFaderController::HandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+{
     helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController parsed frame cmd=0x%02x len=%zu", cmd, len);
-    if (len > 0) {
+
+    if (len > 0)
+    {
         char hex[3 * 256 + 1];
         int pos = 0;
-        for (size_t i = 0; i < len && i < 256; ++i) {
+        for (size_t i = 0; i < len && i < 256; ++i)
+        {
             pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", payload[i]);
         }
         hex[pos] = '\0';
         helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController payload: %s", hex);
     }
-    if (cmd == 'f' && len == 3) {
-        uint8_t wingFaderIndex = payload[0];
+
+    if (cmd == 'f' && len == 3)
+    {
+        uint8_t index = payload[0];
         uint16_t value = payload[1] | (payload[2] << 8);
 
-        uint8_t boardId = 255;
-        uint8_t index = 255;
+        if (faderMovedCb)
+        {
+            fprintf(stderr, "WingFaderController decoded: cmd=0x%02x index=%u value=%u\n", cmd, index, value);
 
-        if (wingFaderIndex < 8) {
-            boardId = X32_BOARD_L;
-            index = wingFaderIndex;
-        } else if (wingFaderIndex < 12) {
-            boardId = X32_BOARD_R;
-            index = wingFaderIndex - 8;
-        } else if (wingFaderIndex == 12) {
-            boardId = X32_BOARD_R;
-            index = 8; // Master
-        }
-
-        if (boardId != 255 && faderMovedCb) {
-            fprintf(stderr, "WingFaderController decoded: cmd=0x%02x boardId=%u index=%u value=%u\n", cmd, (unsigned)boardId, (unsigned)index, (unsigned)value);
-            faderMovedCb(callbackArg, boardId, index, value);
+            faderMovedCb(callbackArg, (uint8_t)OMC_BOARD_WING, index, value);
         }
     }
 }
 
-void WingFaderController::ProcessIncomingData() {
+void WingFaderController::ProcessIncomingData()
+{
     char buf[256];
     int n = surface->uart->Rx(buf, sizeof(buf));
     if (n > 0) {

@@ -1,8 +1,11 @@
 #pragma once
 
-#include "fader-controller.h"
-#include "surface-fader.h"
 #include <stddef.h>
+#include <cstdio>
+
+#include "surface.h"
+#include "surface-fader.h"
+#include "surface-fader-controller.h"
 
 class Surface;
 

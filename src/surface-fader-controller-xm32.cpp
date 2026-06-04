@@ -1,5 +1,4 @@
-#include "x32-fader-controller.h"
-#include "surface.h"
+#include "surface-fader-controller-xm32.h"
 
 X32FaderController::X32FaderController(X32BaseParameter* basepar, Surface* surface)
     : FaderController(basepar), surface(surface) {}
@@ -15,17 +14,17 @@ void X32FaderController::Reset() {
 
 void X32FaderController::FaderReset() {
     // Reset touchcontrol wait time
-    for(uint8_t faderindex=0; faderindex<MAX_FADERS; faderindex++){
+    for(uint8_t faderindex=0; faderindex<XM32_MAX_FADERS; faderindex++){
         faders[faderindex].wait = 0;
     }
 
     // Reset position of faders
     uint8_t maxfaderindex = 0;
     if (config->IsModelX32FullOrM32()){
-        maxfaderindex = MAX_FADERS;
+        maxfaderindex = XM32_MAX_FADERS;
     }
     if (config->IsModelX32CompactOrProducerOrM32R()){
-        maxfaderindex = MAX_FADERS-8;
+        maxfaderindex = XM32_MAX_FADERS-8;
     }
 
     for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
@@ -52,10 +51,10 @@ void X32FaderController::FaderMoved(uint8_t boardId, uint8_t index, uint16_t val
 void X32FaderController::Touchcontrol() {
     uint8_t maxfaderindex = 0;
     if (config->IsModelX32FullOrM32()){
-        maxfaderindex = MAX_FADERS;
+        maxfaderindex = XM32_MAX_FADERS;
     }
     if (config->IsModelX32CompactOrProducerOrM32R()){
-        maxfaderindex = MAX_FADERS-8;
+        maxfaderindex = XM32_MAX_FADERS-8;
     }
 
     for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)

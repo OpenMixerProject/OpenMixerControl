@@ -23,19 +23,23 @@
 */
 
 #include "surface.h"
-#include "x32-fader-controller.h"
-#include "wing-fader-controller.h"
 
-Surface::Surface(X32BaseParameter* basepar): X32Base(basepar){
+
+Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
+{
     uart = new Uart(basepar);
-    if (config->IsModelAnyWing()) {
+    if (config->IsModelAnyWing())
+    {
         faderController = new WingFaderController(basepar, this);
-    } else {
+    }
+    else
+    {
         faderController = new X32FaderController(basepar, this);
     }
 }
 
-void Surface::Init(void) {
+void Surface::Init(void)
+{
     if (state->bodyless) {
 
         /* 
@@ -73,14 +77,14 @@ void Surface::Init(void) {
     else if (state->raspi)
     {
         uart->Open("/dev/ttyUSB0", 115200, true);
+    } 
+    else if (config->IsModelAnyXM32())
+    {
+        uart->Open("/dev/ttymxc1", 115200, true);
     }
     else if (config->IsModelAnyWing())
     {
         uart->Open("/dev/ttymxc4", 115200, true);
-    }
-    else
-    {
-        uart->Open("/dev/ttymxc1", 115200, true);
     }
 
     faderController->Init();
@@ -88,7 +92,8 @@ void Surface::Init(void) {
     Reset();
 }
 
-void Surface::Reset(void) {
+void Surface::Reset(void)
+{
      helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Reset surface ...");
 
     if (state->bodyless) 

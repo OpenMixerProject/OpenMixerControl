@@ -15,11 +15,10 @@
 #include "x32faderbank.h"
 #include "x32assignbank.h"
 
+using enum MP_ID;
 
 class X32Config
 {
-    using enum MP_ID;
-
     private:
 
         Helper* helper;
@@ -40,7 +39,7 @@ class X32Config
         map<SurfaceElementId, SurfaceBindingParameter*>* surface_binding;
         set<SurfaceElementId> surface_binding_changed;
 
-        X32AssignBank* assingBanks[(uint)X32AssignBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
+        OMCAssignBank* assingBanks[(uint)X32AssignBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
 
 
         // old
@@ -146,7 +145,7 @@ class X32Config
         bool HasSmallDisplay();
 
         void InitAssignBanks();
-        X32AssignBank* GetAssignBank(X32AssignBankId id);
+        OMCAssignBank* GetAssignBank(X32AssignBankId id);
 };
 
 class X32ConfigFileEntry

@@ -1,5 +1,5 @@
 #include "ctrl.h"
-#include "fader-controller.h"
+
 
 X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 {
@@ -94,6 +94,10 @@ void X32Ctrl::Init()
 		mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
 		mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
 		mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
+	}
+	else if (config->IsModelWingCompact())
+	{
+		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
 	}
 
 	//############################################################################
@@ -780,6 +784,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 	//
 	// ######################################
 
+	#ifdef TARGET_XM32
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
 		if (config->HasParameterChanged(BANKING_INPUT))
@@ -950,6 +955,122 @@ void X32Ctrl::syncSurface(bool fullSync)
 			}
 		}
 	}
+	#endif
+
+	#ifdef TARGET_WING
+	if (config->IsModelAnyWing())
+	{
+		if (config->HasParameterChanged(BANKING_INPUT))
+		{
+			OMCBankId bankToSwitchTo = (OMCBankId)(config->GetUint(BANKING_INPUT));
+ 
+			// if (bankToSwitchTo != OMCBankId::FLEX1)
+			// {
+			// 	// stop DCA Spill
+			// 	for (uint i = 0; i < DCA_GROUPS; i++)
+			// 	{
+			// 		config->Set(config->MpCalcId(DCA_GROUP_1_MASTER, i), false);
+			// 	}
+			// }
+
+			if (config->IsModelWingCompact())
+			{
+				LoadBank(OMCBankTarget::WING_COMPACT, bankToSwitchTo);
+			}
+		}
+
+		// if (config->HasParameterChanged(BANKING_ASSIGN))
+		// {
+		// 	X32AssignBankId bankId = (X32AssignBankId)(config->GetUint(BANKING_ASSIGN));
+
+		// 	LoadAssignBank(bankId);
+		// }
+
+		// // ######################################
+		// //
+		// //   DCA Spill
+		// //
+		// // ######################################
+
+		// vector<MP_ID> filter;
+		// for (uint i = 0; i < DCA_GROUPS; i++)
+    	// {
+       	// 	filter.push_back(config->MpCalcId(DCA_GROUP_1_MASTER, i));
+		// }
+		// if (config->HasParametersChanged(filter))
+		// {
+		// 	// loop through all DCA groups
+		// 	for (uint i = 0; i < DCA_GROUPS; i++)
+		// 	{
+		// 		MP_ID dcaGroupId = config->MpCalcId(DCA_GROUP_1_MASTER, i);
+		
+		// 		if (config->HasParameterChanged(dcaGroupId))
+		// 		{
+		// 			if (config->GetBool(dcaGroupId))
+		// 			{
+		// 				// DCA Spill
+
+		// 				helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "DCA Spill");
+
+		// 				uint nextSurfaceChannelStrip = 0;
+
+		// 				// reset the banks to default blank
+		// 				banks[(uint)X32BankId::FLEX1]->Reset();
+		// 				banks[(uint)X32BankId::FLEX2]->Reset();
+		// 				banks[(uint)X32BankId::FLEX3]->Reset();
+
+		// 				// loop through all channels
+		// 				for (uint chanIndex = 0; chanIndex < MAX_VCHANNELS; chanIndex++)
+		// 				{
+		// 					X32FaderBank* banktoUse = (nextSurfaceChannelStrip < 8) ? banks[(uint)X32BankId::FLEX1] : banks[(uint)X32BankId::FLEX2];
+
+		// 					if (config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex))
+		// 					{
+		// 						// channel is part of the spilled DCA Group -> bind it to the next free channel strip in the bank
+		// 						SetChannelstripBinding(banktoUse, nextSurfaceChannelStrip % 8, chanIndex);
+							 	
+		// 						nextSurfaceChannelStrip++;
+		// 					}	
+							
+		// 					if (config->IsModelX32FullOrM32() && nextSurfaceChannelStrip > 16)
+		// 					{
+		// 						break;
+		// 					}
+		// 					if (config->IsModelX32CompactOrProducerOrM32R() && nextSurfaceChannelStrip > 8)
+		// 					{
+		// 						break;
+		// 					}
+		// 				}
+
+		// 				preSpillLoadedBank = (X32BankId)config->GetUint(BANKING_INPUT);
+		// 				config->Set(BANKING_INPUT, (uint)X32BankId::FLEX1);
+
+		// 				// trigger blinking of DCA bank button
+		// 				config->Refresh(BANKING_BUS);
+
+		// 				break;
+		// 			}
+		// 			else
+		// 			{
+		// 				// DCA "Unspill"
+
+		// 				helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "DCA Unspill");
+
+		// 				if (config->GetUint(BANKING_INPUT) == (uint)X32BankId::FLEX1)
+		// 				{
+		// 					// load bank that was loaded before the DCA spill
+		// 					config->Set(BANKING_INPUT, (uint)preSpillLoadedBank);
+		// 				}
+		// 				preSpillLoadedBank = X32BankId::None;
+
+		// 				// trigger unblinking of DCA button
+		// 				config->Refresh(BANKING_BUS);	
+		// 			}
+		// 		}
+		// 	}
+		// }
+	}
+	#endif
 
 	// ######################################
 	//
@@ -1220,9 +1341,9 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 					// let DCA Bank Led blink on DCA Spill
 					if (
-						preSpillLoadedBank != X32BankId::None &&
+						preSpillLoadedBank != OMCBankId::None &&
 						(
-							(parameter_id == BANKING_BUS && binding_parameter->mp_index == (uint)X32BankId::DCA) ||
+							(parameter_id == BANKING_BUS && binding_parameter->mp_index == (uint)OMCBankId::DCA) ||
 							(
 								(
 									parameter_id == DCA_GROUP_1_MASTER || 
@@ -2288,33 +2409,33 @@ void X32Ctrl::LoadDefaultSurfaceBinding()
 		config->SurfaceBind(SurfaceElementId::VIEW_ASSIGN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP_SURFACE));
 
 		// Remote
-		config->SurfaceBind(SurfaceElementId::DAW_REMOTE, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::REMOTE1));
+		config->SurfaceBind(SurfaceElementId::DAW_REMOTE, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::REMOTE1));
 
 		// Banking of Input Section
 		if (config->IsModelX32Full())
 		{
-			config->SurfaceBind(SurfaceElementId::CH1_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::CH1_16));
-			config->SurfaceBind(SurfaceElementId::CH17_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::CH17_32));
-			config->SurfaceBind(SurfaceElementId::AUX_USB_RX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::AUX_USB_FX_RET));
-			config->SurfaceBind(SurfaceElementId::BUS_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::BUS1_16));
+			config->SurfaceBind(SurfaceElementId::CH1_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_16));
+			config->SurfaceBind(SurfaceElementId::CH17_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_32));
+			config->SurfaceBind(SurfaceElementId::AUX_USB_RX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB_FX_RET));
+			config->SurfaceBind(SurfaceElementId::BUS_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_16));
 		}
 		else if (config->IsModelX32CompactOrProducerOrM32R())
 		{
-			config->SurfaceBind(SurfaceElementId::CH1_8, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::CH1_8));
-			config->SurfaceBind(SurfaceElementId::CH9_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::CH9_16));
-			config->SurfaceBind(SurfaceElementId::CH17_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::CH17_24));
-			config->SurfaceBind(SurfaceElementId::CH25_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::CH25_32));
-			config->SurfaceBind(SurfaceElementId::AUX_USB, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::AUX_USB));
-			config->SurfaceBind(SurfaceElementId::FX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::FX_RET));
-			config->SurfaceBind(SurfaceElementId::BUS1_8_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::BUS1_8));
-			config->SurfaceBind(SurfaceElementId::BUS9_16_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(X32BankId::BUS9_16));
+			config->SurfaceBind(SurfaceElementId::CH1_8, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_8));
+			config->SurfaceBind(SurfaceElementId::CH9_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH9_16));
+			config->SurfaceBind(SurfaceElementId::CH17_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_24));
+			config->SurfaceBind(SurfaceElementId::CH25_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH25_32));
+			config->SurfaceBind(SurfaceElementId::AUX_USB, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB));
+			config->SurfaceBind(SurfaceElementId::FX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::FX_RET));
+			config->SurfaceBind(SurfaceElementId::BUS1_8_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_8));
+			config->SurfaceBind(SurfaceElementId::BUS9_16_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS9_16));
 		}
 
 		// Banking of Bus Section
-		config->SurfaceBind(SurfaceElementId::DCA, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(X32BankId::DCA));
-		config->SurfaceBind(SurfaceElementId::BUS1_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(X32BankId::BUS1_8));
-		config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(X32BankId::BUS9_16));
-		config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(X32BankId::MATRIX_MAIN));
+		config->SurfaceBind(SurfaceElementId::DCA, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::DCA));
+		config->SurfaceBind(SurfaceElementId::BUS1_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS1_8));
+		config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
+		config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
 
         LoadMainFaderSurfaceBinding();
 
@@ -2372,21 +2493,35 @@ void X32Ctrl::InitBanks()
 {
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::CH1_8, "Channel 1-8"), 0);
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::CH9_16, "Channel 9-16"), 8);
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::CH17_24, "Channel 17-24"), 16);
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::CH25_32, "Channel 25-32"), 24);
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::AUX_USB, "AUX/USB"), (uint)(X32_VCHANNEL_BLOCK::AUX));
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::FX_RET, "FX Return"), (uint)(X32_VCHANNEL_BLOCK::FXRET));
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::BUS1_8, "Bus 1-8"), (uint)(X32_VCHANNEL_BLOCK::BUS));
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::BUS9_16, "Bus 9-16"), ((uint)(X32_VCHANNEL_BLOCK::BUS)) + 8);
-		InitBank_Channelstrip_DCA(new X32FaderBank(X32BankId::DCA, "DCA"), (uint)(X32_VCHANNEL_BLOCK::DCA));
-		InitBank_Channelstrip(new X32FaderBank(X32BankId::MATRIX_MAIN, "Matrix/Main"), (uint)(X32_VCHANNEL_BLOCK::MATRIX));
-		InitBank_DMX(new X32FaderBank(X32BankId::REMOTE1, "Remote1"), 0);
-		InitBank_DMX(new X32FaderBank(X32BankId::REMOTE2, "Remote2"), 8);
-		InitBank_Flex(new X32FaderBank(X32BankId::FLEX1, "Flex1"));
-		InitBank_Flex(new X32FaderBank(X32BankId::FLEX2, "Flex2"));
-		InitBank_Flex(new X32FaderBank(X32BankId::FLEX3, "Flex3"));
+		uint channel_strip_size = 8;
+
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH1_8, "Channel 1-8", channel_strip_size), 0);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH9_16, "Channel 9-16", channel_strip_size), 8);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH17_24, "Channel 17-24", channel_strip_size), 16);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH25_32, "Channel 25-32", channel_strip_size), 24);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::AUX_USB, "AUX/USB", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::AUX));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::FX_RET, "FX Return", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::FXRET));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::BUS1_8, "Bus 1-8", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::BUS));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::BUS9_16, "Bus 9-16", channel_strip_size), ((uint)(X32_VCHANNEL_BLOCK::BUS)) + 8);
+		InitBank_Channelstrip_DCA(new X32FaderBank(OMCBankId::DCA, "DCA", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::DCA));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::MATRIX_MAIN, "Matrix/Main", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::MATRIX));
+		InitBank_DMX(new X32FaderBank(OMCBankId::REMOTE1, "Remote1", channel_strip_size), 0);
+		InitBank_DMX(new X32FaderBank(OMCBankId::REMOTE2, "Remote2", channel_strip_size), 8);
+		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX1, "Flex1", channel_strip_size));
+		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX2, "Flex2", channel_strip_size));
+		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX3, "Flex3", channel_strip_size));
+	}
+	else if (config->IsModelWingCompact())
+	{
+		uint channel_strip_size = 12;
+
+		X32FaderBank* bank = new X32FaderBank(OMCBankId::WING_1_12, "Channel 1-12", channel_strip_size);
+
+		for (uint i = 0; i < 12; i++)
+    	{
+			bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::SET, CHANNEL_VOLUME, i);
+		}
+		banks[(uint)OMCBankId::WING_1_12] = bank;
 	}
 }
 
@@ -2456,9 +2591,9 @@ void X32Ctrl::InitBank_Flex(X32FaderBank* bank)
 	banks[(uint)(bank->GetID())] = bank;
 }
 
-void X32Ctrl::LoadBank(X32BankTarget target, X32BankId id)
+void X32Ctrl::LoadBank(OMCBankTarget target, OMCBankId id)
 {
-	if (id == X32BankId::None)
+	if (id == OMCBankId::None)
 	{
 		return;
 	}
@@ -2472,7 +2607,7 @@ void X32Ctrl::LoadBank(X32BankTarget target, X32BankId id)
 		return;
 	}
 
-	if (target == X32BankTarget::InputSection)
+	if (target == OMCBankTarget::InputSection)
 	{
 		for (uint i = 0; i < 8; i++)
 		{
@@ -2487,7 +2622,7 @@ void X32Ctrl::LoadBank(X32BankTarget target, X32BankId id)
 		bankLoadedInputsection = bank_to_load;
 	}
 
-	if (target == X32BankTarget::InputSection2)
+	if (target == OMCBankTarget::InputSection2)
 	{
 		for (uint i = 0; i < 8; i++)
 		{
@@ -2502,7 +2637,7 @@ void X32Ctrl::LoadBank(X32BankTarget target, X32BankId id)
 		bankLoadedInputsection2 = bank_to_load;
 	}
 
-	if (target == X32BankTarget::BusSection)
+	if (target == OMCBankTarget::BusSection)
 	{
 		for (uint i = 0; i < 8; i++)
 		{
@@ -2516,11 +2651,26 @@ void X32Ctrl::LoadBank(X32BankTarget target, X32BankId id)
 
 		bankLoadedBussection = bank_to_load;
 	}
+
+	if (target == OMCBankTarget::WING_COMPACT)
+	{
+		for (uint i = 0; i < 12; i++)
+		{
+			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::wing + i), bank_to_load->channelstrip[i]->select);
+			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
+			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
+			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
+			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_WING_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
+		}
+
+		bankLoadedInputsection = bank_to_load;
+	}
 }
 
 void X32Ctrl::LoadAssignBank(X32AssignBankId bankId)
 {
-	X32AssignBank* bank_to_load = config->GetAssignBank(bankId);
+	OMCAssignBank* bank_to_load = config->GetAssignBank(bankId);
 
 	helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Load %s", bank_to_load->GetName().c_str());
 
@@ -2636,7 +2786,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 						}
 						
 						// not for Board R if DCA bank is loaded
-						if (config->GetUint(BANKING_BUS) != (uint) X32BankId::DCA)
+						if (config->GetUint(BANKING_BUS) != (uint) OMCBankId::DCA)
 						{
 							// Board R / BusSection
 							uint chanIndex_R = bankLoadedBussection->channelstrip[i]->select->mp_index;
