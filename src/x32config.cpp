@@ -34,11 +34,23 @@ void X32Config::SetModel(String model){
     }
     else if (model == "M32" )
     {
-        _model =  OMC_MODEL::M32;
+        _model =  OMC_MODEL::M32_FULL;
     }
     else if (model == "M32R" )
     {
-        _model =  OMC_MODEL::M32R;
+        _model =  OMC_MODEL::M32_R;
+    }
+    else if (model == "WINGR" )
+    {
+        _model =  OMC_MODEL::WING_RACK;
+    }
+    else if (model == "WINGC" )
+    {
+        _model =  OMC_MODEL::WING_COMPACT;
+    }
+    else if (model == "WING" )
+    {
+        _model =  OMC_MODEL::WING_FULL;
     }
     else
     {
@@ -86,10 +98,28 @@ bool X32Config::IsModelX32ProducerOrRackOrM32R() {
     return IsModelX32Producer() || IsModelX32Rack() || IsModelM32R();
 }
 bool X32Config::IsModelM32() {
-    return (_model == OMC_MODEL::M32);
+    return (_model == OMC_MODEL::M32_FULL);
 }
 bool X32Config::IsModelM32R() {
-    return (_model == OMC_MODEL::M32R);
+    return (_model == OMC_MODEL::M32_R);
+}
+bool X32Config::IsModelM32C() {
+    return (_model == OMC_MODEL::M32_C);
+}
+bool X32Config::IsModelAnyXM32() {
+    return IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() || IsModelX32Core();
+}
+bool X32Config::IsModelWingFull() {
+    return (_model == OMC_MODEL::WING_FULL);
+}
+bool X32Config::IsModelWingCompact() {
+    return (_model == OMC_MODEL::WING_COMPACT);
+}
+bool X32Config::IsModelWingRack() {
+    return (_model == OMC_MODEL::WING_RACK);
+}
+bool X32Config::IsModelAnyWing() {
+    return IsModelWingFull() || IsModelWingCompact() || IsModelWingRack();
 }
 
 bool X32Config::HasGui()

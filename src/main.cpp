@@ -167,47 +167,80 @@ void guiInit(X32Config* config) {
 
 		lv_linux_fbdev_set_file(display, device);		
 	}
+
+	#ifdef BUILD_DEBUG
 	printf("lv_timer_create(timer10msCallbackLvgl, 10, NULL)\n");
+	#endif
 	lv_timer_create(timer10msCallbackLvgl, 10, NULL);
+
+	#ifdef BUILD_DEBUG
 	printf("lv_timer_create(timer50msCallbackLvgl, 50, NULL)\n");
+	#endif
 	lv_timer_create(timer50msCallbackLvgl, 50, NULL);
+
+	#ifdef BUILD_DEBUG
 	printf("lv_timer_create(timer100msCallbackLvgl, 100, NULL)\n");
+	#endif
 	lv_timer_create(timer100msCallbackLvgl, 100, NULL);
 
 	// initialize GUI created by EEZ
+	#ifdef BUILD_DEBUG
 	printf("ui_init()\n");
+	#endif
 	ui_init();
 
 	// InitPagesAndGUI() has to be called after ui_init()!
+	#ifdef BUILD_DEBUG
 	printf("ctrl->InitPagesAndGUI()\n");
+	#endif
 	ctrl->InitPagesAndGUI();
 
 	// trigger first update of display header
+	#ifdef BUILD_DEBUG
 	printf("config->Refresh(SELECTED_CHANNEL)\n");
+	#endif
 	config->Refresh(SELECTED_CHANNEL);
 
 	// trigger load of banks
 	if (config->IsModelX32FullOrM32())
 	{
+		#ifdef BUILD_DEBUG
+		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)\n");
+		#endif
 		config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16);
 	}
 	else if (config->IsModelX32CompactOrProducerOrM32R())
 	{
+		#ifdef BUILD_DEBUG
+		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)\n");
+		#endif
 		config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8);
 	}
 	
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
+		#ifdef BUILD_DEBUG
+		printf("config->Refresh(BANKING_BUS)\n");
+		#endif
 		config->Refresh(BANKING_BUS);
 	}
 
 	// sync the Page
+	#ifdef BUILD_DEBUG
+	printf("config->Refresh(ACTIVE_PAGE)\n");
+	#endif
 	config->Refresh(ACTIVE_PAGE);
 
 	// sync the Surface
+	#ifdef BUILD_DEBUG
+	printf("ctrl->syncSurface(true)\n");
+	#endif
 	ctrl->syncSurface(true);
 
 	// LVGL loop
+	#ifdef BUILD_DEBUG
+	printf("starting LVGL loop\n");
+	#endif
 	uint32_t idle_time;
 	while (1)
 	{

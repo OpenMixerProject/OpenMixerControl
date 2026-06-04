@@ -134,6 +134,12 @@ class X32Config
         bool IsModelX32CompactOrM32R();
         bool IsModelM32();
         bool IsModelM32R();
+        bool IsModelM32C();
+        bool IsModelAnyXM32();
+        bool IsModelWingFull();
+        bool IsModelWingCompact();
+        bool IsModelWingRack();
+        bool IsModelAnyWing();
 
         bool HasGui();
         bool HasBigDisplay();

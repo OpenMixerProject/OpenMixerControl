@@ -26,11 +26,12 @@
 
 Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 	uart = new Uart(basepar);
-
 	spi = new SPI(basepar);
 
-	if (!state->bodyless) {
-    	if (spi->UploadBitstreamFpgaLattice() == -1) {
+	if (!(state->bodyless || config->IsModelAnyWing()))
+	{
+    	if (spi->UploadBitstreamFpgaLattice() == -1)
+		{
 			// uploading the Lattice-Bitstream was not successful (or not set), so try to upload the Xilinx-bitstream
 	        spi->UploadBitstreamFpgaXilinx();
 	    }
@@ -39,13 +40,17 @@ Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 
 	// configData -> at the moment all bits are unused
 	configData = 0b00000000;
-	SendConfig();
+	if (!config->IsModelAnyWing())
+	{
+		SendConfig();
+	}
 
 	AES50Counter = 0;
 	AES50Device = 'C'; // X32Fullsize
 }
 
-void Fpga::Init() {
+void Fpga::Init()
+{
 	const uint speed = 115200;
 	String serial;
 	
@@ -59,7 +64,15 @@ void Fpga::Init() {
 	}
 	else
 	{
-		serial = "/dev/ttymxc3";
+		if (config->IsModelAnyXM32())
+		{
+			serial = "/dev/ttymxc3";
+		}
+		else if (config->IsModelAnyWing())
+		{
+			// TODO
+			return;
+		}
 	}
 
 	helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "opening %s with %d baud", serial.c_str(), speed);
@@ -318,7 +331,7 @@ String Fpga::GetOutputNameByIndex(uint8_t index) {
 
 // helper-function to send the audio-routing to the fpga
 void Fpga::SendRoutingToFpga(int channel) {
-	if (state->bodyless) {
+	if (state->bodyless || config->IsModelAnyWing()) {
 		return;
 	}
 

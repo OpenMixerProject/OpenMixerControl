@@ -155,9 +155,13 @@ int Uart::Tx(MessageBase* message) {
         return 0;
     }
 
-    int bytes_written = write(fd, message->buffer, message->current_length);
+    if (fd != 0)
+    {
+        int bytes_written = write(fd, message->buffer, message->current_length);
+        return bytes_written;
+    }
 
-    return bytes_written;
+    return 0;
 }
 
 int Uart::Rx(char* buf, uint16_t bufLen) {

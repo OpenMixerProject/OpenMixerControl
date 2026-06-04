@@ -66,7 +66,7 @@ int SPI::UploadBitstreamFpgaXilinx(void) {
 
     if (spi_fd < 0)
     {
-        helper->Error("Could not open SPI-device\n");
+        helper->Error("Could not open SPI-device (Bitstream Xilinx)\n");
         free(tx_buffer);
         free(rx_buffer);
         free(file_buffer);
@@ -245,7 +245,7 @@ int SPI::UploadBitstreamFpgaLattice(void) {
     helper->DEBUG_SPI(DEBUGLEVEL_NORMAL, "Connecting to SPI...");
     spi_fd = open(SPI_DEVICE_FPGA, O_RDWR);
     if (spi_fd < 0) {
-        perror("Error: Could not open SPI-device\n");
+        perror("Error: Could not open SPI-device (Bitstream Lattice)\n");
         return -2; // Return Error-Code -2
     }
 
@@ -733,14 +733,14 @@ int SPI::UploadBitstreamDsps(bool useCli) {
     helper->DEBUG_SPI(DEBUGLEVEL_NORMAL, "Connecting to SPI for DSP1...\n");
     spi_fd[0] = open(SPI_DEVICE_DSP1, O_RDWR);
     if (spi_fd[0] < 0) {
-        helper->Error("Could not open SPI-device for DSP1\n");
+        helper->Error("Could not open SPI-device (DSP1)\n");
         return -1;
     }
     if (numStreams == 2) {
         helper->DEBUG_SPI(DEBUGLEVEL_NORMAL, "Connecting to SPI for DSP2...\n");
         spi_fd[1] = open(SPI_DEVICE_DSP2, O_RDWR);
         if (spi_fd[1] < 0) {
-            helper->Error("Could not open SPI-device for DSP2\n");
+            helper->Error("Could not open SPI-device (DSP2)\n");
             return -1;
         }
     }
@@ -867,7 +867,8 @@ int SPI::UploadBitstreamDsps(bool useCli) {
     return 0;
 }
 
-bool SPI::OpenConnectionFpga() {
+bool SPI::OpenConnectionFpga()
+{
     uint8_t spiMode = SPI_MODE_0; // user-program uses SPI MODE 0
     uint8_t spiBitsPerWord = 8; // we are using standard 8-bit-mode here for communication
     uint32_t spiSpeed = SPI_FPGA_SPEED_HZ;
@@ -882,7 +883,7 @@ bool SPI::OpenConnectionFpga() {
     }
 
     if (spiFpgaHandle < 0) {
-        helper->Error("Error: Could not open SPI-device");
+        helper->Error("Error: Could not open SPI-device (FPGA)\n");
         return false;
     }
 
@@ -912,7 +913,7 @@ bool SPI::OpenConnectionDsps() {
         }
         if (spiDspHandle[i] < 0) {
             connected = false;
-            helper->Error("Error: Could not open SPI-device\n");            
+            helper->Error("Error: Could not open SPI-device (DSPs)\n");            
             return false;
         }
 
@@ -1038,7 +1039,7 @@ void SPI::ProcessDspTxQueue(uint8_t dsp) {
 
 bool SPI::SendDspData(uint8_t dsp, sSpiTxBufferElement* buffer) {
 
-    if (state->bodyless || state->raspi)
+    if (state->bodyless || state->raspi || config->IsModelAnyWing())
     {
         return false;
     }

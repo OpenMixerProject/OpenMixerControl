@@ -24,9 +24,11 @@
 
 #include "dsp1.h"
 
-DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar) {
+DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
+{
     spi = new SPI(basepar);
-    if (!state->bodyless && !state->raspi) {
+    if (!state->bodyless && !state->raspi && !config->IsModelAnyWing())
+    {
         spi->UploadBitstreamDsps(true); // use CLI to show progress
         spi->OpenConnectionDsps();
     }

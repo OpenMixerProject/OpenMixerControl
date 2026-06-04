@@ -18,8 +18,10 @@ enum class OMC_MODEL
     X32_PRODUCER,
     X32_RACK,
     X32_CORE,
-    M32,
-    M32R,
+    M32_FULL,
+    M32_R,
+    M32_C,
+    WING_RACK,
     WING_COMPACT,
     WING_FULL
 };
