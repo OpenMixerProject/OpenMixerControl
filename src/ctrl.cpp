@@ -136,7 +136,8 @@ void X32Ctrl::Tick10ms(void)
 	//
 	//#####################################
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R()) 
+	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R() ||
+		config->IsModelAnyWing()) 
 	{
 		surface->Touchcontrol();	
 	}
