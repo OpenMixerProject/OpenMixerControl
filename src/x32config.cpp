@@ -2788,7 +2788,20 @@ void X32Config::DefineSurfaceElements()
             GetSurfaceElement((SurfaceElementId)(((int)BOARD_R_MUTE_1)+i))      ->DefButton(X32_BOARD_R, 0x40 + i);
             GetSurfaceElement((SurfaceElementId)(((int)BOARD_R_FADER_1)+i))     ->DefFader(X32_BOARD_R, i);
         }
-    } 
+    }
+
+    if (IsModelAnyWing())
+    {
+        for (uint i = 0; i < 8; i++)
+        {
+            GetSurfaceElement((SurfaceElementId)(((int)BOARD_L_FADER_1)+i))     ->DefFader(X32_BOARD_L, i);
+        }
+        for (uint i = 0; i < 4; i++)
+        {
+            GetSurfaceElement((SurfaceElementId)(((int)BOARD_R_FADER_1)+i))     ->DefFader(X32_BOARD_R, i);
+        }
+        GetSurfaceElement(BOARD_R_FADER_MAIN)           ->DefFader(X32_BOARD_R, 0x08);
+    }
 }
 
 SurfaceElementId X32Config::CalcSurfaceElementId(SurfaceElementId id, int amount)

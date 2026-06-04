@@ -120,6 +120,7 @@ class X32Ctrl : public X32Base
         void ProcessUartDataSurface();
         void ProcessUartDataAdda();
         void ProcessUartDataAES50();
+        static void OnFaderMovedCallback(void* arg, uint8_t boardId, uint8_t index, uint16_t value);
 
         uint autosavewait = 0;
         void AutoSave();

@@ -1,4 +1,5 @@
 #include "ctrl.h"
+#include "fader-controller.h"
 
 X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 {
@@ -43,6 +44,10 @@ void X32Ctrl::Init()
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init()");
 	surface->Init();
+	if (surface->faderController)
+	{
+		surface->faderController->SetCallback(OnFaderMovedCallback, this);
+	}
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "xremote->Init()");
 	xremote->Init();
@@ -1918,6 +1923,15 @@ void X32Ctrl::syncXRemote(bool syncAll) {
 
 void X32Ctrl::ProcessUartDataSurface()
 {
+    if (config->IsModelAnyWing())
+    {
+        if (surface->faderController)
+        {
+            surface->faderController->ProcessIncomingData();
+        }
+        return;
+    }
+
     uint8_t receivedClass = 0;
     uint8_t receivedIndex = 0;
     uint16_t receivedValue = 0;
@@ -3018,4 +3032,10 @@ void X32Ctrl::SimulatorButton(uint32_t key)
 			ProcessSurface(X32_BOARD_R, 'b', 0, 0x00);
 			break;
 	}
+}
+
+void X32Ctrl::OnFaderMovedCallback(void* arg, uint8_t boardId, uint8_t index, uint16_t value)
+{
+    X32Ctrl* ctrl = static_cast<X32Ctrl*>(arg);
+    ctrl->ProcessSurface((OMC_BOARD)boardId, 'f', index, value);
 }
