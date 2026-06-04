@@ -1863,7 +1863,12 @@ void X32Config::DefineSurfaceElements()
     DefSurfaceElements(MAIN_LR_BUS, "STEREO BUS");
     DefSurfaceElements(VIEW_MAIN, "VIEW MAIN BUS");
 
-
+    DefSurfaceElements(DISPLAY_ENCODER_1, "Display Encoder 1");
+    DefSurfaceElements(DISPLAY_ENCODER_2, "Display Encoder 2");
+    DefSurfaceElements(DISPLAY_ENCODER_3, "Display Encoder 3");
+    DefSurfaceElements(DISPLAY_ENCODER_4, "Display Encoder 4");
+    DefSurfaceElements(DISPLAY_ENCODER_5, "Display Encoder 5");
+    DefSurfaceElements(DISPLAY_ENCODER_6, "Display Encoder 6");
 
     DefSurfaceElements(DISPLAY_ENCODER_BUTTON_1, "Display Encoder Button 1");
     DefSurfaceElements(DISPLAY_ENCODER_BUTTON_2, "Display Encoder Button 2");
