@@ -2,7 +2,7 @@
 
 WingFaderController::WingFaderController(X32BaseParameter* basepar, Surface* surface) : FaderController(basepar), surface(surface)
 {
-    memset(&parser, 0, sizeof(parser));
+    
 }
 
 void WingFaderController::Init()
@@ -70,13 +70,7 @@ uint8_t WingFaderController::GetWingFaderIndex(uint8_t boardId, uint8_t index)
     return index;
 }
 
-uint8_t WingFaderController::CalculateWingChecksum(const uint8_t *payload, size_t len) {
-    unsigned int sum = 0;
-    for (size_t i = 0; i < len; ++i) {
-        sum = (sum + payload[i]) & 0xffu;
-    }
-    return (uint8_t)(((sum & 0xffu) ^ (len & 0xffu)) | 0x80u);
-}
+
 
 void WingFaderController::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
 {
@@ -100,7 +94,7 @@ void WingFaderController::SendWingFrame(uint8_t cmd, const uint8_t* payload, siz
     }
 
     msg.AddRawByte(0x2a);
-    uint8_t chk = CalculateWingChecksum(payload, len);
+    uint8_t chk = helper->CalculateWingChecksum(payload, len);
     if (chk == 0x2a) {
         msg.AddRawByte(0x2a);
         msg.AddRawByte(0x40);
@@ -121,100 +115,4 @@ void WingFaderController::SetFaderRaw(uint8_t wingFaderIndex, uint16_t position)
     payload[2] = (uint8_t)((position >> 8) & 0x0f);
 
     SendWingFrame('F', payload, 3);
-}
-
-void WingFaderController::ParserFeed(uint8_t byte) {
-    if (!parser.in_frame) {
-        if (byte == 0x2a) {
-            parser.in_frame = 1;
-            parser.after_star = 1;
-            parser.have_cmd = 0;
-            parser.len = 0;
-        }
-        return;
-    }
-
-    if (parser.after_star) {
-        parser.after_star = 0;
-        if (byte == 0x2a) {
-            parser.have_cmd = 0;
-            parser.len = 0;
-            parser.after_star = 1;
-        } else if (byte == 0x40) {
-            if (parser.len < sizeof(parser.payload))
-                parser.payload[parser.len++] = 0x2a;
-        } else if (byte & 0x80) {
-            if (parser.have_cmd) {
-                uint8_t expect = CalculateWingChecksum(parser.payload, parser.len);
-                if (byte == expect) {
-                    HandleParsedFrame(parser.cmd, parser.payload, parser.len);
-                }
-            }
-            memset(&parser, 0, sizeof(parser));
-        } else if (!parser.have_cmd) {
-            parser.cmd = byte;
-            parser.have_cmd = 1;
-        } else if (parser.len + 2 <= sizeof(parser.payload)) {
-            parser.payload[parser.len++] = 0x2a;
-            parser.payload[parser.len++] = byte;
-        }
-        return;
-    }
-
-    if (byte == 0x2a) {
-        parser.after_star = 1;
-    } else if (!parser.have_cmd) {
-        parser.cmd = byte;
-        parser.have_cmd = 1;
-    } else if (parser.len < sizeof(parser.payload)) {
-        parser.payload[parser.len++] = byte;
-    }
-}
-
-void WingFaderController::HandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len)
-{
-    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController parsed frame cmd=0x%02x len=%zu", cmd, len);
-
-    if (len > 0)
-    {
-        char hex[3 * 256 + 1];
-        int pos = 0;
-        for (size_t i = 0; i < len && i < 256; ++i)
-        {
-            pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", payload[i]);
-        }
-        hex[pos] = '\0';
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController payload: %s", hex);
-    }
-
-    if (cmd == 'f' && len == 3)
-    {
-        uint8_t index = payload[0];
-        uint16_t value = payload[1] | (payload[2] << 8);
-
-        if (faderMovedCb)
-        {
-            fprintf(stderr, "WingFaderController decoded: cmd=0x%02x index=%u value=%u\n", cmd, index, value);
-
-            faderMovedCb(callbackArg, (uint8_t)OMC_BOARD_WING, index, value);
-        }
-    }
-}
-
-void WingFaderController::ProcessIncomingData()
-{
-    char buf[256];
-    int n = surface->uart->Rx(buf, sizeof(buf));
-    if (n > 0) {
-        char hex[3 * 256 + 1];
-        int pos = 0;
-        for (int i = 0; i < n && i < 256; ++i) {
-            pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", (uint8_t)buf[i]);
-        }
-        hex[pos] = '\0';
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController RX %d bytes: %s", n, hex);
-        for (int i = 0; i < n; ++i) {
-            ParserFeed((uint8_t)buf[i]);
-        }
-    }
 }

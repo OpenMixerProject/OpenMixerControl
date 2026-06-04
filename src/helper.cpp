@@ -658,3 +658,11 @@ int Helper::CheckBoundaries(int value, int amount, int lowerbound, int upperboun
 
 	return value_new;
 }
+
+uint8_t Helper::CalculateWingChecksum(const uint8_t *payload, size_t len) {
+    unsigned int sum = 0;
+    for (size_t i = 0; i < len; ++i) {
+        sum = (sum + payload[i]) & 0xffu;
+    }
+    return (uint8_t)(((sum & 0xffu) ^ (len & 0xffu)) | 0x80u);
+}

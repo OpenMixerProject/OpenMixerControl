@@ -118,6 +118,11 @@ class X32Ctrl : public X32Base
         uint8_t surfacePacketBuffer[SURFACE_MAX_PACKET_LENGTH][6];
         char surfaceBufferUart[256]; // buffer for UART-readings
         uint8_t receivedBoardId = 0; // BoardID from last received surface event, needed for short messages!
+
+        WingFrameParser parser;
+        void WingParserFeed(uint8_t byte);
+        void WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+
         void ProcessUartDataSurface();
         void ProcessUartDataAdda();
         void ProcessUartDataAES50();
