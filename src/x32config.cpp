@@ -2007,15 +2007,27 @@ void X32Config::DefineSurfaceElements()
     //
     //########################################
 
+    DefSurfaceElements(WING_CH1_12, "CH 1-12");
+    DefSurfaceElements(WING_CH13_24, "CH 13-24");
+    DefSurfaceElements(WING_CH25_36, "CH 25-36");
+    DefSurfaceElements(WING_CH37_40_AUX, "CH 37-40 AUX");
+    DefSurfaceElements(WING_BUS_MASTER, "BUS MASTER");
+    DefSurfaceElements(WING_MAIN_MATRIX, "MAIN MATRIX");
+    DefSurfaceElements(WING_DCA, "DCA");
+    DefSurfaceElements(WING_USER_1, "USER_1");
+    DefSurfaceElements(WING_USER_2, "USER_2");
+    DefSurfaceElements(WING_FOUR_PREV, "< 4");
+    DefSurfaceElements(WING_FOUR_FWD, "4 >");
+
     for (uint i = 0; i < WING_MAX_FADERS; i++)
     {
         String indexString = String(i+1);
-        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_LCD_1)+i), String("LCD ") + indexString);
-        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_SELECT_1)+i), String("SELECT ") + indexString);
-        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_SOLO_1)+i), String("SOLO ") + indexString);
-        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_VUMETER_1)+i), String("VUMETER ") + indexString);
-        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_MUTE_1)+i), String("MUTE ") + indexString);
-        DefSurfaceElements((SurfaceElementId)(((int)BOARD_WING_FADER_1)+i), String("FADER ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)WING_LCD_1)+i), String("LCD ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)WING_SELECT_1)+i), String("SELECT ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)WING_SOLO_1)+i), String("SOLO ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)WING_VUMETER_1)+i), String("VUMETER ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)WING_MUTE_1)+i), String("MUTE ") + indexString);
+        DefSurfaceElements((SurfaceElementId)(((int)WING_FADER_1)+i), String("FADER ") + indexString);
     }
 
 
@@ -2860,6 +2872,18 @@ void X32Config::DefineSurfaceElements()
 
     /* Define just the elements the detected hardware has! */
 
+    GetSurfaceElement(WING_CH1_12)                                      ->DefButton_Wing(0x28);
+    GetSurfaceElement(WING_CH13_24)                                     ->DefButton_Wing(0x29);
+    GetSurfaceElement(WING_CH25_36)                                     ->DefButton_Wing(0x2A);
+    GetSurfaceElement(WING_CH37_40_AUX)                                 ->DefButton_Wing(0x2B);
+    GetSurfaceElement(WING_BUS_MASTER)                                  ->DefButton_Wing(0x2C);
+    GetSurfaceElement(WING_MAIN_MATRIX)                                 ->DefButton_Wing(0x2D);
+    GetSurfaceElement(WING_DCA)                                         ->DefButton_Wing(0x2E);
+    GetSurfaceElement(WING_USER_1)                                      ->DefButton_Wing(0x2F);
+    GetSurfaceElement(WING_USER_2)                                      ->DefButton_Wing(0x30);
+    GetSurfaceElement(WING_FOUR_PREV)                                   ->DefButton_Wing(0x31);
+    GetSurfaceElement(WING_FOUR_FWD)                                    ->DefButton_Wing(0x32);
+
     GetSurfaceElement(SurfaceElementId::ASSIGN_1)                       ->DefButton_Wing(0x38);
     GetSurfaceElement(SurfaceElementId::ASSIGN_2)                       ->DefButton_Wing(0x39);
     GetSurfaceElement(SurfaceElementId::ASSIGN_3)                       ->DefButton_Wing(0x3A);
@@ -2882,11 +2906,11 @@ void X32Config::DefineSurfaceElements()
 
     for (uint i = 0; i < max_faders; i++)
     {
-        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_SELECT_1)+i))    ->DefButton(OMC_BOARD_WING, 0x20 + i);
-        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_SOLO_1)+i))      ->DefButton(OMC_BOARD_WING, 0x30 + i);
-        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_LCD_1)+i))       ->DefLcd(OMC_BOARD_WING, i);
-        // GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_MUTE_1)+i))      ->DefButton(OMC_BOARD_WING, 0x40 + i);
-        GetSurfaceElement((SurfaceElementId)(((int)BOARD_WING_FADER_1)+i))     ->DefFader(OMC_BOARD_WING, i);
+        GetSurfaceElement((SurfaceElementId)(((int)WING_SELECT_1)+i))    ->DefButton(OMC_BOARD_WING, 0x00 + (0x03 * i));
+        GetSurfaceElement((SurfaceElementId)(((int)WING_SOLO_1)+i))      ->DefButton(OMC_BOARD_WING, 0x01 + (0x03 * i));
+        //GetSurfaceElement((SurfaceElementId)(((int)WING_LCD_1)+i))       ->DefLcd(OMC_BOARD_WING, i);
+        GetSurfaceElement((SurfaceElementId)(((int)WING_MUTE_1)+i))      ->DefButton(OMC_BOARD_WING, 0x02 + (0x03 * i));
+        GetSurfaceElement((SurfaceElementId)(((int)WING_FADER_1)+i))     ->DefFader(OMC_BOARD_WING, i);
     }
     
     #endif

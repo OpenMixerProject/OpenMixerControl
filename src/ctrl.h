@@ -103,6 +103,7 @@ class X32Ctrl : public X32Base
         void my_handler(int s);
 
         void InitBanks();
+        void InitBank_Channelstrip_WING(X32FaderBank* bank, uint offset);
         void InitBank_Channelstrip(X32FaderBank *bank, uint offset);
         void SetChannelstripBinding(X32FaderBank *bank, uint i, uint chanIndex);
         void InitBank_Channelstrip_DCA(X32FaderBank* bank, uint offset);
@@ -111,7 +112,7 @@ class X32Ctrl : public X32Base
         void LoadBank(OMCBankTarget target, OMCBankId id);
         void LoadAssignBank(X32AssignBankId id);
         void LoadDefaultSurfaceBinding();
-        void LoadMainFaderSurfaceBinding();
+        void LoadMainFaderSurfaceBinding_XM32();
 
         int surfacePacketCurrentIndex = 0;
         int surfacePacketCurrent = 0;

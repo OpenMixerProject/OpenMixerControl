@@ -2112,7 +2112,7 @@ void X32Ctrl::WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t 
         uint8_t index = payload[0];
         uint16_t value = payload[1] | (payload[2] << 8);
 
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Fader: index=%u value=%u", index, value);
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Fader: index=0x%02x value=%u", index, value);
 		ProcessSurface(OMC_BOARD_WING, 'f', index, value);
     }
 
@@ -2121,7 +2121,7 @@ void X32Ctrl::WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t 
         uint8_t index = payload[0];
         uint16_t value = payload[1];
 
-		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Button: index=%u value=%u", index, value);
+		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Button: index=0x%02x value=%u", index, value);
 		ProcessSurface(OMC_BOARD_WING, 'b', index, value);
     }
 }
@@ -2534,7 +2534,7 @@ void X32Ctrl::LoadDefaultSurfaceBinding()
 			config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
 			config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
 
-			LoadMainFaderSurfaceBinding();
+			LoadMainFaderSurfaceBinding_XM32();
 
 			// Mute Groups
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_1, MixerparameterAction::TOGGLE, MUTE_GROUP_1_MUTE);
@@ -2565,14 +2565,21 @@ void X32Ctrl::LoadDefaultSurfaceBinding()
 
 	if (config->IsModelAnyWing())
 	{
-		config->SurfaceBind(SurfaceElementId::ASSIGN_1, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_2, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_4, MixerparameterAction::TOGGLE, DISPLAY_UP);
-		config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+		if (config->IsModelWingCompact())
+		{
+			config->SurfaceBind(SurfaceElementId::WING_CH1_12, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_1_12));
+			config->SurfaceBind(SurfaceElementId::WING_CH13_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_13_24));
+			config->SurfaceBind(SurfaceElementId::WING_CH25_36, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_25_36));
+
+			config->SurfaceBind(SurfaceElementId::ASSIGN_1, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_2, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_4, MixerparameterAction::TOGGLE, DISPLAY_UP);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+		}
 	}
 }
 
-void X32Ctrl::LoadMainFaderSurfaceBinding()
+void X32Ctrl::LoadMainFaderSurfaceBinding_XM32()
 {
     // Main Fader
     config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
@@ -2620,14 +2627,25 @@ void X32Ctrl::InitBanks()
 	{
 		uint channel_strip_size = 12;
 
-		X32FaderBank* bank = new X32FaderBank(OMCBankId::WING_1_12, "Channel 1-12", channel_strip_size);
-
-		for (uint i = 0; i < 12; i++)
-    	{
-			bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::SET, CHANNEL_VOLUME, i);
-		}
-		banks[(uint)OMCBankId::WING_1_12] = bank;
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_1_12, "Channel 1-12", channel_strip_size), 0);
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_13_24, "Channel 1-12", channel_strip_size), 12);
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_25_36, "Channel 1-12", channel_strip_size), 24);
 	}
+}
+
+void X32Ctrl::InitBank_Channelstrip_WING(X32FaderBank* bank, uint offset)
+{
+    for (uint i = 0; i < 12; i++)
+    	{
+			//bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Channel, NONE, i + offset);
+			bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, i + offset);
+			bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_SOLO, i + offset);
+			// bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::VUMETER, NONE, i + offset);
+			bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_MUTE, i + offset);
+			bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::SET, CHANNEL_VOLUME, i + offset);
+		}
+
+	banks[(uint)(bank->GetID())] = bank;
 }
 
 void X32Ctrl::InitBank_Channelstrip(X32FaderBank* bank, uint offset)
@@ -2761,12 +2779,12 @@ void X32Ctrl::LoadBank(OMCBankTarget target, OMCBankId id)
 	{
 		for (uint i = 0; i < 12; i++)
 		{
-			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::wing + i), bank_to_load->channelstrip[i]->select);
-			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
-			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
 			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
-			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
-			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_WING_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_SELECT_1 + i), bank_to_load->channelstrip[i]->select);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
+			//config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
 		}
 
 		bankLoadedInputsection = bank_to_load;
@@ -3023,7 +3041,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 					// Reload current banking
 					config->Refresh(BANKING_INPUT);
 					config->Refresh(BANKING_BUS);
-					LoadMainFaderSurfaceBinding();
+					LoadMainFaderSurfaceBinding_XM32();
 				}
 				// Normal Mode
 				else
