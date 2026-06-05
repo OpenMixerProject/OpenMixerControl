@@ -3,6 +3,8 @@
 #include "surfacebindingparameter.h"
 #include "mixerparameter.h"
 
+using namespace std;
+
 class X32ChannelStrip
 {
     public:
@@ -20,31 +22,35 @@ class X32FaderBank
     private:
 
         String _name;
-        X32BankId _id;
+        OMCBankId _id;
 
     public:
 
-        X32ChannelStrip* channelstrip[8];
+        vector<X32ChannelStrip*> channelstrip;
 
-        X32FaderBank(X32BankId id, String name)
+        X32FaderBank(OMCBankId Id, String Name, uint ChannelStripSize)
         {
-            _id = id;
-            _name = name;
+            _id = Id;
+            _name = Name;
 
-            for(uint i = 0; i < 8; i++)
+            for(uint i = 0; i < ChannelStripSize; i++)
             {
-                channelstrip[i] = new X32ChannelStrip();
+                X32ChannelStrip* strip = new X32ChannelStrip();
 
-                channelstrip[i]->select = new SurfaceBindingParameter();
-                channelstrip[i]->vumeter = new SurfaceBindingParameter();
-                channelstrip[i]->solo = new SurfaceBindingParameter();
-		        channelstrip[i]->lcd = new SurfaceBindingParameter();
-                channelstrip[i]->mute = new SurfaceBindingParameter();
-                channelstrip[i]->fader = new SurfaceBindingParameter();
+                strip->select = new SurfaceBindingParameter();
+                strip->vumeter = new SurfaceBindingParameter();
+                strip->solo = new SurfaceBindingParameter();
+		        strip->lcd = new SurfaceBindingParameter();
+                strip->mute = new SurfaceBindingParameter();
+                strip->fader = new SurfaceBindingParameter();
+
+                channelstrip.push_back(strip);
             }
+
+            Reset();
         }
 
-        X32BankId GetID()
+        OMCBankId GetID()
         {
             return _id;
         }
@@ -54,9 +60,15 @@ class X32FaderBank
             return _name;
         }
 
+        uint GetChannelstripSize()
+        {
+            return channelstrip.size();
+        }
+
+
         void Reset()
         {
-            for(uint i = 0; i < 8; i++)
+            for(uint i = 0; i < channelstrip.size(); i++)
             {
                 channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
                 channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);

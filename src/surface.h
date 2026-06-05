@@ -9,9 +9,10 @@
 #include "defines.h"
 #include "types.h"
 #include "surface-lcd.h"
-#include "surface-event.h"
 #include "surface-message.h"
 #include "surface-fader.h"
+#include "surface-fader-controller-xm32.h"
+#include "surface-fader-controller-wing.h"
 #include "helper.h"
 
 using namespace std;

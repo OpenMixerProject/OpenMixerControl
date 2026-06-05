@@ -41,7 +41,7 @@
         {
             "label": "omc-wing",
             "type": "shell",
-            "command": "./compile-wing-docker.sh && cp ./build/wing/wing-omc /var/www/html/x32/ &&  ssh root@192.168.188.105 \" wget http://192.168.188.123/x32/wing-omc -O /usr/bin/wing-omc && chmod +x /usr/bin/wing-omc\"",
+            "command": "./compile-wing-docker.sh && cp ./build/wing/wing-omc /var/www/html/x32/ &&  ssh root@192.168.188.103 \" wget http://192.168.188.123/x32/wing-omc -O /usr/bin/wing-omc && chmod +x /usr/bin/wing-omc\"",
             "problemMatcher": [
                 "$gcc"
             ],

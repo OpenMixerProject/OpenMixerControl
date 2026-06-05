@@ -8,6 +8,7 @@ typedef enum
     X32_BOARD_L =       0x04,
     X32_BOARD_M =       0x05, // only X32 Full or M32
     X32_BOARD_R =       0x08,
+    OMC_BOARD_WING =    0x10,
 } OMC_BOARD;
 
 enum class OMC_MODEL
@@ -469,10 +470,12 @@ enum class MP_ID {
 };
 
 // @brief Surfaceelement ID
-enum class SurfaceElementId {
+enum class SurfaceElementId
+{
     NONE,
 
     // keep all in blocks, so we can enumerate!
+    // List is not modell specific, just keep the blocks together!
 
     // Only X32 Core
     SCENE_SETUP,
@@ -559,6 +562,7 @@ enum class SurfaceElementId {
     DISPLAY_ENCODER_4,
     DISPLAY_ENCODER_5,
     DISPLAY_ENCODER_6,
+    DISPLAY_ENCODER_7, // WING
 
     DISPLAY_ENCODER_BUTTON_1,
     DISPLAY_ENCODER_BUTTON_2,
@@ -816,6 +820,170 @@ enum class SurfaceElementId {
     MUTE_GROUP_5,
     MUTE_GROUP_6,
 
+    // WING
+
+    WING_CH1_12,
+    WING_CH13_24,
+    WING_CH25_36,
+    WING_CH37_40_AUX,
+    WING_BUS_MASTER,
+    WING_MAIN_MATRIX,
+    WING_DCA,
+    WING_USER_1,
+    WING_USER_2,
+    WING_FOUR_PREV,
+    WING_FOUR_FWD,
+  
+    WING_SELECT_1,
+    WING_SELECT_2,
+    WING_SELECT_3,
+    WING_SELECT_4,
+    WING_SELECT_5,
+    WING_SELECT_6,
+    WING_SELECT_7,
+    WING_SELECT_8,
+    WING_SELECT_9,
+    WING_SELECT_1o,
+    WING_SELECT_11,
+    WING_SELECT_12,
+    WING_SELECT_13,
+    WING_SELECT_14,
+    WING_SELECT_15,
+    WING_SELECT_16,
+    WING_SELECT_17,
+    WING_SELECT_18,
+    WING_SELECT_19,
+    WING_SELECT_20,
+    WING_SELECT_21,
+    WING_SELECT_22,
+    WING_SELECT_23,
+    WING_SELECT_24,
+    
+    WING_VUMETER_1,
+    WING_VUMETER_2,
+    WING_VUMETER_3,
+    WING_VUMETER_4,
+    WING_VUMETER_5,
+    WING_VUMETER_6,
+    WING_VUMETER_7,
+    WING_VUMETER_8,
+    WING_VUMETER_9,
+    WING_VUMETER_10,
+    WING_VUMETER_11,
+    WING_VUMETER_12,
+    WING_VUMETER_13,
+    WING_VUMETER_14,
+    WING_VUMETER_15,
+    WING_VUMETER_16,
+    WING_VUMETER_17,
+    WING_VUMETER_18,
+    WING_VUMETER_19,
+    WING_VUMETER_20,
+    WING_VUMETER_21,
+    WING_VUMETER_22,
+    WING_VUMETER_23,
+    WING_VUMETER_24,
+    
+    WING_SOLO_1,
+    WING_SOLO_2,
+    WING_SOLO_3,
+    WING_SOLO_4,
+    WING_SOLO_5,
+    WING_SOLO_6,
+    WING_SOLO_7,
+    WING_SOLO_8,
+    WING_SOLO_9,
+    WING_SOLO_10,
+    WING_SOLO_11,
+    WING_SOLO_12,
+    WING_SOLO_13,
+    WING_SOLO_14,
+    WING_SOLO_15,
+    WING_SOLO_16,
+    WING_SOLO_17,
+    WING_SOLO_18,
+    WING_SOLO_19,
+    WING_SOLO_20,
+    WING_SOLO_21,
+    WING_SOLO_22,
+    WING_SOLO_23,
+    WING_SOLO_24,    
+    
+    WING_LCD_1,
+    WING_LCD_2,
+    WING_LCD_3,
+    WING_LCD_4,
+    WING_LCD_5,
+    WING_LCD_6,
+    WING_LCD_7,
+    WING_LCD_8,
+    WING_LCD_9,
+    WING_LCD_10,
+    WING_LCD_11,
+    WING_LCD_12,
+    WING_LCD_13,
+    WING_LCD_14,
+    WING_LCD_15,
+    WING_LCD_16,
+    WING_LCD_17,
+    WING_LCD_18,
+    WING_LCD_19,
+    WING_LCD_20,
+    WING_LCD_21,
+    WING_LCD_22,
+    WING_LCD_23,
+    WING_LCD_24,
+    
+    WING_MUTE_1,
+    WING_MUTE_2,
+    WING_MUTE_3,
+    WING_MUTE_4,
+    WING_MUTE_5,
+    WING_MUTE_6,
+    WING_MUTE_7,
+    WING_MUTE_8,
+    WING_MUTE_9,
+    WING_MUTE_10,
+    WING_MUTE_11,
+    WING_MUTE_12,
+    WING_MUTE_13,
+    WING_MUTE_14,
+    WING_MUTE_15,
+    WING_MUTE_16,
+    WING_MUTE_17,
+    WING_MUTE_18,
+    WING_MUTE_19,
+    WING_MUTE_20,
+    WING_MUTE_21,
+    WING_MUTE_22,
+    WING_MUTE_23,
+    WING_MUTE_24,
+    
+    WING_FADER_1,
+    WING_FADER_2,
+    WING_FADER_3,
+    WING_FADER_4,
+    WING_FADER_5,
+    WING_FADER_6,
+    WING_FADER_7,
+    WING_FADER_8,
+    WING_FADER_9,
+    WING_FADER_10,
+    WING_FADER_11,
+    WING_FADER_12,
+    WING_FADER_13,
+    WING_FADER_14,
+    WING_FADER_15,
+    WING_FADER_16,
+    WING_FADER_17,
+    WING_FADER_18,
+    WING_FADER_19,
+    WING_FADER_20,
+    WING_FADER_21,
+    WING_FADER_22,
+    WING_FADER_23,
+    WING_FADER_24,
+
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
 
@@ -946,7 +1114,7 @@ enum class MixerparameterAction
 };
 
 // Banks has always 8 "Channels"
-enum class X32BankId
+enum class OMCBankId
 {
     None,
 
@@ -984,6 +1152,11 @@ enum class X32BankId
     FLEX2,
     FLEX3,
 
+    //
+    WING_1_12,
+    WING_13_24,
+    WING_25_36,
+
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
 
@@ -997,11 +1170,13 @@ enum class X32AssignBankId
 };
 
 
-enum class X32BankTarget
+enum class OMCBankTarget
 {
     None,
     
     InputSection,
     InputSection2,
-    BusSection
+    BusSection,
+
+    WING_COMPACT,
 };

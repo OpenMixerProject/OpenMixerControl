@@ -40,6 +40,7 @@
 
 #include "surfaceelement.h"
 #include "surfacebindingparameter.h"
+#include "surface-fader-controller.h"
 
 // Commandline and config file parser CLI11 (https://github.com/CLIUtils/CLI11)
 #include "../lib/CLI11.hpp"
@@ -86,13 +87,13 @@ class X32Ctrl : public X32Base
         // second button pressed, while first button is also pressed
         SurfaceElement* secondbuttonPressed = 0;
 
-        X32FaderBank* banks[(uint)X32BankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
+        X32FaderBank* banks[(uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
 
         X32FaderBank* bankLoadedInputsection;
         X32FaderBank* bankLoadedInputsection2;
         X32FaderBank* bankLoadedBussection;
 
-        X32BankId preSpillLoadedBank = X32BankId::None;
+        OMCBankId preSpillLoadedBank = OMCBankId::None;
 
         map<X32_PAGE, Page*> pages;
         X32_PAGE lastPage = X32_PAGE::HOME;
@@ -102,21 +103,27 @@ class X32Ctrl : public X32Base
         void my_handler(int s);
 
         void InitBanks();
+        void InitBank_Channelstrip_WING(X32FaderBank* bank, uint offset);
         void InitBank_Channelstrip(X32FaderBank *bank, uint offset);
         void SetChannelstripBinding(X32FaderBank *bank, uint i, uint chanIndex);
         void InitBank_Channelstrip_DCA(X32FaderBank* bank, uint offset);
         void InitBank_Flex(X32FaderBank* bank);
         void InitBank_DMX(X32FaderBank* bank, uint offset);
-        void LoadBank(X32BankTarget target, X32BankId id);
+        void LoadBank(OMCBankTarget target, OMCBankId id);
         void LoadAssignBank(X32AssignBankId id);
         void LoadDefaultSurfaceBinding();
-        void LoadMainFaderSurfaceBinding();
+        void LoadMainFaderSurfaceBinding_XM32();
 
         int surfacePacketCurrentIndex = 0;
         int surfacePacketCurrent = 0;
         uint8_t surfacePacketBuffer[SURFACE_MAX_PACKET_LENGTH][6];
         char surfaceBufferUart[256]; // buffer for UART-readings
         uint8_t receivedBoardId = 0; // BoardID from last received surface event, needed for short messages!
+
+        WingFrameParser parser;
+        void WingParserFeed(uint8_t byte);
+        void WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+
         void ProcessUartDataSurface();
         void ProcessUartDataAdda();
         void ProcessUartDataAES50();

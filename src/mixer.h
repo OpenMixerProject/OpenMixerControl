@@ -12,7 +12,6 @@
 #include "helper.h"
 
 #include "surface.h"
-#include "surface-event.h"
 
 #include "dsp1.h"
 #include "fpga.h"
