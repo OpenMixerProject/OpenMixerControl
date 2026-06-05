@@ -144,6 +144,7 @@ class X32Config
         bool HasGui();
         bool HasBigDisplay();
         bool HasSmallDisplay();
+        bool HasFaders();
 
         void InitAssignBanks();
         OMCAssignBank* GetAssignBank(X32AssignBankId id);

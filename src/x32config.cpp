@@ -137,6 +137,13 @@ bool X32Config::HasSmallDisplay()
     return IsModelX32Producer() || IsModelX32Rack() || IsModelM32R();
 }
 
+bool X32Config::HasFaders()
+{
+    return  IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || 
+            IsModelM32() || IsModelM32R() ||
+            IsModelWingFull()  || IsModelWingCompact();
+}
+
 //#####################################################################################################################
 //
 // ##        #######     ###    ########  
