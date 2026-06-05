@@ -47,7 +47,7 @@ class X32Config
 
     public:
 
-        X32Config(Helper* h);
+        X32Config(String model, Helper* h);
 
         bool LoadConfig(uint scene);
         void Save(uint scene);
@@ -119,7 +119,6 @@ class X32Config
         bool HasSurfaceBindingChanged(SurfaceElementId elementId);
         void RemoveSurfaceBindingChanged(SurfaceElementId elementId);
 
-        void SetModel(String model);
         bool IsModelX32Full();
         bool IsModelX32FullOrM32();
         bool IsModelX32FullOrCompactOrM32();

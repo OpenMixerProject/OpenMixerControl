@@ -2861,12 +2861,15 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 
 		SurfaceBindingParameter* bindingParameterButton = config->GetSurfaceBinding(button->GetId());
 
-		#ifdef TARGET_XM32
-		bool isButtonPressed = (value >> 7) == 1;
-		#endif
-		#ifdef TARGET_WING
-		bool isButtonPressed = value;
-		#endif
+		bool isButtonPressed = false;
+		if (config->IsModelAnyXM32())
+		{
+			isButtonPressed = (value >> 7) == 1;
+		}
+		else if (config->IsModelAnyWing())
+		{
+			isButtonPressed = value;
+		}
 
 		// Logic for double button press
 		if (isButtonPressed) {

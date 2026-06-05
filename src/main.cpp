@@ -266,10 +266,9 @@ void action_action_key(lv_event_t * e)
 
 int main(int argc, char* argv[]) {
 	srand(time(NULL));
-
+	state = new State();
     Helper* helper = new Helper();
-    X32Config* config = new X32Config(helper);
-    state = new State();
+
 
 	//##################################################################################
 	//#
@@ -290,6 +289,8 @@ int main(int argc, char* argv[]) {
 	helper->ReadConfig("/etc/x32.conf", "SN=", serial, 15);
 	helper->ReadConfig("/etc/x32.conf", "DATE=", date, 16);
 	helper->ReadConfig("/etc/x32.conf", "CFG", cfg, 5);
+	
+	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
 
 	#elifdef TARGET_WING
 
@@ -306,18 +307,17 @@ int main(int argc, char* argv[]) {
 
 	#endif
 
-	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
-
-	if (state->bodyless) {
-		config->SetModel("X32C");
-		//config->SetModel("X32");
-	} else if (state->raspi) {
-		config->SetModel("X32RACK");
-	} else {
-		config->SetModel(model);
+	String model_str = String(model);
+	if (state->bodyless)
+	{
+		model_str ="X32C";
+	}
+	else if (state->raspi)
+	{
+		model_str = "X32RACK";
 	}
 
-
+	X32Config* config = new X32Config(model, helper);
 	app = new CLI::App();
 	app->description("Open Mixer Control");
 	argv = app->ensure_utf8(argv);

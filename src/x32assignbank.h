@@ -21,7 +21,6 @@ class OMCAssignBank
             _id = id;
             _name = name;
 
-            #ifdef TARGET_XM32
             bindingMap->insert({SurfaceElementId::ASSIGN_ENCODER_1, new SurfaceBindingParameter()});
             bindingMap->insert({SurfaceElementId::ASSIGN_ENCODER_2, new SurfaceBindingParameter()});
             bindingMap->insert({SurfaceElementId::ASSIGN_ENCODER_3, new SurfaceBindingParameter()});
@@ -44,8 +43,6 @@ class OMCAssignBank
             bindingMap->insert({SurfaceElementId::ASSIGN_10, new SurfaceBindingParameter()});
             bindingMap->insert({SurfaceElementId::ASSIGN_11, new SurfaceBindingParameter()});
             bindingMap->insert({SurfaceElementId::ASSIGN_12, new SurfaceBindingParameter()});
-
-            #endif
         }
 
         X32AssignBankId GetID()
