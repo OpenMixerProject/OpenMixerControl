@@ -5,8 +5,6 @@
 
 class FxChorus : public FxBase
 {
-    using enum  MP_ID;
-
     public:
         FxChorus(X32BaseParameter* basepar) : FxBase(basepar) {
 

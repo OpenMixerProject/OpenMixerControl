@@ -5,7 +5,7 @@
 using namespace std;
 
 class PageDynamics: public Page {
-    using enum MP_ID;
+
 
     public:
         PageDynamics(PageBaseParameter* pagebasepar) : Page(pagebasepar) {

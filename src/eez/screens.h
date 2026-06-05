@@ -12,11 +12,13 @@ extern "C" {
 enum ScreensEnum {
     _SCREEN_ID_FIRST = 1,
     SCREEN_ID_MAIN = 1,
-    _SCREEN_ID_LAST = 1
+    SCREEN_ID_MAIN_WING = 2,
+    _SCREEN_ID_LAST = 2
 };
 
 typedef struct _objects_t {
     lv_obj_t *main;
+    lv_obj_t *main_wing;
     lv_obj_t *channel_box;
     lv_obj_t *current_channel_number;
     lv_obj_t *current_channel_name;
@@ -1021,12 +1023,146 @@ typedef struct _objects_t {
     lv_obj_t *widget6__label;
     lv_obj_t *widget6__slider;
     lv_obj_t *widget6__label_buttonpress;
+
+    // Componentized channelstrip children (X32)
+    lv_obj_t *home_channelstrip_1__ch;
+    lv_obj_t *home_channelstrip_1__vumeter;
+    lv_obj_t *home_channelstrip_1__scale;
+    lv_obj_t *home_channelstrip_2__ch;
+    lv_obj_t *home_channelstrip_2__vumeter;
+    lv_obj_t *home_channelstrip_2__scale;
+    lv_obj_t *home_channelstrip_3__ch;
+    lv_obj_t *home_channelstrip_3__vumeter;
+    lv_obj_t *home_channelstrip_3__scale;
+    lv_obj_t *home_channelstrip_4__ch;
+    lv_obj_t *home_channelstrip_4__vumeter;
+    lv_obj_t *home_channelstrip_4__scale;
+    lv_obj_t *home_channelstrip_5__ch;
+    lv_obj_t *home_channelstrip_5__vumeter;
+    lv_obj_t *home_channelstrip_5__scale;
+    lv_obj_t *home_channelstrip_6__ch;
+    lv_obj_t *home_channelstrip_6__vumeter;
+    lv_obj_t *home_channelstrip_6__scale;
+
+    // MainWing screen and its components
+    lv_obj_t *wing_header;
+    lv_obj_t *wing_current_channel_color;
+    lv_obj_t *wing_current_channel_number;
+    lv_obj_t *wing_current_channel_name;
+    lv_obj_t *wing_header_ip;
+    lv_obj_t *wing_header_aes50_info;
+    lv_obj_t *wing_header_statustext;
+    lv_obj_t *wing_header_debug;
+    lv_obj_t *wing_maintab;
+
+    // MainWing Overview channel strips
+    lv_obj_t *wing_home_channelstrip_1;
+    lv_obj_t *wing_home_channelstrip_1__ch;
+    lv_obj_t *wing_home_channelstrip_1__vumeter;
+    lv_obj_t *wing_home_channelstrip_1__scale;
+    lv_obj_t *wing_home_channelstrip_2;
+    lv_obj_t *wing_home_channelstrip_2__ch;
+    lv_obj_t *wing_home_channelstrip_2__vumeter;
+    lv_obj_t *wing_home_channelstrip_2__scale;
+    lv_obj_t *wing_home_channelstrip_3;
+    lv_obj_t *wing_home_channelstrip_3__ch;
+    lv_obj_t *wing_home_channelstrip_3__vumeter;
+    lv_obj_t *wing_home_channelstrip_3__scale;
+    lv_obj_t *wing_home_channelstrip_4;
+    lv_obj_t *wing_home_channelstrip_4__ch;
+    lv_obj_t *wing_home_channelstrip_4__vumeter;
+    lv_obj_t *wing_home_channelstrip_4__scale;
+    lv_obj_t *wing_home_channelstrip_5;
+    lv_obj_t *wing_home_channelstrip_5__ch;
+    lv_obj_t *wing_home_channelstrip_5__vumeter;
+    lv_obj_t *wing_home_channelstrip_5__scale;
+    lv_obj_t *wing_home_channelstrip_6;
+    lv_obj_t *wing_home_channelstrip_6__ch;
+    lv_obj_t *wing_home_channelstrip_6__vumeter;
+    lv_obj_t *wing_home_channelstrip_6__scale;
+    lv_obj_t *wing_home_channelstrip_7;
+    lv_obj_t *wing_home_channelstrip_7__ch;
+    lv_obj_t *wing_home_channelstrip_7__vumeter;
+    lv_obj_t *wing_home_channelstrip_7__scale;
+    lv_obj_t *wing_home_channelstrip_8;
+    lv_obj_t *wing_home_channelstrip_8__ch;
+    lv_obj_t *wing_home_channelstrip_8__vumeter;
+    lv_obj_t *wing_home_channelstrip_8__scale;
+    lv_obj_t *wing_home_channelstrip_9;
+    lv_obj_t *wing_home_channelstrip_9__ch;
+    lv_obj_t *wing_home_channelstrip_9__vumeter;
+    lv_obj_t *wing_home_channelstrip_9__scale;
+    lv_obj_t *wing_home_channelstrip_10;
+    lv_obj_t *wing_home_channelstrip_10__ch;
+    lv_obj_t *wing_home_channelstrip_10__vumeter;
+    lv_obj_t *wing_home_channelstrip_10__scale;
+    lv_obj_t *wing_home_channelstrip_11;
+    lv_obj_t *wing_home_channelstrip_11__ch;
+    lv_obj_t *wing_home_channelstrip_11__vumeter;
+    lv_obj_t *wing_home_channelstrip_11__scale;
+    lv_obj_t *wing_home_channelstrip_12;
+    lv_obj_t *wing_home_channelstrip_12__ch;
+    lv_obj_t *wing_home_channelstrip_12__vumeter;
+    lv_obj_t *wing_home_channelstrip_12__scale;
+
+    // MainWing preamp/config
+    lv_obj_t *wing_config_preamp_panel;
+    lv_obj_t *wing_config_phantom_button;
+    lv_obj_t *wing_config_phase_button;
+    lv_obj_t *wing_config_gain_slider;
+    lv_obj_t *wing_config_gain_value;
+
+    // MainWing gate
+    lv_obj_t *wing_config_gate_panel;
+    lv_obj_t *wing_config_gate_button;
+    lv_obj_t *wing_config_gate_threshold_slider;
+    lv_obj_t *wing_config_gate_threshold_value;
+
+    // MainWing compressor
+    lv_obj_t *wing_config_dynamics_panel;
+    lv_obj_t *wing_config_comp_button;
+    lv_obj_t *wing_config_comp_threshold_slider;
+    lv_obj_t *wing_config_comp_threshold_value;
+
+    // MainWing meters
+    lv_obj_t *wing_meters_1_8;
+    lv_obj_t *wing_meters_9_16;
+
+    // MainWing bottom encoders
+    lv_obj_t *wing_display_encoder_sliders;
+    lv_obj_t *wing_widget1;
+    lv_obj_t *wing_widget1__label;
+    lv_obj_t *wing_widget1__slider;
+    lv_obj_t *wing_widget1__label_buttonpress;
+    lv_obj_t *wing_widget2;
+    lv_obj_t *wing_widget2__label;
+    lv_obj_t *wing_widget2__slider;
+    lv_obj_t *wing_widget2__label_buttonpress;
+    lv_obj_t *wing_widget3;
+    lv_obj_t *wing_widget3__label;
+    lv_obj_t *wing_widget3__slider;
+    lv_obj_t *wing_widget3__label_buttonpress;
+    lv_obj_t *wing_widget4;
+    lv_obj_t *wing_widget4__label;
+    lv_obj_t *wing_widget4__slider;
+    lv_obj_t *wing_widget4__label_buttonpress;
+    lv_obj_t *wing_widget5;
+    lv_obj_t *wing_widget5__label;
+    lv_obj_t *wing_widget5__slider;
+    lv_obj_t *wing_widget5__label_buttonpress;
+    lv_obj_t *wing_widget6;
+    lv_obj_t *wing_widget6__label;
+    lv_obj_t *wing_widget6__slider;
+    lv_obj_t *wing_widget6__label_buttonpress;
 } objects_t;
 
 extern objects_t objects;
 
 void create_screen_main();
 void tick_screen_main();
+
+void create_screen_main_wing();
+void tick_screen_main_wing();
 
 void create_user_widget_ms_bar(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_ms_bar(int startWidgetIndex);

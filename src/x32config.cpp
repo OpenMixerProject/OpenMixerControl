@@ -1876,6 +1876,7 @@ void X32Config::DefineSurfaceElements()
     DefSurfaceElements(DISPLAY_ENCODER_4, "Display Encoder 4");
     DefSurfaceElements(DISPLAY_ENCODER_5, "Display Encoder 5");
     DefSurfaceElements(DISPLAY_ENCODER_6, "Display Encoder 6");
+    DefSurfaceElements(DISPLAY_ENCODER_7, "Display Encoder 7");
 
     DefSurfaceElements(DISPLAY_ENCODER_BUTTON_1, "Display Encoder Button 1");
     DefSurfaceElements(DISPLAY_ENCODER_BUTTON_2, "Display Encoder Button 2");
@@ -2907,6 +2908,14 @@ void X32Config::DefineSurfaceElements()
     GetSurfaceElement(DISPLAY_ENCODER_4)                                ->DefEncoder(OMC_BOARD_WING, 0x04);
     GetSurfaceElement(DISPLAY_ENCODER_5)                                ->DefEncoder(OMC_BOARD_WING, 0x05);
     GetSurfaceElement(DISPLAY_ENCODER_6)                                ->DefEncoder(OMC_BOARD_WING, 0x06);
+    GetSurfaceElement(DISPLAY_ENCODER_7)                                ->DefEncoder(OMC_BOARD_WING, 0x00);
+
+    GetSurfaceElement(DISPLAY_ENCODER_BUTTON_1)                         ->DefButton_Wing(2);
+    GetSurfaceElement(DISPLAY_ENCODER_BUTTON_2)                         ->DefButton_Wing(3);
+    GetSurfaceElement(DISPLAY_ENCODER_BUTTON_3)                         ->DefButton_Wing(4);
+    GetSurfaceElement(DISPLAY_ENCODER_BUTTON_4)                         ->DefButton_Wing(5);
+    GetSurfaceElement(DISPLAY_ENCODER_BUTTON_5)                         ->DefButton_Wing(6);
+    GetSurfaceElement(DISPLAY_ENCODER_BUTTON_6)                         ->DefButton_Wing(18);
 
     uint max_faders = 0;
     if (IsModelWingFull())

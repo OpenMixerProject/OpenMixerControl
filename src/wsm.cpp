@@ -50,7 +50,7 @@ int WSM::Init()
         return -1;
     }
     
-    if (bind(UdpHandle, (const struct sockaddr *)&ServerAddr, sizeof(ServerAddr)) < 0) {
+    if (::bind(UdpHandle, (const struct sockaddr *)&ServerAddr, sizeof(ServerAddr)) < 0) {
         //fprintf(stderr, "Error on binding UDP-socket!");
         close(UdpHandle);
         return -1;

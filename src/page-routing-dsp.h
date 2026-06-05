@@ -3,7 +3,7 @@
 #include "page.h"
 
 using namespace std;
-using enum MP_ID;
+
 
 class PageRoutingDsp: public Page
 {

@@ -670,11 +670,18 @@ void X32Ctrl::InitPagesAndGUI()
 		value->Init();
 	}	
 
-	lv_obj_add_event_cb(objects.maintab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
-	lv_obj_add_event_cb(objects.hometab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
-	lv_obj_add_event_cb(objects.meterstab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
-	lv_obj_add_event_cb(objects.routingtab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
-	lv_obj_add_event_cb(objects.setuptab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	if (config->IsModelAnyWing())
+	{
+		lv_obj_add_event_cb(objects.wing_maintab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	}
+	else
+	{
+		lv_obj_add_event_cb(objects.maintab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+		lv_obj_add_event_cb(objects.hometab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+		lv_obj_add_event_cb(objects.meterstab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+		lv_obj_add_event_cb(objects.routingtab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+		lv_obj_add_event_cb(objects.setuptab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	}
 }
 
 void X32Ctrl::HandleGuiTabChanged(lv_obj_t* tabview)
@@ -687,7 +694,19 @@ void X32Ctrl::HandleGuiTabChanged(lv_obj_t* tabview)
 	uint32_t index = lv_tabview_get_tab_active(tabview);
 	X32_PAGE page = X32_PAGE::NONE;
 
-	if (tabview == objects.maintab)
+	if (config->IsModelAnyWing() && tabview == objects.wing_maintab)
+	{
+		switch (index)
+		{
+			case 0: page = X32_PAGE::HOME; break;
+			case 1: page = X32_PAGE::CONFIG; break;
+			case 2: page = X32_PAGE::METERS; break;
+			case 3: page = X32_PAGE::ROUTING; break;
+			case 4: page = X32_PAGE::SETUP; break;
+			default: break;
+		}
+	}
+	else if (tabview == objects.maintab)
 	{
 		switch (index)
 		{
@@ -1244,6 +1263,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 			case SurfaceElementId::DISPLAY_ENCODER_4:
 			case SurfaceElementId::DISPLAY_ENCODER_5:
 			case SurfaceElementId::DISPLAY_ENCODER_6:
+			case SurfaceElementId::DISPLAY_ENCODER_7:
 			case SurfaceElementId::DISPLAY_ENCODER_BUTTON_1:
 			case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2:
 			case SurfaceElementId::DISPLAY_ENCODER_BUTTON_3:
@@ -2233,6 +2253,14 @@ void X32Ctrl::WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t 
 		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Encoder: index=0x%02x value=%d", index, delta);
 		ProcessSurface(OMC_BOARD_WING, 'e', index, value);
     }
+
+    if (cmd == 't' && len == 2)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1];
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Encoder Touch: index=0x%02x value=%u", index, value);
+    }
 }
 
 void X32Ctrl::WingTouchscreenFlush()
@@ -2346,6 +2374,12 @@ void X32Ctrl::WingTouchscreenHandleFrame(uint8_t cmd, const uint8_t* payload, si
             wingTouchX,
             wingTouchY
         );
+    }
+    else
+    {
+        // Route non-touchscreen messages (e.g. encoders/buttons sharing the serial port)
+        // to the standard Wing frame handler
+        WingHandleParsedFrame(cmd, payload, len);
     }
 }
 

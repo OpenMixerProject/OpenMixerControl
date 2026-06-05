@@ -37,6 +37,10 @@ CSRCS           := $(shell find src -type f -name '*.c' -print) \
 				   $(shell find $(LVGL_DIR)/src -type f -name '*.c' -print) \
 				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.c' -print)
 				   
+ifeq ($(shell uname -s),Darwin)
+    CSRCS := $(filter-out %/fb/lv_linux_fbdev.c %/drm/lv_linux_drm.c %/drm/lv_linux_drm_common.c %/drm/lv_linux_drm_egl.c %/wayland/% %/x11/%,$(CSRCS))
+endif
+
 CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
 				   $(shell find $(LIB_DIR) -type f -name '*.cpp' -print) \
 				   $(shell find $(LVGL_DIR)/src -type f -name '*.cpp' -print) \

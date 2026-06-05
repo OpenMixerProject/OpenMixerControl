@@ -5,8 +5,6 @@
 
 class FxDeFeedback : public FxBase
 {
-    using enum  MP_ID;
-
     public:
         FxDeFeedback(X32BaseParameter* basepar) : FxBase(basepar) {
         }

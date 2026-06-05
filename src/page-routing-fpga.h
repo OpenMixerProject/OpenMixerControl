@@ -6,7 +6,7 @@ using namespace std;
 
 class PageRoutingFpga: public Page
 {
-    using enum MP_ID;
+
 
     private:
 

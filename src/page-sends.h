@@ -5,7 +5,7 @@ using namespace std;
 
 class PageSends : public Page
 {
-    using enum MP_ID;
+
 
     private:
 

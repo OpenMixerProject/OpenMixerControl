@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-void ui_init();
+void ui_init(bool is_wing);
 void ui_tick();
 
 void loadScreen(enum ScreensEnum screenId);

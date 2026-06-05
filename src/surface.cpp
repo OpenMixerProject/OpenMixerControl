@@ -153,13 +153,15 @@ static int wing_csc_latch_mmio_open(struct wing_csc_latch_mmio *mmio)
         return -1;
 
     // Enable ECSPI2 clock gate via CCM CCGR1
-    uint8_t *ccm = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd, CCM_BASE);
-    if (ccm == MAP_FAILED)
-        goto fail;
-    uint32_t ccgr1 = readl_ptr(ccm, CCM_CCGR1_OFF);
-    ccgr1 |= 0x0000000Cu;
-    writel_ptr(ccm, CCM_CCGR1_OFF, ccgr1);
-    munmap(ccm, 0x1000);
+    {
+        uint8_t *ccm = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd, CCM_BASE);
+        if (ccm == MAP_FAILED)
+            goto fail;
+        uint32_t ccgr1 = readl_ptr(ccm, CCM_CCGR1_OFF);
+        ccgr1 |= 0x0000000Cu;
+        writel_ptr(ccm, CCM_CCGR1_OFF, ccgr1);
+        munmap(ccm, 0x1000);
+    }
 
     mmio->iomuxc = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd,
                         IOMUXC_BASE);

@@ -9,7 +9,6 @@
 #include "base.h"
 
 using namespace std;
-using enum MP_ID;
 
 #if ENABLE_ARTNET
 

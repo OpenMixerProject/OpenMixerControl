@@ -26,6 +26,8 @@
 
 SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
 
+#ifdef __linux__
+
 // configures a Xilinx Spartan 3A via SPI
 // accepts path to bitstream-file
 // returns 0 if sucecssul, -1 on errors
@@ -968,6 +970,10 @@ bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) {
 }
 
 void SPI::QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]) {
+    if (dsp == 0 && config->IsModelAnyWing()) {
+        return;
+    }
+
 /*
     // check if our ringbuffer has at least one element left
     if (spiTxRingBuffer[dsp].level == SPI_TX_BUFFER_SIZE) {
@@ -1003,6 +1009,10 @@ uint32_t SPI::GetDspTxQueueLength(uint8_t dsp) {
 }
 
 void SPI::ProcessDspTxQueue(uint8_t dsp) {
+    if (dsp == 0 && config->IsModelAnyWing()) {
+        return;
+    }
+
     // this function is called every 10ms, except once when we are reading from DSP via DMA-Access
     if (spiTxRingBuffer[dsp].level == 0) {
         // nothing to do here
@@ -1111,6 +1121,10 @@ void SPI::UpdateNumberOfExpectedReadBytes(uint8_t dsp, uint8_t classId, uint8_t 
 }
 
 bool SPI::ReadDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index) {
+    if (dsp == 0 && config->IsModelAnyWing()) {
+        return false;
+    }
+
 //    if (!connected) return false; // this line prevents SPI-communication at the moment
 
     // at the moment we are not using the ring-buffer-system, so this is just a simple buffer at the moment
@@ -1273,3 +1287,33 @@ SpiEvent* SPI::GetNextEvent(void){
     eventBuffer.pop_back();
     return event;
 }
+#else
+int SPI::UploadBitstreamFpgaXilinx(void) { return 0; }
+int SPI::UploadBitstreamFpgaLattice(void) { return 0; }
+int SPI::UploadBitstreamDsps(bool useCli) { return 0; }
+bool SPI::OpenConnectionFpga() { return true; }
+bool SPI::CloseConnectionFpga() { return true; }
+bool SPI::OpenConnectionDsps() { return true; }
+bool SPI::CloseConnectionDsps() { return true; }
+bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) { return true; }
+void SPI::QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]) {}
+void SPI::ProcessDspTxQueue(uint8_t dsp) {}
+uint32_t SPI::GetDspTxQueueLength(uint8_t dsp) { return 0; }
+bool SPI::SendDspData(uint8_t dsp, sSpiTxBufferElement* buffer) { return true; }
+void SPI::UpdateNumberOfExpectedReadBytes(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index) {}
+bool SPI::ReadDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index) { return true; }
+void SPI::PushValuesToRxBuffer(uint8_t dsp, uint32_t valueCount, uint32_t values[]) {}
+void SPI::ProcessRxData(uint8_t dsp) {}
+bool SPI::HasNextEvent(void) { return false; }
+SpiEvent* SPI::GetNextEvent(void) { return nullptr; }
+
+void SPI::toggleFpgaProgramnPin(uint32_t assertTime, uint32_t waitTime) {}
+void SPI::setFpgaChipSelectPin(bool state) {}
+void SPI::setFpgaDonePin(bool state) {}
+int SPI::fpgaLatticeReadData(int* spi_fd, uint8_t cmd) { return 0; }
+uint32_t SPI::fpgaLatticeReverseByteOrder_uint32(uint32_t x) { return 0; }
+void SPI::fpgaLatticePrintBits(uint32_t status) {}
+bool SPI::fpgaLatticePollBusyFlag(int* spi_fd) { return true; }
+bool SPI::fpgaLatticeSendCommand(int* spi_fd, uint8_t cmd, bool keepCS, bool checkBusyAndStatus) { return true; }
+int SPI::fpgaLatticeTransferCommand(int* spi_fd, uint8_t cmd) { return 0; }
+#endif

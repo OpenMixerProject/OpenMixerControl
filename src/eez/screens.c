@@ -3250,9 +3250,10 @@ void tick_user_widget_routing_element(int startWidgetIndex) {
 typedef void (*tick_screen_func_t)();
 tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_main,
+    tick_screen_main_wing,
 };
 void tick_screen(int screen_index) {
-    if (screen_index >= 0 && screen_index < 1) {
+    if (screen_index >= 0 && screen_index < 2) {
         tick_screen_funcs[screen_index]();
     }
 }
@@ -3366,4 +3367,136 @@ void create_screens() {
     // Initialize screens
     // Create screens
     create_screen_main();
+    create_screen_main_wing();
+}
+
+void create_screen_main_wing() {
+    objects.main_wing = lv_obj_create(NULL);
+    objects.wing_maintab = lv_tabview_create(objects.main_wing);
+    lv_tabview_add_tab(objects.wing_maintab, "Overview");
+    lv_tabview_add_tab(objects.wing_maintab, "Channel Strip");
+    lv_tabview_add_tab(objects.wing_maintab, "Meters");
+    lv_tabview_add_tab(objects.wing_maintab, "Routing");
+    lv_tabview_add_tab(objects.wing_maintab, "Setup");
+
+    objects.home_channelstrip_1__ch = lv_label_create(objects.main_wing);
+    objects.home_channelstrip_1__vumeter = lv_image_create(objects.main_wing);
+    objects.home_channelstrip_1__scale = lv_scale_create(objects.main_wing);
+    objects.home_channelstrip_2__ch = lv_label_create(objects.main_wing);
+    objects.home_channelstrip_2__vumeter = lv_image_create(objects.main_wing);
+    objects.home_channelstrip_2__scale = lv_scale_create(objects.main_wing);
+    objects.home_channelstrip_3__ch = lv_label_create(objects.main_wing);
+    objects.home_channelstrip_3__vumeter = lv_image_create(objects.main_wing);
+    objects.home_channelstrip_3__scale = lv_scale_create(objects.main_wing);
+    objects.home_channelstrip_4__ch = lv_label_create(objects.main_wing);
+    objects.home_channelstrip_4__vumeter = lv_image_create(objects.main_wing);
+    objects.home_channelstrip_4__scale = lv_scale_create(objects.main_wing);
+    objects.home_channelstrip_5__ch = lv_label_create(objects.main_wing);
+    objects.home_channelstrip_5__vumeter = lv_image_create(objects.main_wing);
+    objects.home_channelstrip_5__scale = lv_scale_create(objects.main_wing);
+    objects.home_channelstrip_6__ch = lv_label_create(objects.main_wing);
+    objects.home_channelstrip_6__vumeter = lv_image_create(objects.main_wing);
+    objects.home_channelstrip_6__scale = lv_scale_create(objects.main_wing);
+
+    objects.wing_home_channelstrip_1 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_1__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_1__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_1__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_2 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_2__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_2__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_2__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_3 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_3__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_3__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_3__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_4 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_4__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_4__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_4__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_5 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_5__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_5__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_5__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_6 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_6__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_6__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_6__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_7 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_7__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_7__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_7__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_8 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_8__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_8__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_8__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_9 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_9__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_9__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_9__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_10 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_10__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_10__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_10__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_11 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_11__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_11__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_11__scale = lv_scale_create(objects.main_wing);
+    objects.wing_home_channelstrip_12 = lv_obj_create(objects.main_wing);
+    objects.wing_home_channelstrip_12__ch = lv_label_create(objects.main_wing);
+    objects.wing_home_channelstrip_12__vumeter = lv_image_create(objects.main_wing);
+    objects.wing_home_channelstrip_12__scale = lv_scale_create(objects.main_wing);
+
+    objects.wing_meters_1_8 = lv_obj_create(objects.main_wing);
+    objects.wing_meters_9_16 = lv_obj_create(objects.main_wing);
+
+    objects.wing_config_gain_slider = lv_slider_create(objects.main_wing);
+    objects.wing_config_gain_value = lv_label_create(objects.main_wing);
+    objects.wing_config_phantom_button = lv_button_create(objects.main_wing);
+    objects.wing_config_phase_button = lv_button_create(objects.main_wing);
+
+    objects.wing_config_gate_threshold_slider = lv_slider_create(objects.main_wing);
+    objects.wing_config_gate_threshold_value = lv_label_create(objects.main_wing);
+    objects.wing_config_gate_button = lv_button_create(objects.main_wing);
+
+    objects.wing_config_comp_threshold_slider = lv_slider_create(objects.main_wing);
+    objects.wing_config_comp_threshold_value = lv_label_create(objects.main_wing);
+    objects.wing_config_comp_button = lv_button_create(objects.main_wing);
+
+    objects.wing_current_channel_color = lv_obj_create(objects.main_wing);
+    objects.wing_current_channel_number = lv_label_create(objects.main_wing);
+    objects.wing_current_channel_name = lv_label_create(objects.main_wing);
+    objects.wing_header_ip = lv_label_create(objects.main_wing);
+    objects.wing_header_aes50_info = lv_label_create(objects.main_wing);
+    objects.wing_header_statustext = lv_label_create(objects.main_wing);
+    objects.wing_header_debug = lv_label_create(objects.main_wing);
+
+    objects.wing_display_encoder_sliders = lv_obj_create(objects.main_wing);
+    objects.wing_widget1 = lv_obj_create(objects.main_wing);
+    objects.wing_widget1__label = lv_label_create(objects.main_wing);
+    objects.wing_widget1__slider = lv_slider_create(objects.main_wing);
+    objects.wing_widget1__label_buttonpress = lv_label_create(objects.main_wing);
+    objects.wing_widget2 = lv_obj_create(objects.main_wing);
+    objects.wing_widget2__label = lv_label_create(objects.main_wing);
+    objects.wing_widget2__slider = lv_slider_create(objects.main_wing);
+    objects.wing_widget2__label_buttonpress = lv_label_create(objects.main_wing);
+    objects.wing_widget3 = lv_obj_create(objects.main_wing);
+    objects.wing_widget3__label = lv_label_create(objects.main_wing);
+    objects.wing_widget3__slider = lv_slider_create(objects.main_wing);
+    objects.wing_widget3__label_buttonpress = lv_label_create(objects.main_wing);
+    objects.wing_widget4 = lv_obj_create(objects.main_wing);
+    objects.wing_widget4__label = lv_label_create(objects.main_wing);
+    objects.wing_widget4__slider = lv_slider_create(objects.main_wing);
+    objects.wing_widget4__label_buttonpress = lv_label_create(objects.main_wing);
+    objects.wing_widget5 = lv_obj_create(objects.main_wing);
+    objects.wing_widget5__label = lv_label_create(objects.main_wing);
+    objects.wing_widget5__slider = lv_slider_create(objects.main_wing);
+    objects.wing_widget5__label_buttonpress = lv_label_create(objects.main_wing);
+    objects.wing_widget6 = lv_obj_create(objects.main_wing);
+    objects.wing_widget6__label = lv_label_create(objects.main_wing);
+    objects.wing_widget6__slider = lv_slider_create(objects.main_wing);
+    objects.wing_widget6__label_buttonpress = lv_label_create(objects.main_wing);
+}
+
+void tick_screen_main_wing() {
 }

@@ -5,8 +5,6 @@
 
 class FxMatrixUpmixer : public FxBase
 {
-    using enum  MP_ID;
-
     public:
         FxMatrixUpmixer(X32BaseParameter* basepar) : FxBase(basepar) {
         }

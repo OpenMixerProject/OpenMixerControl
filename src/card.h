@@ -16,8 +16,6 @@ using namespace WString;
 
 class Card : X32Base
 {
-    using enum MP_ID;
-
     private:
         Adda* adda;
 

@@ -65,7 +65,7 @@ using namespace std;
 
 class X32Ctrl : public X32Base
 {
-    using enum MP_ID;
+
 
     private:
         

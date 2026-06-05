@@ -6,7 +6,7 @@ using namespace std;
 
 class PageEq: public Page {
 
-    using enum MP_ID;
+
 
     public:
         PageEq(PageBaseParameter* pagebasepar) : Page(pagebasepar) {

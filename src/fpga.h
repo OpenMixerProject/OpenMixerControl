@@ -21,8 +21,6 @@
 
 class Fpga : public X32Base
 {
-    using enum MP_ID;
-
     public:
 
         SPI* spi;

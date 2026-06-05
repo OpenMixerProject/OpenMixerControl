@@ -21,10 +21,13 @@ void loadScreen(enum ScreensEnum screenId) {
     lv_scr_load_anim(screen, LV_SCR_LOAD_ANIM_FADE_IN, 200, 0, false);
 }
 
-void ui_init() {
+void ui_init(bool is_wing) {
     create_screens();
-    loadScreen(SCREEN_ID_MAIN);
-
+    if (is_wing) {
+        loadScreen(SCREEN_ID_MAIN_WING);
+    } else {
+        loadScreen(SCREEN_ID_MAIN);
+    }
 }
 
 void ui_tick() {

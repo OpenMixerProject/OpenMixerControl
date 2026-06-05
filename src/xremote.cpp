@@ -49,7 +49,7 @@ int8_t XRemote::Init() {
     ServerAddr.sin_addr.s_addr = INADDR_ANY;
     ServerAddr.sin_port = htons(10023);
     
-    if (bind(UdpHandle, (const struct sockaddr *)&ServerAddr, sizeof(ServerAddr)) < 0) {
+    if (::bind(UdpHandle, (const struct sockaddr *)&ServerAddr, sizeof(ServerAddr)) < 0) {
         //fprintf(stderr, "Error on binding UDP-socket!");
         close(UdpHandle);
         return -1;

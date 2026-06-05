@@ -239,7 +239,7 @@ void guiInit(X32Config* config) {
 	#ifdef BUILD_DEBUG
 	printf("ui_init()\n");
 	#endif
-	ui_init();
+	ui_init(config->IsModelAnyWing());
 
 	// InitPagesAndGUI() has to be called after ui_init()!
 	#ifdef BUILD_DEBUG
@@ -343,7 +343,7 @@ int main(int argc, char* argv[]) {
 	helper->ReadConfig("/etc/x32.conf", "DATE=", date, 16);
 	helper->ReadConfig("/etc/x32.conf", "CFG", cfg, 5);
 
-	#elifdef TARGET_WING
+	#elif defined(TARGET_WING)
 
 	// DEBUG
 	strcpy(model, "WINGC"); // asume WING Compact for now

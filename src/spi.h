@@ -1,7 +1,9 @@
 #pragma once
 
+#ifdef __linux__
 #include <linux/spi/spidev.h>
 #include <linux/gpio.h>
+#endif
 #include <fcntl.h>
 #include <list>
 

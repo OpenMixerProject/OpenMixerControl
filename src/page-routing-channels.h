@@ -6,7 +6,7 @@ using namespace std;
 
 class PageRoutingChannels: public Page
 {
-	using enum MP_ID;
+
 	
 	private:
 	

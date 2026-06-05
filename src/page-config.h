@@ -42,6 +42,28 @@ class PageConfig : public Page
             config_dca_group[5] = objects.config_dca_group_6;
             config_dca_group[6] = objects.config_dca_group_7;
             config_dca_group[7] = objects.config_dca_group_8;
+
+            // Make checkboxes and button clickable
+            lv_obj_add_flag(objects.config_phantom_checkbox, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_add_flag(objects.config_phase_checkbox, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_add_flag(objects.config_mute_checkbox, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_add_flag(objects.config_phantom_button, LV_OBJ_FLAG_CLICKABLE);
+
+            // Register checkbox callbacks
+            lv_obj_add_event_cb(objects.config_phantom_checkbox, CheckboxClickEvent, LV_EVENT_CLICKED, this);
+            lv_obj_add_event_cb(objects.config_phase_checkbox, CheckboxClickEvent, LV_EVENT_CLICKED, this);
+            lv_obj_add_event_cb(objects.config_mute_checkbox, CheckboxClickEvent, LV_EVENT_CLICKED, this);
+            lv_obj_add_event_cb(objects.config_phantom_button, CheckboxClickEvent, LV_EVENT_CLICKED, this);
+
+            // Make knobs clickable
+            lv_obj_add_flag(objects.config_gain_knob, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_add_flag(objects.config_pan_knob, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_add_flag(objects.config_volume_knob, LV_OBJ_FLAG_CLICKABLE);
+
+            // Register knob callbacks
+            lv_obj_add_event_cb(objects.config_gain_knob, KnobClickEvent, LV_EVENT_CLICKED, this);
+            lv_obj_add_event_cb(objects.config_pan_knob, KnobClickEvent, LV_EVENT_CLICKED, this);
+            lv_obj_add_event_cb(objects.config_volume_knob, KnobClickEvent, LV_EVENT_CLICKED, this);
         }
 
         void OnShow() override 
@@ -57,6 +79,15 @@ class PageConfig : public Page
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_5, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_PANORAMA);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6, MixerparameterAction::RESET_SELECTED_CHANNEL, CHANNEL_PANORAMA);
+
+            // Touch & Turn default: Gain Knob
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_7, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
+            
+            // Set default visual outline for active touch-and-turn knob
+            lv_obj_set_style_outline_width(objects.config_gain_knob, 2, LV_STATE_DEFAULT);
+            lv_obj_set_style_outline_color(objects.config_gain_knob, lv_color_hex(0xFFCC00), LV_STATE_DEFAULT);
+            lv_obj_set_style_outline_width(objects.config_pan_knob, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_outline_width(objects.config_volume_knob, 0, LV_STATE_DEFAULT);
         }
 
         void OnChange(bool force_update) override
@@ -139,6 +170,69 @@ class PageConfig : public Page
             {
                 lv_image_set_offset_x(objects.config_vumeter, newImageOffset);
                 lastImageOffset = newImageOffset;
+            }
+        }
+
+    private:
+        static void CheckboxClickEvent(lv_event_t* e)
+        {
+            PageConfig* page = static_cast<PageConfig*>(lv_event_get_user_data(e));
+            if (page)
+            {
+                page->HandleCheckboxClick(lv_event_get_target_obj(e));
+            }
+        }
+
+        static void KnobClickEvent(lv_event_t* e)
+        {
+            PageConfig* page = static_cast<PageConfig*>(lv_event_get_user_data(e));
+            if (page)
+            {
+                page->HandleKnobClick(lv_event_get_target_obj(e));
+            }
+        }
+
+        void HandleCheckboxClick(lv_obj_t* obj)
+        {
+            uint8_t chanIndex = config->GetUint(SELECTED_CHANNEL);
+            if (obj == objects.config_phantom_checkbox || obj == objects.config_phantom_button)
+            {
+                bool val = config->GetBool(CHANNEL_PHANTOM, chanIndex);
+                config->Set(CHANNEL_PHANTOM, !val, chanIndex);
+            }
+            else if (obj == objects.config_phase_checkbox)
+            {
+                bool val = config->GetBool(CHANNEL_PHASE_INVERT, chanIndex);
+                config->Set(CHANNEL_PHASE_INVERT, !val, chanIndex);
+            }
+            else if (obj == objects.config_mute_checkbox)
+            {
+                bool val = config->GetBool(CHANNEL_MUTE, chanIndex);
+                config->Set(CHANNEL_MUTE, !val, chanIndex);
+            }
+        }
+
+        void HandleKnobClick(lv_obj_t* obj)
+        {
+            // Clear other outlines, set outline of clicked knob
+            lv_obj_set_style_outline_width(objects.config_gain_knob, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_outline_width(objects.config_pan_knob, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_outline_width(objects.config_volume_knob, 0, LV_STATE_DEFAULT);
+            
+            lv_obj_set_style_outline_width(obj, 2, LV_STATE_DEFAULT);
+            lv_obj_set_style_outline_color(obj, lv_color_hex(0xFFCC00), LV_STATE_DEFAULT);
+
+            if (obj == objects.config_gain_knob)
+            {
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_7, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
+            }
+            else if (obj == objects.config_pan_knob)
+            {
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_7, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_PANORAMA);
+            }
+            else if (obj == objects.config_volume_knob)
+            {
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_7, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
             }
         }
 };

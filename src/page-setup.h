@@ -4,7 +4,7 @@ using namespace std;
 
 class PageSetup: public Page
 {
-    using enum MP_ID;
+
 
     public:
         PageSetup(PageBaseParameter* pagebasepar) : Page(pagebasepar)

@@ -37,12 +37,24 @@ void Page::Init()
     helper->DEBUG_GUI(DEBUGLEVEL_NORMAL, "Page::Init()");
 
     // build list of lvgl encoder widgets for easy enumeration
-    lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_1] = new LVGLEncoderWidget(objects.widget1__label, objects.widget1__slider, objects.widget1__label_buttonpress);
-    lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_2] = new LVGLEncoderWidget(objects.widget2__label, objects.widget2__slider, objects.widget2__label_buttonpress);
-    lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_3] = new LVGLEncoderWidget(objects.widget3__label, objects.widget3__slider, objects.widget3__label_buttonpress);
-    lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_4] = new LVGLEncoderWidget(objects.widget4__label, objects.widget4__slider, objects.widget4__label_buttonpress);
-    lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_5] = new LVGLEncoderWidget(objects.widget5__label, objects.widget5__slider, objects.widget5__label_buttonpress);
-    lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_6] = new LVGLEncoderWidget(objects.widget6__label, objects.widget6__slider, objects.widget6__label_buttonpress);
+    if (config->IsModelAnyWing())
+    {
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_1] = new LVGLEncoderWidget(objects.wing_widget1__label, objects.wing_widget1__slider, objects.wing_widget1__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_2] = new LVGLEncoderWidget(objects.wing_widget2__label, objects.wing_widget2__slider, objects.wing_widget2__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_3] = new LVGLEncoderWidget(objects.wing_widget3__label, objects.wing_widget3__slider, objects.wing_widget3__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_4] = new LVGLEncoderWidget(objects.wing_widget4__label, objects.wing_widget4__slider, objects.wing_widget4__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_5] = new LVGLEncoderWidget(objects.wing_widget5__label, objects.wing_widget5__slider, objects.wing_widget5__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_6] = new LVGLEncoderWidget(objects.wing_widget6__label, objects.wing_widget6__slider, objects.wing_widget6__label_buttonpress);
+    }
+    else
+    {
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_1] = new LVGLEncoderWidget(objects.widget1__label, objects.widget1__slider, objects.widget1__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_2] = new LVGLEncoderWidget(objects.widget2__label, objects.widget2__slider, objects.widget2__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_3] = new LVGLEncoderWidget(objects.widget3__label, objects.widget3__slider, objects.widget3__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_4] = new LVGLEncoderWidget(objects.widget4__label, objects.widget4__slider, objects.widget4__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_5] = new LVGLEncoderWidget(objects.widget5__label, objects.widget5__slider, objects.widget5__label_buttonpress);
+        lvgl_encoder_widgets[SurfaceElementId::DISPLAY_ENCODER_6] = new LVGLEncoderWidget(objects.widget6__label, objects.widget6__slider, objects.widget6__label_buttonpress);
+    }
 
     OnInit();
     initDone = true;
@@ -91,6 +103,7 @@ void Page::ResetEncoderBinding()
     config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_4);
     config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_5);
     config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_6);
+    config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_7);
 
     config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1);
     config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_2);
@@ -106,6 +119,8 @@ void Page::Change(bool syncAll)
 
     if (initDone)
     {
+        lv_obj_t* encoder_sliders = config->IsModelAnyWing() ? objects.wing_display_encoder_sliders : objects.display_encoder_sliders;
+
         // Go to next page
         if (config->HasParameterChanged(DISPLAY_RIGHT) && this->GetNextPage() != X32_PAGE::NONE)
         {
@@ -129,7 +144,7 @@ void Page::Change(bool syncAll)
             if (config->GetBool(DISPLAY_MUTE_GROUP))
             {
                 // Show Display Encoders
-                lv_obj_set_flag(objects.display_encoder_sliders, LV_OBJ_FLAG_HIDDEN, false);
+                if (encoder_sliders) lv_obj_set_flag(encoder_sliders, LV_OBJ_FLAG_HIDDEN, false);
 
                 // Bind Encoder Widgets to Mute Groups
 
@@ -140,7 +155,7 @@ void Page::Change(bool syncAll)
                     {
                         config->SurfaceBindCustom(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_1, i), String(LV_SYMBOL_LIST) + String("\nAssign to\n"));
                         config->SurfaceBind(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, i),
-                                            MixerparameterAction::TOGGLE_SELECTED_CHANNEL, config->MpCalcId(MUTE_GROUP_1, i));
+                                             MixerparameterAction::TOGGLE_SELECTED_CHANNEL, config->MpCalcId(MUTE_GROUP_1, i));
                     }
 
                     
@@ -152,7 +167,7 @@ void Page::Change(bool syncAll)
                     {
                         config->SurfaceBindCustom(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_1, i), String(LV_SYMBOL_MUTE) + String("\nToggle\n"));
                         config->SurfaceBind(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, i),
-                                            MixerparameterAction::TOGGLE, config->MpCalcId(MUTE_GROUP_1_MUTE, i));
+                                             MixerparameterAction::TOGGLE, config->MpCalcId(MUTE_GROUP_1_MUTE, i));
                     }
                 }
 
@@ -171,7 +186,7 @@ void Page::Change(bool syncAll)
         if (!config->GetBool(DISPLAY_MUTE_GROUP))
         {
             // hide encoders if wanted
-            lv_obj_set_flag(objects.display_encoder_sliders, LV_OBJ_FLAG_HIDDEN, hideEncoders);
+            if (encoder_sliders) lv_obj_set_flag(encoder_sliders, LV_OBJ_FLAG_HIDDEN, hideEncoders);
         }
 
         // Utility Groups
@@ -180,7 +195,7 @@ void Page::Change(bool syncAll)
             if (config->GetBool(DISPLAY_UTILITY))
             {
                 // Show Display Encoders
-                lv_obj_set_flag(objects.display_encoder_sliders, LV_OBJ_FLAG_HIDDEN, false);
+                if (encoder_sliders) lv_obj_set_flag(encoder_sliders, LV_OBJ_FLAG_HIDDEN, false);
 
                 // Bind Encoder Widgets to DCA Groups
 
@@ -191,7 +206,7 @@ void Page::Change(bool syncAll)
                     {
                         config->SurfaceBindCustom(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_1, i), String(LV_SYMBOL_LIST) + String("\nAssign to\n"));
                         config->SurfaceBind(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, i),
-                                            MixerparameterAction::TOGGLE_SELECTED_CHANNEL, config->MpCalcId(DCA_GROUP_1, i));
+                                             MixerparameterAction::TOGGLE_SELECTED_CHANNEL, config->MpCalcId(DCA_GROUP_1, i));
                     }
 
                     

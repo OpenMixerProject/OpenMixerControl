@@ -28,7 +28,7 @@ WARNINGS        := -Wall -Wshadow -Wundef -Wextra -Wno-unused-function -Wno-erro
                    -Wno-ignored-qualifiers -Wno-error=pedantic -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body \
                    -Wshift-negative-value -Wstack-usage=2048 -Wno-unused-value
 
-DEPFLAGS        = -MMD -MP -D=TARGET_WING
+DEPFLAGS        = -MMD -MP -DTARGET_WING
 
 # normal build
 CFLAGS          ?= -std=c11 $(COPTS) -g0 -D_GNU_SOURCE -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)

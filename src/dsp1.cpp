@@ -41,6 +41,10 @@ DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
 
 void DSP1::Init(void)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
     for (uint8_t chanIndex = 0; chanIndex < 40; chanIndex++)
     {
          for (uint8_t peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
@@ -55,6 +59,11 @@ void DSP1::Init(void)
 
 bool DSP1::ChannelHasAdjustableGain(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return false;
+    }
+
     // check if channel has an adjustable gain
     uint dspChannelInputRouting = config->GetUint(ROUTING_DSP_INPUT, chanIndex);
     uint dspChannelFpgaSource = config->GetUint(ROUTING_FPGA, chanIndex);
@@ -75,6 +84,11 @@ bool DSP1::ChannelHasAdjustableGain(uint chanIndex)
 
 float DSP1::CompensateGainAndVolume(float targetGainDb, float targetVolumeDb)
 {
+    if (config->IsModelAnyWing())
+    {
+        return targetVolumeDb;
+    }
+
     float clampedGainDb = max(-2.0f, min(45.5f, targetGainDb));
     float stepIndex = floor((clampedGainDb - (-2.0f)) / 2.5f);
     float hardwareGainDb = -2.0f + (stepIndex * 2.5f);
@@ -88,6 +102,11 @@ float DSP1::CompensateGainAndVolume(float targetGainDb, float targetVolumeDb)
 // set the general volume of one of the 40 DSP-channels, 8 FX-Returns and all Mixbusses
 void DSP1::SendChannelVolume(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     float balanceLeft = helper->Saturate(100.0f - config->GetFloat(CHANNEL_PANORAMA, chanIndex), 0.0f, 100.0f) / 100.0f;
     float balanceRight = helper->Saturate(config->GetFloat(CHANNEL_PANORAMA, chanIndex) + 100.0f, 0.0f, 100.0f) / 100.0f;
     float volumeLR = config->GetFloat(CHANNEL_VOLUME, chanIndex);
@@ -150,6 +169,11 @@ void DSP1::SendChannelVolume(uint chanIndex)
 
 void DSP1::SendChannelSolo(uint chanIndex, bool isSoloActivated)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     uint32_t values[2];
 
     values[0] = config->GetBool(CHANNEL_SOLO, chanIndex);
@@ -163,6 +187,11 @@ void DSP1::SendChannelSolo(uint chanIndex, bool isSoloActivated)
 // send BusSends
 void DSP1::SendChannelSend(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelSend() channelindex %d", chanIndex);
 
     float values[16];
@@ -178,6 +207,11 @@ void DSP1::SendChannelSend(uint chanIndex)
 
 void DSP1::ChannelSendTapPoints(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "ChannelSendTapPoints() for channelindex %d", chanIndex);
 
     for (uint8_t sendChannel = 0; sendChannel < 16; sendChannel++)
@@ -206,6 +240,11 @@ void DSP1::ChannelSendTapPoints(uint chanIndex)
 
 void DSP1::SendMatrixVolume(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendMatrixVolume() channelindex %d", chanIndex);
 
     // send volume to DSP via spi->
@@ -241,6 +280,11 @@ void DSP1::SendMatrixVolume(uint chanIndex)
 
 void DSP1::SendMatrixSolo(uint chanIndex, bool isSoloActivated)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     uint32_t values[2];
 
     values[0] = config->GetBool(CHANNEL_SOLO, chanIndex);
@@ -253,6 +297,11 @@ void DSP1::SendMatrixSolo(uint chanIndex, bool isSoloActivated)
 }
 
 void DSP1::SendMonitorVolume() {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     // send volume to DSP via spi
     float values[1];
     
@@ -263,6 +312,11 @@ void DSP1::SendMonitorVolume() {
 
 void DSP1::SendMainVolume(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendMainVolume()");
 
     uint mainChannelIndex = 80;
@@ -310,6 +364,11 @@ void DSP1::SendMainVolume(uint chanIndex)
 
 void DSP1::SendMainSolo(bool isSoloActivated)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     uint32_t values[3];
 
     uint mainChannelIndex = 80;
@@ -325,6 +384,11 @@ void DSP1::SendMainSolo(bool isSoloActivated)
 
 void DSP1::SendGate(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendGate() channelindex %d", chanIndex);
     
     using enum MP_ID;
@@ -355,6 +419,11 @@ void DSP1::SendGate(uint chanIndex)
 
 void DSP1::SendLowcut(uint8_t chan)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     float values[1];
 
     // Source: https://www.dsprelated.com/showarticle/1769.php
@@ -370,6 +439,11 @@ void DSP1::SendLowcut(uint8_t chan)
 
 void DSP1::SendEQ(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendEQ() channelindex %d", chanIndex);
 
     // biquad_trans() needs the coeffs in the following order
@@ -424,6 +498,11 @@ void DSP1::SendEQ(uint chanIndex)
 
 void DSP1::ResetEq(uint8_t chan)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "ResetEq() channelindex %d", chan);
 
     float values[1];
@@ -433,6 +512,11 @@ void DSP1::ResetEq(uint8_t chan)
 
 void DSP1::SendCompressor(uint8_t chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendCompressor() channelindex %d", chanIndex);
 
     using enum MP_ID;
@@ -465,6 +549,11 @@ void DSP1::SendCompressor(uint8_t chanIndex)
 
 void DSP1::SetInputDelay(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "Hardware: DSP Input Delay for channelindex %d", chanIndex);
 
     uint32_t values[1];
@@ -473,6 +562,11 @@ void DSP1::SetInputDelay(uint chanIndex)
 }
 
 void DSP1::SetOutputDelay(uint chanIndex) {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "Hardware: DSP Output Delay for channelindex %d", chanIndex);
 
     uint32_t values[1];
@@ -482,6 +576,11 @@ void DSP1::SetOutputDelay(uint chanIndex) {
 
 void DSP1::SetInputRouting(uint chanIndex)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "Hardware: DSP Input Routing for channelindex %d", chanIndex);
 
     uint32_t values[2];
@@ -491,6 +590,11 @@ void DSP1::SetInputRouting(uint chanIndex)
 }
 
 void DSP1::SetOutputRouting(uint chanIndex) {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "Hardware: DSP Output Routing for channelindex %d", chanIndex);
 
     uint32_t values[2];
@@ -502,6 +606,11 @@ void DSP1::SetOutputRouting(uint chanIndex) {
 
 
 String DSP1::RoutingGetOutputNameByIndex(uint8_t index) {
+    if (config->IsModelAnyWing())
+    {
+        return "???";
+    }
+
 /*
     // 64 DSP-output-channels:
     // 1-32		Main-Output to FPGA
@@ -539,6 +648,11 @@ String DSP1::RoutingGetOutputNameByIndex(uint8_t index) {
 
 void DSP1::UpdateVuMeter(uint8_t intervalMs)
 {
+    if (config->IsModelAnyWing())
+    {
+        return;
+    }
+
     uint8_t preloadPeakHold = 1000 / intervalMs; // 50ms * 20 = 1000ms
     uint8_t preloadPeakDecay = 50 / intervalMs; // 50ms * 1 = 50ms
     uint8_t coefficientDecay = 250 / intervalMs; // 50ms * 5 = 250ms
@@ -877,6 +991,11 @@ void DSP1::UpdateVuMeter(uint8_t intervalMs)
 
 uint8_t DSP1::GetPeak(int i, uint8_t steps)
 {
+    if (config->IsModelAnyWing())
+    {
+        return 0;
+    }
+
     if (steps==6) {
         if (rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 6; } // CLIP
         else if (rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 5; }
@@ -901,7 +1020,7 @@ uint8_t DSP1::GetPeak(int i, uint8_t steps)
 }
 
 void DSP1::CallbackStateMachine() {
-    if (state->dsp_disable_readout) {
+    if (state->dsp_disable_readout || config->IsModelAnyWing()) {
         return;
     }
 

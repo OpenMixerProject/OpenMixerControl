@@ -12,6 +12,11 @@
 using namespace std;
 using namespace WString;
 
+#if defined(__clang__) || !defined(__GLIBCXX__)
+#include <typeinfo>
+inline void __throw_bad_typeid() { throw std::bad_typeid(); }
+#endif
+
 /// @brief Mixerparameter contains data and many metadata about a mixer parameter. Def*-functions define, Get*-functions retrieve data, Set*/Change*/Toggle*-functions manipulate data.
 class Mixerparameter
 {

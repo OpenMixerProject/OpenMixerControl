@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <stdio.h>
 #include <string.h>
+#ifdef __linux__
 #include <linux/input.h>
+#endif
 #include <fcntl.h>
 #include <termios.h>
 #include <sys/ioctl.h> // for FIONREAD

@@ -9,7 +9,9 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <math.h>
+#ifdef __linux__
 #include <linux/input.h>
+#endif
 #include <set>
 #include <map>
 
