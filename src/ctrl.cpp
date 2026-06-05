@@ -16,6 +16,8 @@ X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 	if (config->IsModelAnyWing())
 	{
 		memset(&parser, 0, sizeof(parser));
+		memset(&touchscreenParser, 0, sizeof(touchscreenParser));
+		wingTouchEnableCountdown10ms = 300;
 	}
 }
 
@@ -49,10 +51,6 @@ void X32Ctrl::Init()
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init()");
 	surface->Init();
-	if (surface->faderController)
-	{
-		surface->faderController->SetCallback(OnFaderMovedCallback, this);
-	}
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "xremote->Init()");
 	xremote->Init();
@@ -152,8 +150,11 @@ void X32Ctrl::Tick10ms(void)
 	// read incoming data from surface and handle it
 	ProcessUartDataSurface();
 
-	// read incoming data from adda-boards and expansion-card
-	ProcessUartDataAdda();
+	if (!config->IsModelAnyWing())
+	{
+		// read incoming data from adda-boards and expansion-card
+		ProcessUartDataAdda();
+	}
 
 	// read incoming data from AES50 devices
 	ProcessUartDataAES50();
@@ -331,7 +332,7 @@ void X32Ctrl::Tick100ms(void)
 			mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
 		}
 
-		if (startupCounter == 60) {
+		if (startupCounter == 60 && !config->IsModelAnyWing()) {
 			// unmute ADDA-boards
 			mixer->adda->SetMuteAll(false);
 		}
@@ -365,6 +366,11 @@ void X32Ctrl::AutoSave()
 }
 
 void X32Ctrl::ProcessUartDataAdda() {
+	if (config->IsModelAnyWing())
+	{
+		return;
+	}
+
 	// read incoming data from adda-boards and expansion-card
 	String newCommand = mixer->adda->Receive();
 	
@@ -623,6 +629,15 @@ void X32Ctrl::UdpHandleCommunication_WSM()
 //
 //#####################################################################################################################
 
+static void GuiTabChangedEvent(lv_event_t* e)
+{
+    X32Ctrl* ctrl = static_cast<X32Ctrl*>(lv_event_get_user_data(e));
+    if (ctrl)
+    {
+        ctrl->HandleGuiTabChanged(lv_event_get_target_obj(e));
+    }
+}
+
 void X32Ctrl::InitPagesAndGUI()
 {
 	PageBaseParameter* pagebasepar = new PageBaseParameter(app, config, state, helper, mixer, surface);
@@ -654,6 +669,90 @@ void X32Ctrl::InitPagesAndGUI()
 	{
 		value->Init();
 	}	
+
+	lv_obj_add_event_cb(objects.maintab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	lv_obj_add_event_cb(objects.hometab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	lv_obj_add_event_cb(objects.meterstab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	lv_obj_add_event_cb(objects.routingtab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+	lv_obj_add_event_cb(objects.setuptab, GuiTabChangedEvent, LV_EVENT_VALUE_CHANGED, this);
+}
+
+void X32Ctrl::HandleGuiTabChanged(lv_obj_t* tabview)
+{
+	if (tabview == 0)
+	{
+		return;
+	}
+
+	uint32_t index = lv_tabview_get_tab_active(tabview);
+	X32_PAGE page = X32_PAGE::NONE;
+
+	if (tabview == objects.maintab)
+	{
+		switch (index)
+		{
+			case 0: page = X32_PAGE::HOME; break;
+			case 1: page = X32_PAGE::METERS; break;
+			case 2: page = X32_PAGE::ROUTING; break;
+			case 3: page = X32_PAGE::SETUP; break;
+			case 4: page = X32_PAGE::LIBRARY; break;
+			case 5: page = X32_PAGE::EFFECTS; break;
+			case 7: page = X32_PAGE::SCENES; break;
+			default: break;
+		}
+	}
+	else if (tabview == objects.hometab)
+	{
+		switch (index)
+		{
+			case 0: page = X32_PAGE::HOME; break;
+			case 1: page = X32_PAGE::CONFIG; break;
+			case 2: page = X32_PAGE::GATE; break;
+			case 3: page = X32_PAGE::COMPRESSOR; break;
+			case 4: page = X32_PAGE::EQ; break;
+			case 5: page = X32_PAGE::SENDS; break;
+			case 6: page = X32_PAGE::MAIN; break;
+			default: break;
+		}
+	}
+	else if (tabview == objects.meterstab)
+	{
+		switch (index)
+		{
+			case 0: page = X32_PAGE::METERS; break;
+			case 1: page = X32_PAGE::RTA; break;
+			default: break;
+		}
+	}
+	else if (tabview == objects.routingtab)
+	{
+		switch (index)
+		{
+			case 0: page = X32_PAGE::ROUTING; break;
+			case 1: page = X32_PAGE::ROUTING_FPGA; break;
+			case 2: page = X32_PAGE::ROUTING_DSP1; break;
+			case 3: page = X32_PAGE::ROUTING_DSP2; break;
+			default: break;
+		}
+	}
+	else if (tabview == objects.setuptab)
+	{
+		switch (index)
+		{
+			case 0: page = X32_PAGE::SETUP; break;
+			case 1: page = X32_PAGE::SETUP_CARD; break;
+			case 2: page = X32_PAGE::SETUP_SURFACE; break;
+			case 3: page = X32_PAGE::ABOUT; break;
+			case 4: page = X32_PAGE::DEBUG; break;
+			case 5: page = X32_PAGE::PROTOTYPEGUI; break;
+			default: break;
+		}
+	}
+
+	if (page != X32_PAGE::NONE && config->GetUint(ACTIVE_PAGE) != (uint)page)
+	{
+		config->Set(ACTIVE_PAGE, (uint)page);
+	}
 }
 
 bool X32Ctrl::ShowNextPage()
@@ -2124,12 +2223,169 @@ void X32Ctrl::WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t 
 		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Button: index=0x%02x value=%u", index, value);
 		ProcessSurface(OMC_BOARD_WING, 'b', index, value);
     }
+
+    if (cmd == 'v' && len == 2)
+    {
+        uint8_t index = payload[0];
+        int delta = (payload[1] & 0x80) ? (int)payload[1] - 0x100 : (int)payload[1];
+        uint16_t value = delta < 0 ? 256 + delta : delta;
+
+		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Encoder: index=0x%02x value=%d", index, delta);
+		ProcessSurface(OMC_BOARD_WING, 'e', index, value);
+    }
+}
+
+void X32Ctrl::WingTouchscreenFlush()
+{
+    memset(&touchscreenParser, 0, sizeof(touchscreenParser));
+}
+
+void X32Ctrl::ReadWingTouchscreen(lv_indev_data_t* data)
+{
+    if (!data)
+    {
+        return;
+    }
+
+    data->point.x = wingTouchX;
+    data->point.y = wingTouchY;
+    data->state = wingTouchPressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+}
+
+void X32Ctrl::WingTouchscreenFeed(uint8_t byte)
+{
+    touchscreenParser.idle_ticks = 0;
+
+    if (!touchscreenParser.in_frame)
+    {
+        if (byte == 0x2A)
+        {
+            touchscreenParser.in_frame = 1;
+            touchscreenParser.after_star = 1;
+            touchscreenParser.have_cmd = 0;
+            touchscreenParser.len = 0;
+        }
+        return;
+    }
+
+    if (touchscreenParser.after_star)
+    {
+        touchscreenParser.after_star = 0;
+        if (byte == 0x2A)
+        {
+            touchscreenParser.have_cmd = 0;
+            touchscreenParser.len = 0;
+            touchscreenParser.after_star = 1;
+        }
+        else if (byte == 0x40)
+        {
+            if (touchscreenParser.len < sizeof(touchscreenParser.buf))
+                touchscreenParser.buf[touchscreenParser.len++] = 0x2A;
+        }
+        else if (byte & 0x80)
+        {
+            if (touchscreenParser.have_cmd)
+            {
+                uint8_t expect = helper->CalculateWingChecksum(touchscreenParser.buf, touchscreenParser.len);
+                if (byte == expect)
+                {
+                    WingTouchscreenHandleFrame(touchscreenParser.cmd, touchscreenParser.buf, touchscreenParser.len);
+                }
+            }
+            memset(&touchscreenParser, 0, sizeof(touchscreenParser));
+        }
+        else if (!touchscreenParser.have_cmd)
+        {
+            touchscreenParser.cmd = byte;
+            touchscreenParser.have_cmd = 1;
+        }
+        else if (touchscreenParser.len + 2 <= sizeof(touchscreenParser.buf))
+        {
+            touchscreenParser.buf[touchscreenParser.len++] = 0x2A;
+            touchscreenParser.buf[touchscreenParser.len++] = byte;
+        }
+        return;
+    }
+
+    if (byte == 0x2A)
+    {
+        touchscreenParser.after_star = 1;
+    }
+    else if (!touchscreenParser.have_cmd)
+    {
+        touchscreenParser.cmd = byte;
+        touchscreenParser.have_cmd = 1;
+    }
+    else if (touchscreenParser.len < sizeof(touchscreenParser.buf))
+    {
+        touchscreenParser.buf[touchscreenParser.len++] = byte;
+    }
+}
+
+void X32Ctrl::WingTouchscreenHandleFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+{
+    if (cmd == 'p' && len == 5)
+    {
+        uint8_t state = payload[0];
+        uint16_t x = payload[1] | (payload[2] << 8);
+        uint16_t y = payload[3] | (payload[4] << 8);
+
+        if (x >= DISPLAY_RESOLUTION_X) x = DISPLAY_RESOLUTION_X - 1;
+        if (y >= DISPLAY_RESOLUTION_Y) y = DISPLAY_RESOLUTION_Y - 1;
+
+        wingTouchX = x;
+        wingTouchY = y;
+        wingTouchPressed = (state == 0x20);
+
+        helper->DEBUG_SURFACE(
+            DEBUGLEVEL_VERBOSE,
+            "WING touchscreen parsed frame: state=0x%02x x=%u y=%u screen_x=%d screen_y=%d",
+            state,
+            x,
+            y,
+            wingTouchX,
+            wingTouchY
+        );
+    }
+}
+
+void X32Ctrl::WingTouchscreenTick(bool receivedBytes)
+{
+    if (receivedBytes || (!touchscreenParser.in_frame && !touchscreenParser.after_star))
+    {
+        return;
+    }
+
+    if (++touchscreenParser.idle_ticks >= 5)
+    {
+        WingTouchscreenFlush();
+        touchscreenParser.idle_ticks = 0;
+    }
+}
+
+void X32Ctrl::WingTouchscreenEnableTick()
+{
+    if (!config->IsModelAnyWing() || !surface->touchUart || !surface->touchUartOpen)
+    {
+        return;
+    }
+
+    if (wingTouchEnableCountdown10ms > 0)
+    {
+        wingTouchEnableCountdown10ms--;
+        return;
+    }
+
+    surface->EnableWingTouchscreen();
+    wingTouchEnableCountdown10ms = 300;
 }
 
 void X32Ctrl::ProcessUartDataSurface()
 {
     if (config->IsModelAnyWing())
     {
+        WingTouchscreenEnableTick();
+
         char buf[256];
 		int n = surface->uart->Rx(buf, sizeof(buf));
 		if (n > 0) {
@@ -2144,6 +2400,33 @@ void X32Ctrl::ProcessUartDataSurface()
 				WingParserFeed((uint8_t)buf[i]);
 			}
 		}
+
+        bool touchBytesReceived = false;
+        if (surface->touchUart && surface->touchUartOpen)
+        {
+            int touchBytes = surface->touchUart->Rx(buf, sizeof(buf));
+            if (touchBytes > 0)
+            {
+                touchBytesReceived = true;
+                if (helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE))
+                {
+                    char hex[3 * 256 + 1];
+                    int pos = 0;
+                    for (int i = 0; i < touchBytes && i < 256; ++i)
+                    {
+                        pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", (uint8_t)buf[i]);
+                    }
+                    hex[pos] = '\0';
+                    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "WING touchscreen RX %d bytes: %s", touchBytes, hex);
+                }
+
+                for (int i = 0; i < touchBytes; ++i)
+                {
+                    WingTouchscreenFeed((uint8_t)buf[i]);
+                }
+            }
+        }
+        WingTouchscreenTick(touchBytesReceived);
     }
 	else if (config->IsModelAnyXM32())
 	{
@@ -2818,6 +3101,18 @@ void X32Ctrl::LoadAssignBank(X32AssignBankId bankId)
 
 void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, uint16_t value)
 {
+	if (config->GetBool(DEBUG_HEADER) && config->HasGui())
+	{
+		lv_label_set_text_fmt(objects.header_debug,
+			"Surface Input: BoardId 0x%02X, Class 0x%02X ('%c'), Index 0x%02X, Value 0x%04X",
+			board,
+			classid,
+			classid,
+			index,
+			value
+		);
+	}
+
 	if (classid == 'f') // Fader
 	{
 		// find surfaceelement
@@ -2848,7 +3143,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 	else if (classid == 'b') // Button
 	{
 		// find surfaceelement
-		SurfaceElement* button;
+		SurfaceElement* button = 0;
 		if(config->IsModelAnyXM32())
 		{
 			button = config->GetSurfaceElementButton_XM32(board, value);
@@ -2870,7 +3165,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 		{
 			isButtonPressed = (value >> 7) == 1;
 		}
-		else if (config->IsModelAnyXM32())
+		else if (config->IsModelAnyWing())
 		{
 			isButtonPressed = value;
 		}
@@ -2896,6 +3191,18 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 			button->GetName().c_str(),
 			isButtonPressed ? "pressed" : "released"
 		);
+
+		if (config->GetBool(DEBUG_HEADER) && config->HasGui())
+		{
+			lv_label_set_text_fmt(objects.header_debug,
+				"Button: %s %s (BoardId 0x%02X, Index 0x%02X, Value 0x%04X)",
+				button->GetName().c_str(),
+				isButtonPressed ? "pressed" : "released",
+				board,
+				index,
+				value
+			);
+		}
 
 		
 		if (bindingParameterButton != 0 && bindingParameterButton->mp_action != MixerparameterAction::NONE)
@@ -3122,6 +3429,18 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, uint8_t classid, uint8_t index, ui
 			encoder->GetName().c_str(),
 			amount
 		);
+
+		if (config->GetBool(DEBUG_HEADER) && config->HasGui())
+		{
+			lv_label_set_text_fmt(objects.header_debug,
+				"Encoder: %s turned %+d (BoardId 0x%02X, Index 0x%02X, Value 0x%04X)",
+				encoder->GetName().c_str(),
+				amount,
+				board,
+				index,
+				value
+			);
+		}
 
 		SurfaceBindingParameter* bindingParameterEncoder = config->GetSurfaceBinding(encoder->GetId());
 

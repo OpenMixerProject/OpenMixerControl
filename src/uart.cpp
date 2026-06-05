@@ -25,7 +25,7 @@
 #include "uart.h"
 
 
-Uart::Uart(X32BaseParameter* basepar): X32Base(basepar) {}
+Uart::Uart(X32BaseParameter* basepar): X32Base(basepar), fd(-1) {}
 
 
 
@@ -41,12 +41,14 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
     fd = open(ttydev, O_RDWR | O_NOCTTY | O_NDELAY);
     if (fd < 0) {
         perror("Error opening serial-port!");
+        fd = -1;
         return 1;
     }
 
     if (tcgetattr(fd, &tty) != 0) {
         perror("Error reading serial-port-attributes!");
         close(fd);
+        fd = -1;
         return 1;
     }
 
@@ -117,12 +119,15 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
         cfsetospeed(&tty, B4000000);
     } else {
         perror("Error: unsupported baudrate!");
+        close(fd);
+        fd = -1;
         return 1;
     }
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
         perror("Error setting serial-port-attributes!");
         close(fd);
+        fd = -1;
         return 1;
     }
 
@@ -131,7 +136,6 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
 
 int Uart::Tx(MessageBase* message) {
     if (fd < 0) {
-        fprintf(stderr, "Error: Problem on opening serial port\n");
         return -1;
     }
 
@@ -169,10 +173,16 @@ int Uart::Rx(char* buf, uint16_t bufLen) {
     int bytesAvailable;
     int bytesToRead;
 
+    if (fd < 0)
+    {
+        return 0;
+    }
+
 	if (ioctl(fd, FIONREAD, &bytesAvailable) == -1) {
 		perror("Error on ioctl FIONREAD");
 		close(fd);
-		return 1;
+        fd = -1;
+		return -1;
 	}
 
 	if (bytesAvailable > 0) {
@@ -189,6 +199,7 @@ int Uart::Rx(char* buf, uint16_t bufLen) {
 		if (bytesRead < 0) {
 			perror("Error reading from serial-port");
 			close(fd);
+            fd = -1;
 			return -1;
 		}
 

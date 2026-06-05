@@ -26,13 +26,23 @@
 
 
 Adda::Adda(X32BaseParameter* basepar): X32Base(basepar) {
-    SetMuteAll(true);
-	uart = new Uart(basepar);
+	disabled = config->IsModelAnyWing();
+	uart = disabled ? nullptr : new Uart(basepar);
+	if (!disabled)
+	{
+		SetMuteAll(true);
+	}
 	addaPacketBufLen = 0;
 }
 
 void Adda::Init()
 {
+	if (disabled)
+	{
+		helper->DEBUG_ADDA(DEBUGLEVEL_NORMAL, "ADDA disabled for WING model");
+		return;
+	}
+
 	const uint16_t speed = 38400;
 	String serial;
 	
@@ -193,6 +203,11 @@ bool Adda::HasExpansion()
 
 void Adda::SetSamplerate(uint32_t samplerate)
 {
+	if (disabled)
+	{
+		return;
+	}
+
 	helper->DEBUG_ADDA(DEBUGLEVEL_NORMAL, "Set samplerate to %d", samplerate);
 
 	if (samplerate == 44100) {
@@ -218,6 +233,11 @@ void Adda::SetSamplerate(uint32_t samplerate)
 }
 
 String Adda::SetGain(uint8_t boardId, uint8_t channel, float gain, bool phantomPower) {
+	if (disabled)
+	{
+		return "";
+	}
+
 	helper->DEBUG_ADDA(DEBUGLEVEL_NORMAL, "SetGain: Board=%d Channel=%d Gain=%f Phantom=%d)", boardId, channel, (double)gain, phantomPower);
 
 	String message;
@@ -257,6 +277,11 @@ String Adda::SetGain(uint8_t boardId, uint8_t channel, float gain, bool phantomP
 
 // send without waiting for the response of the individual component
 void Adda::Send(String cmd) {
+	if (disabled || uart == nullptr)
+	{
+		return;
+	}
+
 	AddaMessage* message = new AddaMessage();
 
 	message->AddString(cmd.c_str());
@@ -276,6 +301,11 @@ void Adda::Send(String cmd) {
 
 // receive without sending data (e.g. reading current state of X-LIVE-Card)
 String Adda::Receive() {
+	if (disabled || uart == nullptr)
+	{
+		return "";
+	}
+
 	uint8_t currentByte;
 	String answer;
 
@@ -352,6 +382,11 @@ String Adda::Receive() {
 
 // Send data and wait for the response of the individual component
 String Adda::SendReceive(String cmd) {
+	if (disabled || uart == nullptr)
+	{
+		return "";
+	}
+
 	uint8_t currentByte;
 	String answer;
 
@@ -440,12 +475,21 @@ String Adda::SendReceive(String cmd) {
 }
 
 void Adda::FlushRxBuffer() {
+	if (disabled || uart == nullptr)
+	{
+		return;
+	}
+
 	// flush receivebuffer
 	uart->FlushRxBuffer();
 }
 
 // Mute all ADDA boards
 void Adda::SetMuteAll(bool muted) {
+		if (disabled) {
+				return;
+		}
+
 		int fd = open("/sys/class/leds/audio_mute/brightness", O_WRONLY);
 
 		if (muted) {

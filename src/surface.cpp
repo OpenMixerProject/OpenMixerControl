@@ -24,10 +24,321 @@
 
 #include "surface.h"
 
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+
+// Wing CSC Transport / Latch Registers & Constants
+#define IOMUXC_BASE              0x020E0000u
+#define GPIO2_BASE               0x020A0000u
+#define GPIO3_BASE               0x020A4000u
+#define GPIO5_BASE               0x020AC000u
+#define ECSPI2_BASE              0x0200C000u
+#define CCM_BASE                 0x020C4000u
+#define CCM_CCGR1_OFF            0x006Cu
+#define GPIO_DR_OFF              0x0000u
+#define GPIO_GDIR_OFF            0x0004u
+#define ECSPI_RXDATA_OFF         0x0000u
+#define ECSPI_TXDATA_OFF         0x0004u
+#define ECSPI_CONREG_OFF         0x0008u
+#define ECSPI_CONFIGREG_OFF      0x000Cu
+#define ECSPI_INTREG_OFF         0x0010u
+#define ECSPI_STATREG_OFF        0x0018u
+#define ECSPI_PERIODREG_OFF      0x001Cu
+#define ECSPI_TC_BIT             0x80u
+#define ECSPI_XCH_BIT            0x04u
+#define CSC_LIGHT_DEFAULT_VALUE  0x0000602fu
+#define CSC_LIGHT_VALUE_MASK     0x0000602fu
+#define MUX_KEY_COL1             0x005Cu
+#define MUX_KEY_ROW1             0x0060u
+#define PAD_KEY_COL1             0x0370u
+#define PAD_KEY_ROW1             0x0374u
+#define SEL_UART5_RX             0x091Cu
+#define UART5_ALT_MODE           0x3u
+#define UART5_RX_DAISY_STOCK     0x1u
+#define PAD_UART_TX_STOCK        0x00000018u
+#define PAD_UART_RX_STOCK        0x0000B000u
+#define CSC_RESET_BIT            23u
+#define CSC_BOOT_BIT             20u
+#define CSC_RESET_MASK           ((1u << CSC_RESET_BIT) | (1u << CSC_BOOT_BIT))
+
+struct wing_csc_latch_mmio {
+    int mem_fd;
+    size_t map_len;
+    uint8_t *iomuxc;
+    uint8_t *gpio2;
+    uint8_t *gpio3;
+    uint8_t *ecspi2;
+};
+
+static uint32_t csc_latch_state[2] = {0, 0};
+
+static uint32_t readl_ptr(uint8_t *base, uint32_t off)
+{
+    return *(volatile uint32_t *)(base + off);
+}
+
+static void writel_ptr(uint8_t *base, uint32_t off, uint32_t value)
+{
+    *(volatile uint32_t *)(base + off) = value;
+}
+
+static unsigned long long monotonic_us(void)
+{
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+        return 0;
+    return (unsigned long long)ts.tv_sec * 1000000ull +
+           (unsigned long long)ts.tv_nsec / 1000ull;
+}
+
+static void wing_csc_latch_configure_pads(uint8_t *iomuxc)
+{
+    static const struct {
+        uint32_t off;
+        uint32_t value;
+    } writes[] = {
+        { 0x05ac, 0x0001b0b0 }, { 0x01dc, 0x00000005 },
+        { 0x05a4, 0x0001b0b0 }, { 0x01d4, 0x00000005 },
+        { 0x0534, 0x0001b0b0 }, { 0x0164, 0x00000005 },
+        { 0x0538, 0x0001b0b0 }, { 0x0168, 0x00000005 },
+        { 0x050c, 0x0001b0b0 }, { 0x013c, 0x00000002 }, { 0x07f4, 0x00000002 },
+        { 0x05a8, 0x0001b0b0 }, { 0x01d8, 0x00000002 }, { 0x07f8, 0x00000002 },
+        { 0x0510, 0x0001b0b0 }, { 0x0140, 0x00000002 }, { 0x07fc, 0x00000002 },
+        { 0x04f4, 0x0001b0b0 }, { 0x0124, 0x00000005 },
+        { 0x0410, 0x0001b008 }, { 0x00fc, 0x00000015 },
+        { 0x04f0, 0x00013008 }, { 0x0120, 0x00000005 },
+    };
+
+    for (size_t i = 0; i < sizeof(writes) / sizeof(writes[0]); ++i)
+        writel_ptr(iomuxc, writes[i].off, writes[i].value);
+}
+
+static void wing_csc_latch_gpio_init(struct wing_csc_latch_mmio *mmio)
+{
+    uint32_t value;
+
+    value = readl_ptr(mmio->gpio2, GPIO_DR_OFF);
+    value |= 0x0c000000u | 0x00020000u;
+    writel_ptr(mmio->gpio2, GPIO_DR_OFF, value);
+    value = readl_ptr(mmio->gpio2, GPIO_GDIR_OFF);
+    value |= 0x0c000000u | 0x00020000u;
+    writel_ptr(mmio->gpio2, GPIO_GDIR_OFF, value);
+
+    value = readl_ptr(mmio->gpio3, GPIO_DR_OFF);
+    value &= ~0x03000000u;
+    writel_ptr(mmio->gpio3, GPIO_DR_OFF, value);
+    value = readl_ptr(mmio->gpio3, GPIO_GDIR_OFF);
+    value |= 0x03000000u;
+    writel_ptr(mmio->gpio3, GPIO_GDIR_OFF, value);
+}
+
+static void wing_csc_latch_spi_init(uint8_t *ecspi2)
+{
+    writel_ptr(ecspi2, ECSPI_CONREG_OFF, 0);
+    writel_ptr(ecspi2, ECSPI_CONREG_OFF, 0x00000011u);
+    writel_ptr(ecspi2, ECSPI_CONFIGREG_OFF, 0x00000100u);
+    writel_ptr(ecspi2, ECSPI_PERIODREG_OFF, 0);
+}
+
+static int wing_csc_latch_mmio_open(struct wing_csc_latch_mmio *mmio)
+{
+    memset(mmio, 0, sizeof(*mmio));
+    mmio->mem_fd = -1;
+    mmio->map_len = 0x4000;
+    mmio->mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+    if (mmio->mem_fd < 0)
+        return -1;
+
+    // Enable ECSPI2 clock gate via CCM CCGR1
+    uint8_t *ccm = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd, CCM_BASE);
+    if (ccm == MAP_FAILED)
+        goto fail;
+    uint32_t ccgr1 = readl_ptr(ccm, CCM_CCGR1_OFF);
+    ccgr1 |= 0x0000000Cu;
+    writel_ptr(ccm, CCM_CCGR1_OFF, ccgr1);
+    munmap(ccm, 0x1000);
+
+    mmio->iomuxc = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd,
+                        IOMUXC_BASE);
+    if (mmio->iomuxc == MAP_FAILED)
+        goto fail;
+    mmio->gpio2 = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd,
+                       GPIO2_BASE);
+    if (mmio->gpio2 == MAP_FAILED)
+        goto fail;
+    mmio->gpio3 = (uint8_t *)mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED, mmio->mem_fd,
+                       GPIO3_BASE);
+    if (mmio->gpio3 == MAP_FAILED)
+        goto fail;
+    mmio->ecspi2 = (uint8_t *)mmap(NULL, mmio->map_len, PROT_READ | PROT_WRITE, MAP_SHARED,
+                        mmio->mem_fd, ECSPI2_BASE);
+    if (mmio->ecspi2 == MAP_FAILED)
+        goto fail;
+
+    wing_csc_latch_configure_pads(mmio->iomuxc);
+    wing_csc_latch_gpio_init(mmio);
+    wing_csc_latch_spi_init(mmio->ecspi2);
+    return 0;
+
+fail:
+    if (mmio->ecspi2 && mmio->ecspi2 != MAP_FAILED)
+        munmap(mmio->ecspi2, mmio->map_len);
+    if (mmio->gpio3 && mmio->gpio3 != MAP_FAILED)
+        munmap(mmio->gpio3, 0x1000);
+    if (mmio->gpio2 && mmio->gpio2 != MAP_FAILED)
+        munmap(mmio->gpio2, 0x1000);
+    if (mmio->iomuxc && mmio->iomuxc != MAP_FAILED)
+        munmap(mmio->iomuxc, 0x1000);
+    close(mmio->mem_fd);
+    return -1;
+}
+
+static void wing_csc_latch_mmio_close(struct wing_csc_latch_mmio *mmio)
+{
+    if (mmio->ecspi2 && mmio->ecspi2 != MAP_FAILED)
+        munmap(mmio->ecspi2, mmio->map_len);
+    if (mmio->gpio3 && mmio->gpio3 != MAP_FAILED)
+        munmap(mmio->gpio3, 0x1000);
+    if (mmio->gpio2 && mmio->gpio2 != MAP_FAILED)
+        munmap(mmio->gpio2, 0x1000);
+    if (mmio->iomuxc && mmio->iomuxc != MAP_FAILED)
+        munmap(mmio->iomuxc, 0x1000);
+    if (mmio->mem_fd >= 0)
+        close(mmio->mem_fd);
+}
+
+static void wing_csc_latch_select(struct wing_csc_latch_mmio *mmio)
+{
+    uint32_t value;
+
+    value = readl_ptr(mmio->gpio2, GPIO_DR_OFF);
+    value &= ~0x04000000u;
+    value |= 0x08000000u;
+    writel_ptr(mmio->gpio2, GPIO_DR_OFF, value);
+    value = readl_ptr(mmio->gpio3, GPIO_DR_OFF);
+    value |= 0x03000000u;
+    writel_ptr(mmio->gpio3, GPIO_DR_OFF, value);
+}
+
+static void wing_csc_latch_deselect(struct wing_csc_latch_mmio *mmio)
+{
+    uint32_t value;
+
+    value = readl_ptr(mmio->gpio2, GPIO_DR_OFF);
+    value |= 0x0c000000u;
+    writel_ptr(mmio->gpio2, GPIO_DR_OFF, value);
+    value = readl_ptr(mmio->gpio3, GPIO_DR_OFF);
+    value |= 0x03000000u;
+    writel_ptr(mmio->gpio3, GPIO_DR_OFF, value);
+}
+
+static int wing_csc_latch_transfer(struct wing_csc_latch_mmio *mmio, const uint32_t *words,
+                                   size_t count)
+{
+    uint32_t con;
+    unsigned long long deadline;
+
+    if (count == 0 || count > 64)
+        return -1;
+    wing_csc_latch_select(mmio);
+
+    con = readl_ptr(mmio->ecspi2, ECSPI_CONREG_OFF);
+    con &= ~0xfff00008u;
+    con |= (uint32_t)((count << 25) - 0x00100000u);
+    writel_ptr(mmio->ecspi2, ECSPI_CONREG_OFF, con);
+    writel_ptr(mmio->ecspi2, ECSPI_STATREG_OFF, ECSPI_TC_BIT);
+    for (size_t i = 0; i < count; ++i)
+        writel_ptr(mmio->ecspi2, ECSPI_TXDATA_OFF, words[i]);
+    writel_ptr(mmio->ecspi2, ECSPI_INTREG_OFF, ECSPI_TC_BIT);
+    writel_ptr(mmio->ecspi2, ECSPI_CONREG_OFF, con | ECSPI_XCH_BIT);
+
+    deadline = monotonic_us() + 500000ull;
+    while ((readl_ptr(mmio->ecspi2, ECSPI_STATREG_OFF) & ECSPI_TC_BIT) == 0) {
+        if (monotonic_us() > deadline) {
+            wing_csc_latch_deselect(mmio);
+            errno = ETIMEDOUT;
+            return -1;
+        }
+    }
+    writel_ptr(mmio->ecspi2, ECSPI_INTREG_OFF, 0);
+    for (size_t i = 0; i < count; ++i)
+        (void)readl_ptr(mmio->ecspi2, ECSPI_RXDATA_OFF);
+    wing_csc_latch_deselect(mmio);
+    return 0;
+}
+
+static int wing_csc_latch_write_state(struct wing_csc_latch_mmio *mmio, unsigned int port,
+                                      uint32_t state)
+{
+    uint32_t words[2];
+
+    if (port > 1)
+        return -1;
+    words[0] = 0xa8000000u | port;
+    words[1] = state;
+    wing_csc_latch_spi_init(mmio->ecspi2);
+    return wing_csc_latch_transfer(mmio, words, sizeof(words) / sizeof(words[0]));
+}
+
+static int wing_csc_latch_update(unsigned int port, uint32_t value, uint32_t mask)
+{
+    struct wing_csc_latch_mmio mmio;
+    uint32_t next;
+    int rc;
+
+    if (port > 1) {
+        errno = EINVAL;
+        return -1;
+    }
+    next = (csc_latch_state[port] & ~mask) | value;
+    if (next == csc_latch_state[port])
+        return 0;
+    if (wing_csc_latch_mmio_open(&mmio) != 0)
+        return -1;
+    rc = wing_csc_latch_write_state(&mmio, port, next);
+    wing_csc_latch_mmio_close(&mmio);
+    if (rc == 0)
+        csc_latch_state[port] = next;
+    return rc;
+}
+
+static int wing_enable_csc_lights(uint32_t value)
+{
+    if (value > CSC_LIGHT_VALUE_MASK) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (wing_csc_latch_update(0, 0, 0x380001bfu) != 0)
+        return -1;
+    usleep(2000);
+    if (wing_csc_latch_update(0, 0x00040000u, 0x00000040u) != 0)
+        return -1;
+    if (wing_csc_latch_update(0, value, CSC_LIGHT_VALUE_MASK) != 0)
+        return -1;
+    if (wing_csc_latch_update(0, 0x00000040u, 0) != 0)
+        return -1;
+    usleep(2000);
+    if (wing_csc_latch_update(0, 0x00000080u, 0) != 0 ||
+        wing_csc_latch_update(0, 0x08000000u, 0) != 0 ||
+        wing_csc_latch_update(0, 0x10000000u, 0) != 0 ||
+        wing_csc_latch_update(0, 0x20000000u, 0) != 0 ||
+        wing_csc_latch_update(0, 0x00000100u, 0) != 0)
+        return -1;
+    return 0;
+}
 
 Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
 {
     uart = new Uart(basepar);
+    touchUart = nullptr;
+    if (config->IsModelAnyWing())
+    {
+        touchUart = new Uart(basepar);
+    }
 }
 
 void Surface::Init(void)
@@ -76,7 +387,29 @@ void Surface::Init(void)
     }
     else if (config->IsModelAnyWing())
     {
+        if (InitCscTransportWing() != 0)
+        {
+            helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Init CSC Transport failed!");
+        }
+
         uart->Open("/dev/ttymxc4", 115200, true);
+
+        if (EnableCscLightsWing(0x0000602fu) != 0)
+        {
+            helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Enable CSC Lights failed!");
+        }
+
+        SendWingFrame('H', (const uint8_t*)"", 0);
+        SendWingStockBaseline();
+
+        if (touchUart)
+        {
+            touchUartOpen = touchUart->Open("/dev/ttymxc3", 115200, true) == 0;
+            if (touchUartOpen)
+            {
+                EnableWingTouchscreen();
+            }
+        }
     }
 
     Reset();
@@ -931,6 +1264,10 @@ void Surface::SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position)
     }
     if (config->IsModelAnyWing())
     {
+        uint8_t payload[3];
+        payload[0] = index;
+        payload[1] = (uint8_t)(position & 0xFF);
+        payload[2] = (uint8_t)((position >> 8) & 0x0F);
         SendWingFrame('F', payload, 3);
     }
 }
@@ -972,10 +1309,16 @@ int Surface::SendData(MessageBase* message, bool addChecksum)
 
         return uart->Tx(message);
     }
+    return 0;
 }
 
-void Surface::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+int Surface::SendWingFrame(Uart* targetUart, uint8_t cmd, const uint8_t* payload, size_t len)
 {
+    if (!config->IsModelAnyWing() || !targetUart)
+    {
+        return 0;
+    }
+
     MessageBase msg;
     msg.AddRawByte('*'); // WING_FRAME_STAR
     
@@ -1004,5 +1347,98 @@ void Surface::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
         msg.AddRawByte(chk);
     }
 
-    uart->Tx(&msg);
+    return targetUart->Tx(&msg);
+}
+
+int Surface::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+{
+    return SendWingFrame(uart, cmd, payload, len);
+}
+
+void Surface::EnableWingTouchscreen()
+{
+    if (!config->IsModelAnyWing() || !touchUart || !touchUartOpen)
+    {
+        return;
+    }
+
+    uint8_t payload[1] = { 1 };
+    int rc = SendWingFrame(touchUart, 'I', payload, sizeof(payload));
+    helper->DEBUG_SURFACE(
+        rc >= 0 ? DEBUGLEVEL_VERBOSE : DEBUGLEVEL_NORMAL,
+        "WING touchscreen enable %s",
+        rc >= 0 ? "sent" : "failed"
+    );
+}
+
+int Surface::InitCscTransportWing()
+{
+    const size_t map_len = 0x1000;
+    int mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+    uint8_t *iomuxc;
+    uint8_t *gpio5;
+    uint32_t value;
+
+    if (mem_fd < 0)
+        return -1;
+    iomuxc = (uint8_t *)mmap(NULL, map_len, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, IOMUXC_BASE);
+    if (iomuxc == MAP_FAILED) {
+        close(mem_fd);
+        return -1;
+    }
+    gpio5 = (uint8_t *)mmap(NULL, map_len, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, GPIO5_BASE);
+    if (gpio5 == MAP_FAILED) {
+        munmap(iomuxc, map_len);
+        close(mem_fd);
+        return -1;
+    }
+
+    writel_ptr(iomuxc, PAD_KEY_COL1, PAD_UART_TX_STOCK);
+    writel_ptr(iomuxc, MUX_KEY_COL1, UART5_ALT_MODE);
+    writel_ptr(iomuxc, PAD_KEY_ROW1, PAD_UART_RX_STOCK);
+    writel_ptr(iomuxc, MUX_KEY_ROW1, UART5_ALT_MODE);
+    writel_ptr(iomuxc, SEL_UART5_RX, UART5_RX_DAISY_STOCK);
+    value = readl_ptr(gpio5, GPIO_GDIR_OFF);
+    writel_ptr(gpio5, GPIO_GDIR_OFF, value | CSC_RESET_MASK);
+    value = readl_ptr(gpio5, GPIO_DR_OFF);
+    writel_ptr(gpio5, GPIO_DR_OFF, value & ~CSC_RESET_MASK);
+    usleep(50000);
+    value = readl_ptr(gpio5, GPIO_DR_OFF);
+    value |= (1u << CSC_RESET_BIT);
+    value &= ~(1u << CSC_BOOT_BIT);
+    writel_ptr(gpio5, GPIO_DR_OFF, value);
+    usleep(500000);
+
+    munmap(gpio5, map_len);
+    munmap(iomuxc, map_len);
+    close(mem_fd);
+    return 0;
+}
+
+int Surface::EnableCscLightsWing(uint32_t value)
+{
+    return wing_enable_csc_lights(value);
+}
+
+void Surface::SendWingStockBaseline()
+{
+    static const struct {
+        uint8_t cmd;
+        size_t len;
+    } blocks[] = {
+        { 'B', 9 }, { 'L', 10 }, { 'l', 13 }, { 'C', 36 }, { 'M', 26 },
+    };
+
+    uint8_t payload[64];
+    memset(payload, 0, sizeof(payload));
+
+    for (size_t i = 0; i < sizeof(blocks) / sizeof(blocks[0]); ++i) {
+        SendWingFrame(blocks[i].cmd, payload, blocks[i].len);
+        usleep(20000);
+    }
+    for (uint8_t id = 0x38; id <= 0x3f; ++id) {
+        uint8_t u_payload[4] = { id, 0, 50, 0x08 };
+        SendWingFrame('U', u_payload, sizeof(u_payload));
+        usleep(20000);
+    }
 }

@@ -43,7 +43,12 @@ class Surface : public X32Base
 
         uint8_t calculateChecksum(const char* data, uint16_t len);
         int SendData(MessageBase* message, bool addChecksum);
-        void SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+        int SendWingFrame(Uart* targetUart, uint8_t cmd, const uint8_t* payload, size_t len);
+        int SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+
+        int InitCscTransportWing();
+        int EnableCscLightsWing(uint32_t value);
+        void SendWingStockBaseline();
 
     public:
 
@@ -51,6 +56,8 @@ class Surface : public X32Base
     
         Surface(X32BaseParameter* basepar);
         Uart* uart;
+        Uart* touchUart;
+        bool touchUartOpen = false;
 
         void Init();
         void Reset();
@@ -90,6 +97,7 @@ class Surface : public X32Base
         void BlockFader(uint8_t boardId, uint8_t faderIndex);
         bool IsFaderBlocked(uint8_t boardId, uint8_t faderIndex);
         void Touchcontrol();
+        void EnableWingTouchscreen();
 
         void Blink();
 };

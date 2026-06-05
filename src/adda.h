@@ -22,6 +22,7 @@
 class Adda : public X32Base {
     private:
         Uart* uart;
+        bool disabled;
 
         char addaBufferUart[256]; // buffer for UART-readings
         int addaPacketBufLen;

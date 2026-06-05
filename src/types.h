@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "defines.h"
 #include "enum.h"
@@ -131,4 +132,14 @@ struct WingFrameParser {
     int after_star;
     int have_cmd;
     uint8_t cmd;
+};
+
+struct WingTouchscreenParser {
+    uint8_t buf[256];
+    size_t len;
+    int in_frame;
+    int after_star;
+    int have_cmd;
+    uint8_t cmd;
+    uint8_t idle_ticks;
 };

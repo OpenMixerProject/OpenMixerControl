@@ -120,8 +120,19 @@ class X32Ctrl : public X32Base
         uint8_t receivedBoardId = 0; // BoardID from last received surface event, needed for short messages!
 
         WingFrameParser parser;
+        WingTouchscreenParser touchscreenParser;
+        uint16_t wingTouchEnableCountdown10ms = 0;
+        int16_t wingTouchX = 0;
+        int16_t wingTouchY = 0;
+        bool wingTouchPressed = false;
+
         void WingParserFeed(uint8_t byte);
         void WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+        void WingTouchscreenFeed(uint8_t byte);
+        void WingTouchscreenHandleFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+        void WingTouchscreenFlush();
+        void WingTouchscreenTick(bool receivedBytes);
+        void WingTouchscreenEnableTick();
 
         void ProcessUartDataSurface();
         void ProcessUartDataAdda();
@@ -143,6 +154,8 @@ class X32Ctrl : public X32Base
         void UdpHandleCommunication_WSM(void);
 
         void InitPagesAndGUI();
+        void HandleGuiTabChanged(lv_obj_t* tabview);
+        void ReadWingTouchscreen(lv_indev_data_t* data);
         bool ShowPrevPage();
         bool ShowNextPage();
 

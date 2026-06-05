@@ -51,8 +51,13 @@ typedef unsigned int uint;
 #define MAX_NAME_LENGTH 30 + 1 // null termination!
 #define SURFACE_MAX_PACKET_LENGTH 32
 
+#ifdef TARGET_WING
+#define DISPLAY_RESOLUTION_X 1280
+#define DISPLAY_RESOLUTION_Y 800
+#else
 #define DISPLAY_RESOLUTION_X 800
 #define DISPLAY_RESOLUTION_Y 480
+#endif
 
 #define MAX_DISPLAY_ENCODER 6
 // #define DISPLAY_ENCODER_1   0

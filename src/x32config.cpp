@@ -124,7 +124,7 @@ bool X32Config::IsModelAnyWing() {
 
 bool X32Config::HasGui()
 {
-    return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R();
+    return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R() || IsModelAnyWing();
 }
 
 bool X32Config::HasBigDisplay()
@@ -2900,6 +2900,13 @@ void X32Config::DefineSurfaceElements()
     GetSurfaceElement(SurfaceElementId::ASSIGN_7)                       ->DefButton_Wing(0x3E);
     GetSurfaceElement(SurfaceElementId::ASSIGN_8)                       ->DefButton_Wing(0x3F);
     GetSurfaceElement(SurfaceElementId::ASSIGN_9)                       ->DefButton_Wing(0x40);
+
+    GetSurfaceElement(DISPLAY_ENCODER_1)                                ->DefEncoder(OMC_BOARD_WING, 0x01);
+    GetSurfaceElement(DISPLAY_ENCODER_2)                                ->DefEncoder(OMC_BOARD_WING, 0x02);
+    GetSurfaceElement(DISPLAY_ENCODER_3)                                ->DefEncoder(OMC_BOARD_WING, 0x03);
+    GetSurfaceElement(DISPLAY_ENCODER_4)                                ->DefEncoder(OMC_BOARD_WING, 0x04);
+    GetSurfaceElement(DISPLAY_ENCODER_5)                                ->DefEncoder(OMC_BOARD_WING, 0x05);
+    GetSurfaceElement(DISPLAY_ENCODER_6)                                ->DefEncoder(OMC_BOARD_WING, 0x06);
 
     uint max_faders = 0;
     if (IsModelWingFull())

@@ -55,6 +55,7 @@ CLI::App* app;
 
 // LVGL
 static lv_display_t *display;
+static lv_indev_t *wing_touch;
 #ifdef TARGET_PC_SDL2
 static lv_indev_t *mouse;
 static lv_indev_t *mouse_wheel;
@@ -77,6 +78,35 @@ void timer50msCallbackLvgl(_lv_timer_t* lv_timer) {
 void timer10msCallbackLvgl(_lv_timer_t* lv_timer) {
 	ui_tick(); ctrl->Tick10ms();
 }
+
+static void wing_touch_read(lv_indev_t* indev, lv_indev_data_t* data)
+{
+	if (ctrl)
+	{
+		ctrl->ReadWingTouchscreen(data);
+	}
+	else if (data)
+	{
+		data->state = LV_INDEV_STATE_RELEASED;
+	}
+
+	if (indev && data)
+	{
+		lv_obj_t * cursor = lv_indev_get_cursor(indev);
+		if (cursor)
+		{
+			if (data->state == LV_INDEV_STATE_PRESSED)
+			{
+				lv_obj_remove_flag(cursor, LV_OBJ_FLAG_HIDDEN);
+			}
+			else
+			{
+				lv_obj_add_flag(cursor, LV_OBJ_FLAG_HIDDEN);
+			}
+		}
+	}
+}
+
 void timer10msCallbackLinux(int timer) {
 	
 	ctrl->Tick10ms();
@@ -166,6 +196,28 @@ void guiInit(X32Config* config) {
 		}
 
 		lv_linux_fbdev_set_file(display, device);		
+
+		if (config->IsModelAnyWing())
+		{
+			wing_touch = lv_indev_create();
+			lv_indev_set_type(wing_touch, LV_INDEV_TYPE_POINTER);
+			lv_indev_set_read_cb(wing_touch, wing_touch_read);
+			lv_indev_set_display(wing_touch, display);
+
+			// Draw touch indicator (cursor)
+			lv_obj_t * touch_cursor = lv_obj_create(lv_screen_active());
+			lv_obj_set_size(touch_cursor, 25, 25);
+			lv_obj_set_style_radius(touch_cursor, LV_RADIUS_CIRCLE, 0);
+			lv_obj_set_style_bg_color(touch_cursor, lv_color_hex(0x00A3FF), 0); // Cool cyan indicator
+			lv_obj_set_style_bg_opa(touch_cursor, LV_OPA_40, 0);
+			lv_obj_set_style_border_width(touch_cursor, 2, 0);
+			lv_obj_set_style_border_color(touch_cursor, lv_color_hex(0xFFFFFF), 0);
+			lv_obj_set_style_border_opa(touch_cursor, LV_OPA_80, 0);
+			lv_obj_remove_flag(touch_cursor, LV_OBJ_FLAG_CLICKABLE);
+			lv_obj_add_flag(touch_cursor, LV_OBJ_FLAG_HIDDEN); // Hidden by default
+			
+			lv_indev_set_cursor(wing_touch, touch_cursor);
+		}
 	}
 
 	#ifdef BUILD_DEBUG
