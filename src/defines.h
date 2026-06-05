@@ -16,8 +16,6 @@
 // #  DEV    #
 // ###########
 
-#define TARGET_WING 1
-
 //#################################################################################
 
 // bodyless mode does not compile with artnet, so disable it

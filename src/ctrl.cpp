@@ -785,14 +785,13 @@ void X32Ctrl::syncSurface(bool fullSync)
 	//
 	// ######################################
 
-	#ifdef TARGET_XM32
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
 		if (config->HasParameterChanged(BANKING_INPUT))
 		{
-			X32BankId bankToSwitchTo = (X32BankId)(config->GetUint(BANKING_INPUT));
+			OMCBankId bankToSwitchTo = (OMCBankId)(config->GetUint(BANKING_INPUT));
  
-			if (bankToSwitchTo != X32BankId::FLEX1)
+			if (bankToSwitchTo != OMCBankId::FLEX1)
 			{
 				// stop DCA Spill
 				for (uint i = 0; i < DCA_GROUPS; i++)
@@ -803,66 +802,66 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 			if (config->IsModelX32FullOrM32())
 			{
-				X32BankId bank1;
-				X32BankId bank2;
+				OMCBankId bank1;
+				OMCBankId bank2;
 
 				switch(bankToSwitchTo)
 				{
-					case X32BankId::CH1_16:
-						bank1 = X32BankId::CH1_8;
-						bank2 = X32BankId::CH9_16;
+					case OMCBankId::CH1_16:
+						bank1 = OMCBankId::CH1_8;
+						bank2 = OMCBankId::CH9_16;
 						break;
-					case X32BankId::CH17_32:
-						bank1 = X32BankId::CH17_24;
-						bank2 = X32BankId::CH25_32;
+					case OMCBankId::CH17_32:
+						bank1 = OMCBankId::CH17_24;
+						bank2 = OMCBankId::CH25_32;
 						break;
-					case X32BankId::AUX_USB_FX_RET:
-						bank1 = X32BankId::AUX_USB;
-						bank2 = X32BankId::FX_RET;
+					case OMCBankId::AUX_USB_FX_RET:
+						bank1 = OMCBankId::AUX_USB;
+						bank2 = OMCBankId::FX_RET;
 						break;
-					case X32BankId::BUS1_16:
-						bank1 = X32BankId::BUS1_8;
-						bank2 = X32BankId::BUS9_16;
+					case OMCBankId::BUS1_16:
+						bank1 = OMCBankId::BUS1_8;
+						bank2 = OMCBankId::BUS9_16;
 						break;
-					case X32BankId::REMOTE1:
-						bank1 = X32BankId::REMOTE1;
-						bank2 = X32BankId::REMOTE2;
+					case OMCBankId::REMOTE1:
+						bank1 = OMCBankId::REMOTE1;
+						bank2 = OMCBankId::REMOTE2;
 						break;
-					case X32BankId::FLEX1:
-						bank1 = X32BankId::FLEX1;
-						bank2 = X32BankId::FLEX2;
+					case OMCBankId::FLEX1:
+						bank1 = OMCBankId::FLEX1;
+						bank2 = OMCBankId::FLEX2;
 						break;
 					default:
 						break;
 				}
 
-				LoadBank(X32BankTarget::InputSection, bank1);
-				LoadBank(X32BankTarget::InputSection2, bank2);
+				LoadBank(OMCBankTarget::InputSection, bank1);
+				LoadBank(OMCBankTarget::InputSection2, bank2);
 			}
 			else
 			{
-				LoadBank(X32BankTarget::InputSection, (X32BankId)(config->GetUint(BANKING_INPUT)));
+				LoadBank(OMCBankTarget::InputSection, (OMCBankId)(config->GetUint(BANKING_INPUT)));
 			}
 		}
 
 		if (config->HasParameterChanged(BANKING_BUS))
 		{
-			X32BankId bank = (X32BankId)(config->GetUint(BANKING_BUS));
+			OMCBankId bank = (OMCBankId)(config->GetUint(BANKING_BUS));
 
 			// special translations for X32 Full: banking over input AND bus section
 			switch(bank)
 			{
-				case X32BankId::CH17_32:
-					bank = X32BankId::CH17_24;
+				case OMCBankId::CH17_32:
+					bank = OMCBankId::CH17_24;
 					break;
-				case X32BankId::AUX_USB_FX_RET:
-					bank = X32BankId::AUX_USB;
+				case OMCBankId::AUX_USB_FX_RET:
+					bank = OMCBankId::AUX_USB;
 					break;
 				default:
 					break;
 			}
 
-			LoadBank(X32BankTarget::BusSection, bank);
+			LoadBank(OMCBankTarget::BusSection, bank);
 		}
 
 		if (config->HasParameterChanged(BANKING_ASSIGN))
@@ -901,14 +900,14 @@ void X32Ctrl::syncSurface(bool fullSync)
 						uint nextSurfaceChannelStrip = 0;
 
 						// reset the banks to default blank
-						banks[(uint)X32BankId::FLEX1]->Reset();
-						banks[(uint)X32BankId::FLEX2]->Reset();
-						banks[(uint)X32BankId::FLEX3]->Reset();
+						banks[(uint)OMCBankId::FLEX1]->Reset();
+						banks[(uint)OMCBankId::FLEX2]->Reset();
+						banks[(uint)OMCBankId::FLEX3]->Reset();
 
 						// loop through all channels
 						for (uint chanIndex = 0; chanIndex < MAX_VCHANNELS; chanIndex++)
 						{
-							X32FaderBank* banktoUse = (nextSurfaceChannelStrip < 8) ? banks[(uint)X32BankId::FLEX1] : banks[(uint)X32BankId::FLEX2];
+							X32FaderBank* banktoUse = (nextSurfaceChannelStrip < 8) ? banks[(uint)OMCBankId::FLEX1] : banks[(uint)OMCBankId::FLEX2];
 
 							if (config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex))
 							{
@@ -928,8 +927,8 @@ void X32Ctrl::syncSurface(bool fullSync)
 							}
 						}
 
-						preSpillLoadedBank = (X32BankId)config->GetUint(BANKING_INPUT);
-						config->Set(BANKING_INPUT, (uint)X32BankId::FLEX1);
+						preSpillLoadedBank = (OMCBankId)config->GetUint(BANKING_INPUT);
+						config->Set(BANKING_INPUT, (uint)OMCBankId::FLEX1);
 
 						// trigger blinking of DCA bank button
 						config->Refresh(BANKING_BUS);
@@ -942,12 +941,12 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 						helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "DCA Unspill");
 
-						if (config->GetUint(BANKING_INPUT) == (uint)X32BankId::FLEX1)
+						if (config->GetUint(BANKING_INPUT) == (uint)OMCBankId::FLEX1)
 						{
 							// load bank that was loaded before the DCA spill
 							config->Set(BANKING_INPUT, (uint)preSpillLoadedBank);
 						}
-						preSpillLoadedBank = X32BankId::None;
+						preSpillLoadedBank = OMCBankId::None;
 
 						// trigger unblinking of DCA button
 						config->Refresh(BANKING_BUS);	
@@ -956,9 +955,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 			}
 		}
 	}
-	#endif
 
-	#ifdef TARGET_WING
 	if (config->IsModelAnyWing())
 	{
 		if (config->HasParameterChanged(BANKING_INPUT))
@@ -1071,7 +1068,6 @@ void X32Ctrl::syncSurface(bool fullSync)
 		// 	}
 		// }
 	}
-	#endif
 
 	// ######################################
 	//
