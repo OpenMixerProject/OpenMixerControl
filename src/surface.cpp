@@ -28,14 +28,6 @@
 Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
 {
     uart = new Uart(basepar);
-    if (config->IsModelAnyWing())
-    {
-        faderController = new WingFaderController(basepar, this);
-    }
-    else
-    {
-        faderController = new X32FaderController(basepar, this);
-    }
 }
 
 void Surface::Init(void)
@@ -87,8 +79,6 @@ void Surface::Init(void)
         uart->Open("/dev/ttymxc4", 115200, true);
     }
 
-    faderController->Init();
-
     Reset();
 }
 
@@ -112,11 +102,134 @@ void Surface::Reset(void)
         }
     }
 
-    if (faderController) {
-        faderController->Reset();
+    FaderReset();
+
+    // X32/M32 needs "double reset"
+    if (config->IsModelAnyXM32())
+    {
+        FaderReset();
     }
 
     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "... Done");
+}
+
+void Surface::FaderReset()
+{
+    if (config->HasFaders())
+    {
+        if (config->IsModelAnyXM32())
+        {
+            // Reset touchcontrol wait time
+            for(uint8_t faderindex=0; faderindex<XM32_MAX_FADERS; faderindex++)
+            {
+                faders[faderindex].wait = 0;
+            }
+
+            // Reset position of faders
+            uint8_t maxfaderindex = 0;
+            if (config->IsModelX32FullOrM32())
+            {
+                maxfaderindex = XM32_MAX_FADERS;
+            }
+            if (config->IsModelX32CompactOrProducerOrM32R())
+            {
+                maxfaderindex = XM32_MAX_FADERS-8;
+            }
+
+            for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
+            {
+                faders[faderindex].position_real = 0;
+                SetFaderRaw(GetBoardId(faderindex), GetFaderId(faderindex), 0);
+            }
+        }
+        else if (config->IsModelWingCompact())
+        {
+            for (uint8_t i = 0; i < 13; ++i)
+            {
+                faders[i].wait = 0;
+                faders[i].position_real = 0;
+                SetFaderRaw(OMC_BOARD_WING, i, 0);
+            }
+        }
+    }
+}
+
+uint8_t Surface::GetChannelstripIndex(uint8_t boardId, uint8_t index)
+{
+    if (config->IsModelAnyWing())
+    {
+        return index;
+    }
+
+    switch (boardId)
+    {
+        case X32_BOARD_L:
+            return index;
+        case X32_BOARD_M: // only X32 Full
+            return index + 8;
+        case X32_BOARD_R:
+            return index + (config->IsModelX32FullOrM32() ? 16 : 8);  // 16 - X32 Full, 8 - X32 Compact/Producer
+        default:
+            return 0;
+    }
+}
+
+uint8_t Surface::GetBoardId(uint8_t faderindex)
+{
+    if(config->IsModelX32FullOrM32())
+    {
+        if (faderindex < 8){
+            return X32_BOARD_L;
+        }
+        if (faderindex < 16){
+            return X32_BOARD_M;
+        }
+        return X32_BOARD_R;
+    }
+
+    if(config->IsModelX32CompactOrProducerOrM32R())
+    {
+        if (faderindex < 8){
+            return X32_BOARD_L;
+        }
+        return X32_BOARD_R;
+    }
+
+    if (config->IsModelAnyWing())
+    {
+        return OMC_BOARD_WING;
+    }
+
+    return 0;
+}
+
+uint8_t Surface::GetFaderId(uint8_t faderindex)
+{
+    if(config->IsModelX32FullOrM32())
+    {
+        if (faderindex < 8){
+            return faderindex;
+        }
+        if (faderindex < 16){
+            return faderindex-8;
+        }
+        return faderindex-16;
+    }
+
+    if(config->IsModelX32CompactOrProducerOrM32R())
+    {
+        if (faderindex < 8){
+            return faderindex;
+        }
+        return faderindex-8;
+    }
+
+    if (config->IsModelAnyWing())
+    {
+        return faderindex;
+    }
+
+    return 0;
 }
 
 
@@ -745,52 +858,88 @@ void Surface::Blink()
     blinkwait--; 
 }
 
-
-
-void Surface::FaderReset()
+void Surface::SetFader(uint8_t boardId, uint8_t index, uint16_t position)
 {
-    if (faderController) {
-        faderController->FaderReset();
-    }
-}
-
-void Surface::SetFader(uint8_t boardId, uint8_t index, uint16_t position) {
-    if (faderController) {
-        faderController->SetFader(boardId, index, position);
-    }
+    uint8_t faderindex = GetChannelstripIndex(boardId, index);
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Want to move fader at index %d to %d", faderindex, position);
+    faders[faderindex].position_wanted = position;
 }
 
 void Surface::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value)
 {
-    if (faderController) {
-        faderController->FaderMoved(boardId, index, value);
-    }
+     uint8_t faderindex = GetChannelstripIndex(boardId, index);
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Fader at index %d moved to %d", faderindex, value);
+    faders[faderindex].position_wanted = value;
+    faders[faderindex].position_real = value;
+    faders[faderindex].wait = 10; // wait 100x 10ms
 }
 
-void Surface::Touchcontrol() {
-    if (faderController) {
-        faderController->Touchcontrol();
+void Surface::Touchcontrol()
+{
+    uint8_t maxfaderindex = 0;
+    if (config->IsModelX32FullOrM32())
+    {
+        maxfaderindex = XM32_MAX_FADERS;
+    } 
+    else if (config->IsModelX32CompactOrProducerOrM32R())
+    {
+        maxfaderindex = XM32_MAX_FADERS-8;
+    } 
+    else if (config->IsModelWingCompact())
+    {
+        maxfaderindex = 13;
+    }
+
+    for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
+    {
+        if (faders[faderindex].wait > 0)
+        {
+            faders[faderindex].wait--;
+            helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Reduced wait time on fader at index %d to %d", faderindex, faders[faderindex].wait);
+        }
+        else if (faders[faderindex].position_real != faders[faderindex].position_wanted)
+        {
+            helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Move fader at index %d from %d to %d", faderindex, faders[faderindex].position_real, faders[faderindex].position_wanted);
+            faders[faderindex].position_real = faders[faderindex].position_wanted;
+            SetFaderRaw(GetBoardId(faderindex), GetFaderId(faderindex), faders[faderindex].position_wanted);
+        }
     }
 }
 
 // position = 0x0000 ... 0x0FFF
-void Surface::SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position) {
+void Surface::SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position)
+{
     SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('F'); // class: F = Fader
+    
+    if (config->IsModelAnyXM32())
+    {
+        message.AddDataByte(0x80 + boardId); // start message for specific boardId
+    }
+    if (config->IsModelAnyXM32())
+    {
+        message.AddDataByte('F'); // class: F = Fader
+    }
     message.AddDataByte(index); // index
     message.AddDataByte((position & 0xFF)); // LSB
     message.AddDataByte((char)((position & 0x0F00) >> 8)); // MSB
-
+    
     helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Set fader position on board %d at index %d to %d", boardId, index, position);
 
-    SendData(&message, true);
+    if (config->IsModelAnyXM32())
+    {
+        SendData(&message, true);
+    }
+    if (config->IsModelAnyWing())
+    {
+        SendWingFrame('F', payload, 3);
+    }
 }
 
 // incoming message has the form: 0xFE 0x8i Class Index Data[] 0xFE
 // Checksum is calculated using the following equation:
 // chksum = ( 0xFE - i - class - index - sumof(data[]) - sizeof(data[]) ) and 0x7F
-uint8_t Surface::calculateChecksum(const char* data, uint16_t len) {
+uint8_t Surface::calculateChecksum(const char* data, uint16_t len)
+{
   // a single message can contain up to max. 64 chars
   int32_t sum = 0xFE;
   for (uint8_t i = 0; i < (len-1); i++) {
@@ -802,18 +951,58 @@ uint8_t Surface::calculateChecksum(const char* data, uint16_t len) {
   return (sum & 0x7F);
 }
 
-int Surface::SendData(MessageBase* message, bool addChecksum) {
-    message->AddRawByte(0xFE); // Endbyte
+int Surface::SendData(MessageBase* message, bool addChecksum)
+{
+    if (config->IsModelAnyXM32())
+    {
+        message->AddRawByte(0xFE); // Endbyte
 
-    if (addChecksum) {
-        char checksum = 0;
-        if (message->current_length >= 2) { // at least start- and end-byte
-            checksum = calculateChecksum(message->buffer, message->current_length);
+        if (addChecksum)
+        {
+            char checksum = 0;
+            if (message->current_length >= 2) 
+            {
+                // at least start- and end-byte
+                checksum = calculateChecksum(message->buffer, message->current_length);
+            }
+
+            // add checksum to message and send data via serial-port
+            message->AddRawByte(checksum);
         }
 
-        // add checksum to message and send data via serial-port
-        message->AddRawByte(checksum);
+        return uart->Tx(message);
+    }
+}
+
+void Surface::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+{
+    MessageBase msg;
+    msg.AddRawByte('*'); // WING_FRAME_STAR
+    
+    if (cmd == 0x2a) {
+        msg.AddRawByte(0x2a);
+        msg.AddRawByte(0x40);
+    } else {
+        msg.AddRawByte(cmd);
     }
 
-    return uart->Tx(message);
+    for (size_t i = 0; i < len; ++i) {
+        if (payload[i] == 0x2a) {
+            msg.AddRawByte(0x2a);
+            msg.AddRawByte(0x40);
+        } else {
+            msg.AddRawByte(payload[i]);
+        }
+    }
+
+    msg.AddRawByte('*');
+    uint8_t chk = helper->CalculateWingChecksum(payload, len);
+    if (chk == 0x2a) {
+        msg.AddRawByte(0x2a);
+        msg.AddRawByte(0x40);
+    } else {
+        msg.AddRawByte(chk);
+    }
+
+    uart->Tx(&msg);
 }

@@ -11,8 +11,6 @@
 #include "surface-lcd.h"
 #include "surface-message.h"
 #include "surface-fader.h"
-#include "surface-fader-controller-xm32.h"
-#include "surface-fader-controller-wing.h"
 #include "helper.h"
 
 using namespace std;
@@ -27,7 +25,13 @@ class Surface : public X32Base
         bool blinkstate = false;
         set<SurfaceElementId> blinklist;
 
+        SurfaceFader faders[XM32_MAX_FADERS];
+
         uint8_t int2segment(int8_t p_value);
+
+        uint8_t GetBoardId(uint8_t faderindex);
+        uint8_t GetFaderId(uint8_t faderindex);
+        uint8_t GetChannelstripIndex(uint8_t boardId, uint8_t index);
 
         uint16_t CalcEncoderRingLedDirect(uint8_t num_leds_to_light);
         uint16_t CalcEncoderRingLedIncrement(uint8_t pct);
@@ -39,9 +43,10 @@ class Surface : public X32Base
 
         uint8_t calculateChecksum(const char* data, uint16_t len);
         int SendData(MessageBase* message, bool addChecksum);
+        void SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len);
 
     public:
-        FaderController* faderController;
+
         void SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position);
     
         Surface(X32BaseParameter* basepar);
