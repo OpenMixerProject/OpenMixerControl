@@ -51,6 +51,8 @@ CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
 				   $(shell find $(LVGL_DIR)/src -type f -name '*.cpp' -print) \
 				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.cpp' -print)
 
+CXXSRCS         := $(filter-out src/x32-fader-controller.cpp src/wing-fader-controller.cpp,$(CXXSRCS))
+
 
 
 all: copy default

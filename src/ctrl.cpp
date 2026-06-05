@@ -1,5 +1,4 @@
 #include "ctrl.h"
-#include "fader-controller.h"
 
 
 X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)

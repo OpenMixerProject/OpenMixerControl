@@ -23,8 +23,6 @@
 */
 
 #include "surface.h"
-#include "x32-fader-controller.h"
-#include "wing-fader-controller.h"
 
 
 Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
