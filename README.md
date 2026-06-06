@@ -4,9 +4,18 @@ We are currently (June 2026) in a repo transition phase 👷‍♂️, so more c
 
 # General
 
-OpenMixerControl is the main software of
-- [OpenX32](https://github.com/OpenMixerProject/OpenX32) - Linux and Custom Firmware for Behringer X32/M32 Audio Mixing Console
-- [OpenWING](https://github.com/OpenMixerProject/OpenWING) - Linux and Custom Firmware for Behringer WING Audio Mixing Console
+OpenMixerControl is the main software of OpenX32 and OpenWING.
+
+## [OpenX32](https://github.com/OpenMixerProject/OpenX32)
+Linux and Custom Firmware for the Behringer X32 and Midas M32 Audio-Mixing-Consoles
+
+<img width="4000" height="3000" alt="IMG_20260520_211131" src="https://github.com/user-attachments/assets/3de539e1-a078-476b-a97a-3dda304b144d" />
+
+## [OpenWING](https://github.com/OpenMixerProject/OpenWING)
+Linux and Custom Firmware for the Behringer WING Audio-Mixing-Consoles
+
+<img width="3000" height="4000" alt="IMG_20260604_020730" src="https://github.com/user-attachments/assets/189e2af7-1664-4385-b29f-81b094274c69" />
+
 
 # Some Screenshots
 
