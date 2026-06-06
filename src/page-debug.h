@@ -31,14 +31,6 @@ class PageDebug: public Page
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE, DEBUG_VALUE);
         }
 
-        void OnChange(bool force) override
-        {
-            if (config->HasParameterChanged(DEBUG_VALUE))
-            {
-                surface->SetLedRaw(1, config->GetUint(DEBUG_VALUE), true);
-            }
-        }
-
         void OnChangeCustomButton(SurfaceElementId surface_element_id) override
         {
             switch (surface_element_id)

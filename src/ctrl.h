@@ -40,7 +40,7 @@
 
 #include "surfaceelement.h"
 #include "surfacebindingparameter.h"
-#include "surface-fader-controller.h"
+#include "surface-controller.h"
 
 // Commandline and config file parser CLI11 (https://github.com/CLIUtils/CLI11)
 #include "../lib/CLI11.hpp"

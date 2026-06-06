@@ -40,12 +40,8 @@ void X32Ctrl::Init()
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->Init()");
 	mixer->Init();
 
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init()");
-	surface->Init();
-	if (surface->faderController)
-	{
-		surface->SetCallback(OnSurfaceCallback, this);
-	}
+	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init(OnSurfaceCallback, this)");
+	surface->Init(OnSurfaceCallback, this);
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "xremote->Init()");
 	xremote->Init();
@@ -1544,7 +1540,7 @@ void X32Ctrl::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t artn
 
 	textcount = textIndex + 1;
 
-	surface->SetLcdX(data, textcount);
+	surface->SetLcd(data, textcount);
 	delete data;
 }
 
@@ -1683,7 +1679,7 @@ void X32Ctrl::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t cha
 			break;
 	}
 
-	surface->SetLcdX(data, textcount);
+	surface->SetLcd(data, textcount);
 	delete data;
 }
 
@@ -1743,7 +1739,7 @@ void X32Ctrl::SetLcdFromAssign(uint8_t p_boardId, uint8_t lcdIndex, SurfaceEleme
 			break;
 	}
 
-	surface->SetLcdX(data, textcount);
+	surface->SetLcd(data, textcount);
 	delete data;
 }
 
@@ -1813,7 +1809,7 @@ void X32Ctrl::SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex)
 	data->icon.x = 0;
 	data->icon.y = 0;
 
-	surface->SetLcdX(data, 0);
+	surface->SetLcd(data, 0);
 
 	delete data;
 }
@@ -2326,7 +2322,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 					
 					textcount = textIndex + 1;
 
-					surface->SetLcdX(data, textcount);
+					surface->SetLcd(data, textcount);
 					delete data;
 				}
 			}
@@ -2568,8 +2564,9 @@ void X32Ctrl::SimulatorButton(uint32_t key)
 			config->Set(ACTIVE_PAGE, (uint)SCENES);
 			break;
 		case 46274: // Button REMOTE DAW
-			ProcessSurface(X32_BOARD_R, 'b', 0, 0x00 + 0x80);
-			ProcessSurface(X32_BOARD_R, 'b', 0, 0x00);
+			// ProcessSurface(X32_BOARD_R, 'b', 0, 0x00 + 0x80);
+			// ProcessSurface(X32_BOARD_R, 'b', 0, 0x00);
+			ProcessSurface(X32_BOARD_L, 'f', 0, 0x000C);
 			break;
 	}
 }

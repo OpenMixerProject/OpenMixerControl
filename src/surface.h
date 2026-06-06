@@ -12,23 +12,19 @@
 #include "surface-lcd.h"
 #include "surface-message.h"
 #include "surface-fader.h"
-#include "surface-fader-controller-xm32.h"
-#include "surface-fader-controller-wing.h"
+#include "surface-controller-xm32.h"
+#include "surface-controller-wing.h"
 #include "helper.h"
 
 using namespace std;
 
-class FaderController;
+class SurfaceController;
 
 class Surface : public X32Base
 {
     private:
 
-        int surfacePacketCurrentIndex = 0;
-        int surfacePacketCurrent = 0;
-        uint8_t surfacePacketBuffer[SURFACE_MAX_PACKET_LENGTH][6];
-        char surfaceBufferUart[256]; // buffer for UART-readings
-        uint8_t receivedBoardId = 0; // BoardID from last received surface event, needed for short messages!
+        SurfaceController* surfaceController;
 
         X32FaderBank* banks[(uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
 
@@ -37,10 +33,6 @@ class Surface : public X32Base
         uint blinkwait = 0;
         bool blinkstate = false;
         set<SurfaceElementId> blinklist;
-
-        WingFrameParser parser;
-        void WingParserFeed(uint8_t byte);
-        void WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len);
 
         uint8_t int2segment(int8_t p_value);
 
@@ -52,8 +44,7 @@ class Surface : public X32Base
         uint16_t CalcEncoderRingLedBalance(uint8_t pct);
         uint16_t CalcEncoderRingLedWidth(uint8_t pct);
 
-        uint8_t calculateChecksum(const char* data, uint16_t len);
-        int SendData(MessageBase* message, bool addChecksum);
+
 
         void InitBanks();
         void InitBank_Channelstrip_WING(X32FaderBank* bank, uint offset);
@@ -63,24 +54,15 @@ class Surface : public X32Base
         void InitBank_DMX(X32FaderBank* bank, uint offset);
 
     public:
-
-        typedef void (*SurfaceCallback)(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
-        SurfaceCallback surfaceCallback = nullptr;
-        void* callbackArg = nullptr;
-
-        FaderController* faderController;
-        Uart* uart;
-
+        
         Surface(X32BaseParameter* basepar);
 
         void SetCallback(SurfaceCallback callback, void* arg);
 
-        void Init();
+        void Init(SurfaceCallback callback, void* arg);
         void Reset();
-        void ProcessUartDataSurface();
 
-        void Tick10ms();
-        void Tick100ms();
+        void ProcessUartDataSurface();
         
         void LoadBank(OMCBankTarget target, OMCBankId id);
         void LoadAssignBank(X32AssignBankId id);
@@ -104,22 +86,14 @@ class Surface : public X32Base
         void SetX32RackDisplay(uint8_t p_value);
         void SetLed(SurfaceElementId buttonOrLed, bool state, bool blink);
         void SetLed(SurfaceElementId buttonOrLed, bool ledOn);
-        void SetLedRaw(uint board, uint index, bool ledOn);
         void SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds);
         void SetMeterLedMain_Rack(uint8_t preamp, uint32_t meterL, uint32_t meterR, uint32_t meterSolo);
         void SetMeterLedMain_Producer(uint8_t preamp, uint8_t dynamics, uint32_t meterL, uint32_t meterR, uint32_t meterSolo);
         void SetMeterLedMain_FullOrCompact(uint8_t preamp, uint8_t dynamics, uint32_t meterL, uint32_t meterR, uint32_t meterSolo);
         void SetEncoderRing(uint8_t boardId, uint8_t index, uint8_t ledMode, uint8_t ledPct, bool backlight);
-        void SetEncoderRingDbfs(uint8_t boardId, uint8_t index, float dbfs, bool muted, bool backlight);
-        void SetLcd(
-            uint8_t boardId, uint8_t index, uint8_t color,
-            uint8_t xicon, uint8_t yicon, uint8_t icon, 
-            uint8_t sizeA, uint8_t xA, uint8_t yA, const char* strA,
-            uint8_t sizeB, uint8_t xB, uint8_t yB, const char* strB
-        );
-        void SetLcdX(LcdData* p_data, uint8_t p_textCount);
+        void SetLcd(LcdData* p_data, uint p_textCount);
 
-        void SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position);
+
         void FaderReset();
         void FaderMoved(uint8_t boardId, uint8_t index, uint16_t value);
         

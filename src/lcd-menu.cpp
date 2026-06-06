@@ -82,7 +82,7 @@ void LcdMenu::OnChange(bool force_update)
                 (encoderModeSelection ? String("") : String("[")) +
                 config->GetParameter(currentParameter)->GetFormatedValue() +
                 (encoderModeSelection ? String("") : String("]"));
-            surface->SetLcdX(d, 3);
+            surface->SetLcd(d, 3);
 
             selectedItemBefore = selectedItem;
         }

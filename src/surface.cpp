@@ -27,74 +27,19 @@
 
 Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
 {
-    uart = new Uart(basepar);
     if (config->IsModelAnyWing())
-    {
-        memset(&parser, 0, sizeof(parser));
-        faderController = new WingFaderController(basepar, this);
+    {      
+        surfaceController = new SurfaceControllerWing(basepar);
     }
     else
     {
-        faderController = new X32FaderController(basepar, this);
+        surfaceController = new SurfaceControllerXM32(basepar);
     }
 }
 
-void Surface::SetCallback(SurfaceCallback callback, void* arg)
+void Surface::Init(SurfaceCallback callback, void* arg)
 {
-    surfaceCallback = callback;
-    callbackArg = arg;
-}
-
-void Surface::Init(void)
-{
-    if (state->bodyless) {
-
-        /* 
-        
-        How to connect x32ctrl bodyless mode to a X32 runnig Linux:
-
-        Developer PC
-        ############
-
-        // create two virtual serial ports and connect them together as bridge
-        # socat -d -d pty,raw,link=/tmp/ttyLocal,echo=0 pty,raw,link=/tmp/ttyRemote,echo=0
-
-        // start netcat server on port 10000
-        # nc -l 10000 </tmp/ttyRemote >/tmp/ttyRemote
-
-        X32
-        ###
-        
-        // set serial to 115200 baud
-        # stty -F /dev/ttymxc1 115200 raw -echo -echoe -echok
-
-        // start netcat client to transmit/receive serial from/to devloper pc
-        # nc <ip of Developer PC> 10000 </dev/ttymxc1 >/dev/ttymxc1
-
-        Developer PC
-        ############        
-        
-        // start x32ctrl with bodyless commandline parameter "-b"
-        # x32ctrl -b
-        
-        */
-
-        uart->Open("/tmp/ttyLocal", 115200, true);
-    }
-    else if (state->raspi)
-    {
-        uart->Open("/dev/ttyUSB0", 115200, true);
-    } 
-    else if (config->IsModelAnyXM32())
-    {
-        uart->Open("/dev/ttymxc1", 115200, true);
-    }
-    else if (config->IsModelAnyWing())
-    {
-        uart->Open("/dev/ttymxc4", 115200, true);
-    }
-
-    faderController->Init();
+    surfaceController->Init(callback, arg);
 
     Reset();
 
@@ -122,8 +67,8 @@ void Surface::Reset(void)
         }
     }
 
-    if (faderController) {
-        faderController->Reset();
+    if (surfaceController) {
+        surfaceController->Reset();
     }
 
     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "... Done");
@@ -131,331 +76,8 @@ void Surface::Reset(void)
 
 void Surface::ProcessUartDataSurface()
 {
-    if (config->IsModelAnyWing())
-    {
-        char buf[256];
-		int n = uart->Rx(buf, sizeof(buf));
-		if (n > 0) {
-			char hex[3 * 256 + 1];
-			int pos = 0;
-			for (int i = 0; i < n && i < 256; ++i) {
-				pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", (uint8_t)buf[i]);
-			}
-			hex[pos] = '\0';
-			helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "WingFaderController RX %d bytes: %s", n, hex);
-			for (int i = 0; i < n; ++i) {
-				WingParserFeed((uint8_t)buf[i]);
-			}
-		}
-    }
-	else if (config->IsModelAnyXM32())
-	{
-		uint8_t receivedClass = 0;
-		uint8_t receivedIndex = 0;
-		uint16_t receivedValue = 0;
-		bool lastPackageIncomplete = false;
-
-		int bytesToProcess = uart->Rx(&surfaceBufferUart[0], sizeof(surfaceBufferUart));
-
-		if (bytesToProcess <= 0) {
-			return;
-		}
-
-		// first init package buffer with 0x00s
-		for (uint8_t package=0; package<SURFACE_MAX_PACKET_LENGTH;package++){
-			// start at surfacePacketCurrentIndex to not overwrite saved data from last incomplete package
-			for (int i = surfacePacketCurrentIndex; i < 6; i++) {
-				surfacePacketBuffer[package][i]=0x00;
-			}
-			surfacePacketCurrentIndex=0;
-		}
-
-		if (helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE)) {
-			printf("DEBUG_SURFACE: ");
-
-			// print received values on one row
-			bool divide_after_next_dbg = false;
-			for (int i = 0; i < bytesToProcess; i++) {
-				if (divide_after_next_dbg && ((uint8_t)surfaceBufferUart[i] == 0xFE)) {
-					printf("| ");
-					divide_after_next_dbg = false;
-				}
-				printf("%02X ", (uint8_t)surfaceBufferUart[i]); // empfangene Bytes als HEX-Wert ausgeben
-				if (divide_after_next_dbg){
-					printf("| ");
-					divide_after_next_dbg = false;
-				} 
-				if ((uint8_t)surfaceBufferUart[i] == 0xFE) {
-					divide_after_next_dbg=true;
-				}
-			}
-			printf("\n");
-		}
-
-		// break up received data into packages
-		bool divide_after_next = false;
-		for (int i = 0; i < bytesToProcess; i++) {
-
-			if (divide_after_next && ((uint8_t)surfaceBufferUart[i] == 0xFE)) {
-				// previous package had no checksum
-				surfacePacketCurrent++;
-				surfacePacketCurrentIndex=0;
-				divide_after_next = false;
-			}
-
-			surfacePacketBuffer[surfacePacketCurrent][surfacePacketCurrentIndex++] = (uint8_t)surfaceBufferUart[i];
-
-			if (divide_after_next) {
-				surfacePacketCurrent++;
-				surfacePacketCurrentIndex=0;
-				divide_after_next = false;
-			}
-
-			// use 0xFE as package divider
-			if (((uint8_t)surfaceBufferUart[i] == 0xFE))
-			{
-				divide_after_next = true;
-			}
-		}
-
-		if (divide_after_next){
-			// divide_after_next got no usage, because the uartBuffer was emptied out -> reason: no checksum was send
-			// clean up this situation
-			surfacePacketCurrent++;
-			while (surfacePacketCurrentIndex < 6){  
-				// fill with zero - maybe not needed
-				surfacePacketBuffer[surfacePacketCurrent][surfacePacketCurrentIndex++]=0x00;
-			}
-			surfacePacketCurrentIndex=0;
-		}
-
-		if (
-			(surfacePacketCurrentIndex!=0) &&
-			!((surfacePacketBuffer[surfacePacketCurrent][3]==0xFE) | (surfacePacketBuffer[surfacePacketCurrent][4]==0xFE))
-		){
-			// last package was incomplete, save it for next run
-			/*
-				Example1:                                  _____ incomplete, has no 0xFE (and is too short)
-														/  
-				this run         66 01 FB 00 FE 12 | 66 02
-
-				next run         46 02 FE 44 | 66 03 D6 02 FE 33 | 66 04 73 02 FE 15 | 66 05 4E 03 FE 38 | 66 06 21 02 FE 65 |
-								\
-								\____ take the bytes from the last incomplete package and glue it together
-
-
-				Example2:                                        _____ incomplete, has no 0xFE
-																/ 
-				this run         66 05 EF 0E FE 0C | 66 06 52 0D
-
-				next run         FE 29 | 66 07 C2 0C FE 39
-								\
-								\____ take the bytes from the last incomplete package and glue it together
-				
-			*/
-
-			helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "surfacePacketCurrent=%d seems incomplete? surfacePacketCurrentIndex=%d", surfacePacketCurrent, surfacePacketCurrentIndex);
-			lastPackageIncomplete = true;
-		}
-
-
-		if (helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE)) {
-			printf("DEBUG_SURFACE: ");
-			
-			// print packages, one in a row    
-			uint8_t packagesToPrint = surfacePacketCurrent;
-			if (lastPackageIncomplete){
-				packagesToPrint++;
-			}
-			printf("surfacePacketCurrent=%d\n", surfacePacketCurrent);
-
-			for (int package=0; package < packagesToPrint; package++) {
-				printf("surfaceProcessUartData(): Package %d: ", package);
-				for (uint8_t i = 0; i<6; i++){
-					printf("%02X ", (uint8_t)surfacePacketBuffer[package][i]);
-				}
-				if (surfacePacketBuffer[package][0] == 0xFE){
-					printf("  <--- Board %d", surfacePacketBuffer[package][1] & 0x7F);
-				} else if (lastPackageIncomplete){
-					printf("  <--- incomplete, saved for next run");
-				}
-				printf("\n");
-			} 
-		}   
-
-
-		for (int8_t package=0; package < surfacePacketCurrent;package++){
-
-			if (surfacePacketBuffer[package][0] == 0xFE){
-				// received BoardId
-				uint8_t receivedBoardIdtemp = surfacePacketBuffer[package][1] & 0x7F;
-				switch(receivedBoardIdtemp){
-					case 0:
-					case 1:
-					case 4:
-					case 5:
-					case 8:
-						receivedBoardId = receivedBoardIdtemp;
-						break;
-				}
-			} else
-			{   
-				receivedClass = surfacePacketBuffer[package][0];
-				receivedIndex = surfacePacketBuffer[package][1];
-				
-				if ((uint8_t)(surfacePacketBuffer[package][3]) == 0xFE)
-				{
-					// short package - uint8_t !!
-
-					receivedValue = (uint16_t)surfacePacketBuffer[package][2];
-					
-					// TODO: Check checksum
-					//receivedChecksum = surfacePacketBuffer[package][4];
-				}
-				else if ((uint8_t)(surfacePacketBuffer[package][4]) == 0xFE)
-				{
-					// long package - uint16_t !!
-					// for example: fader value
-
-					receivedValue = ((uint16_t)surfacePacketBuffer[package][3] << 8) | (uint16_t)surfacePacketBuffer[package][2];
-					
-					// TODO: Check checksum
-					//receivedChecksum = surfacePacketBuffer[package][5];
-				}
-			
-
-				// only process valid packages
-				bool valid = true;
-
-				switch (receivedClass){
-					case 'f':
-					case 'b':
-					case 'e':
-						break;
-					default:
-						valid = false;
-						break;
-				}       
-
-				if (valid)
-				{
-					helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Callback: BoardId 0x%02X, Class 0x%02X, Index 0x%02X, Value 0x%04X", receivedBoardId, receivedClass, receivedIndex, receivedValue);
-					
-					
-
-					//ProcessSurface((OMC_BOARD)receivedBoardId, receivedClass, receivedIndex, receivedValue);
-                    surfaceCallback(callbackArg, (OMC_BOARD)receivedBoardId, receivedClass, receivedIndex, receivedValue);
-				} 
-			}
-		}
-
-		// all packages are processed
-		// now clean up for next run
-
-		if (lastPackageIncomplete){
-			// copy last incomplete package to package0 for next run
-			for (uint8_t i=0; i < surfacePacketCurrentIndex; i++){
-				surfacePacketBuffer[0][i] = surfacePacketBuffer[surfacePacketCurrent][i];
-			}
-
-			// reset index for next run
-			lastPackageIncomplete=false;
-			surfacePacketCurrent=0;
-			// do NOT touch surfacePacketCurrentIndex!
-		}else {
-			// reset index for next run
-			surfacePacketCurrent=0;
-			surfacePacketCurrentIndex=0;
-		}
-	}
+    surfaceController->ProcessUartData();
 }
-
-
-void Surface::WingParserFeed(uint8_t byte) {
-    if (!parser.in_frame) {
-        if (byte == 0x2a) {
-            parser.in_frame = 1;
-            parser.after_star = 1;
-            parser.have_cmd = 0;
-            parser.len = 0;
-        }
-        return;
-    }
-
-    if (parser.after_star) {
-        parser.after_star = 0;
-        if (byte == 0x2a) {
-            parser.have_cmd = 0;
-            parser.len = 0;
-            parser.after_star = 1;
-        } else if (byte == 0x40) {
-            if (parser.len < sizeof(parser.payload))
-                parser.payload[parser.len++] = 0x2a;
-        } else if (byte & 0x80) {
-            if (parser.have_cmd) {
-                uint8_t expect = helper->CalculateWingChecksum(parser.payload, parser.len);
-                if (byte == expect) {
-                    WingHandleParsedFrame(parser.cmd, parser.payload, parser.len);
-                }
-            }
-            memset(&parser, 0, sizeof(parser));
-        } else if (!parser.have_cmd) {
-            parser.cmd = byte;
-            parser.have_cmd = 1;
-        } else if (parser.len + 2 <= sizeof(parser.payload)) {
-            parser.payload[parser.len++] = 0x2a;
-            parser.payload[parser.len++] = byte;
-        }
-        return;
-    }
-
-    if (byte == 0x2a) {
-        parser.after_star = 1;
-    } else if (!parser.have_cmd) {
-        parser.cmd = byte;
-        parser.have_cmd = 1;
-    } else if (parser.len < sizeof(parser.payload)) {
-        parser.payload[parser.len++] = byte;
-    }
-}
-
-void Surface::WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len)
-{
-    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "WingFaderController parsed frame cmd=0x%02x len=%zu", cmd, len);
-
-    if (len > 0)
-    {
-        char hex[3 * 256 + 1];
-        int pos = 0;
-        for (size_t i = 0; i < len && i < 256; ++i)
-        {
-            pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", payload[i]);
-        }
-        hex[pos] = '\0';
-        helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "WingFaderController payload: %s", hex);
-    }
-
-    if (cmd == 'f' && len == 3)
-    {
-        uint8_t index = payload[0];
-        uint16_t value = payload[1] | (payload[2] << 8);
-
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Fader: index=0x%02x value=%u", index, value);
-		//ProcessSurface(OMC_BOARD_WING, 'f', index, value);
-        surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
-    }
-
-    if (cmd == 'b' && len == 2)
-    {
-        uint8_t index = payload[0];
-        uint16_t value = payload[1];
-
-		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Button: index=0x%02x value=%u", index, value);
-		//ProcessSurface(OMC_BOARD_WING, 'b', index, value);
-        surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
-    }
-}
-
 
 
 //####################################################################
@@ -1168,7 +790,7 @@ void Surface::SetBrightness(uint8_t boardId, uint8_t brightness) {
     message.AddDataByte('C'); // class: C = Controlmessage
     message.AddDataByte('B'); // index
     message.AddDataByte(brightness);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 void Surface::SetContrastAllBoards(uint8_t contrast) {
@@ -1186,7 +808,7 @@ void Surface::SetContrast(uint8_t boardId, uint8_t contrast) {
     message.AddDataByte('C'); // class: C = Controlmessage
     message.AddDataByte('C'); // index
     message.AddDataByte(contrast & 0x3F);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
@@ -1213,25 +835,10 @@ void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
 void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn)
 {
     SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
-    SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
+    surfaceController->SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
 }
 
-void Surface::SetLedRaw(uint board, uint index, bool ledOn)
-{
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + board);
-    message.AddDataByte('L');  // class: L = LED
-    message.AddDataByte(0x80); // index - fixed at 0x80 for LEDs
-    if (ledOn)
-    {
-        message.AddDataByte(index + 0x80); // turn LED on
-    }
-    else
-    {
-        message.AddDataByte(index); // turn LED off
-    }
-    SendData(&message, true);
-}
+
 
 // set 7-Segment display on X32 Rack
 // dot = 128
@@ -1242,7 +849,7 @@ void Surface::SetX32RackDisplayRaw(uint8_t p_value2, uint8_t p_value1){
     message.AddDataByte(0x80);
     message.AddDataByte(p_value2); 
     message.AddDataByte(p_value1);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 // set 7-Segment display on X32 Rack
@@ -1317,20 +924,12 @@ uint8_t Surface::int2segment(int8_t p_value){
     }
 }
 
-// boardId = 0, 1, 4, 5, 8
-// index = 0 ... 8
-// leds = 8-bit bitwise (bit 0=-60dB ... 4=-6dB, 5=Clip, 6=Gate, 7=Comp)
+
 void Surface::SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds)
 {
-  // 0xFE, 0x8i, class, index, data[], 0xFE, chksum
-  // 0x4C, index, leds.b[]
-  SurfaceMessage message;
-  message.AddDataByte(0x80 + boardId); // start message for specific boardId
-  message.AddDataByte('M'); // class: M = Meter
-  message.AddDataByte(index); // index
-  message.AddDataByte(leds);
-  SendData(&message, true);
+    surfaceController->SetMeterLed(boardId, index, leds);
 }
+
 
 // preamp = 8-bit bitwise (bit 0=Sig, 1=-30dB ... 6=-3dB, 7=Clip)
 // meter = 32-bit bitwise (bit 0=-45dB ... 15=-4, 16=-2, 19=Clip, 20+=unused)
@@ -1359,7 +958,7 @@ void Surface::SetMeterLedMain_Rack(uint8_t preamp, uint32_t meterL, uint32_t met
     message.AddDataByte((uint8_t)(meterSolo>>4));
     message.AddDataByte((((uint8_t)(meterSolo>>12))&0b10000111) | (((uint8_t)(meterSolo>>11))&0b00110000));
     message.AddDataByte(0x00);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 void Surface::SetMeterLedMain_Producer(uint8_t preamp, uint8_t dynamics, uint32_t meterL, uint32_t meterR, uint32_t meterSolo)  {
@@ -1394,7 +993,7 @@ void Surface::SetMeterLedMain_FullOrCompact(uint8_t preamp, uint8_t dynamics, ui
     message.AddDataByte((uint8_t)(meterSolo>>8));
     message.AddDataByte((uint8_t)(meterSolo>>16));
     message.AddDataByte(0x00);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 // boardId = 0, 1, 4, 5, 8
@@ -1440,86 +1039,12 @@ void Surface::SetEncoderRing(uint8_t boardId, uint8_t index, uint8_t ledMode, ui
     }else{
         message.AddDataByte(((leds & 0x7F00) >> 8)); // turn backlight off
     }
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
-void Surface::SetEncoderRingDbfs(uint8_t boardId, uint8_t index, float dbfs, bool muted, bool backlight) {
-    // 0xFE, 0x8i, class, index, data[], 0xFE, chksum
-    // 0x52, index, leds.w[]
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('R'); // class: R = Ring
-    message.AddDataByte(index); // index
-
-    uint16_t leds = CalcEncoderRingLedDbfs(dbfs, muted);
-
-    message.AddDataByte(leds & 0xFF);
-    if (backlight) {
-        message.AddDataByte(((leds & 0x7F00) >> 8) + 0x80); // turn backlight on
-    }else{
-        message.AddDataByte(((leds & 0x7F00) >> 8)); // turn backlight off
-    }
-    SendData(&message, true);
-}
-
-// boardId = 0, 4, 5, 8
-// index = 0 ... 8
-// color = 0=BLACK, 1=RED, 2=GREEN, 3=YELLOW, 4=BLUE, 5=PINK, 6=CYAN, 7=WHITE
-// icon = 0xA0 (none), 0xA1 ... 0xE9
-// sizeA/B = 0x00 (small) or 0x20 (large)
-// xA/B = horizontal position in pixel
-// yA/B = vertical position in pixel
-// strA/B = String of Text to be displayed
-void Surface::SetLcd(
-    uint8_t boardId, uint8_t index, uint8_t color,
-    uint8_t xicon, uint8_t yicon, uint8_t icon, 
-    uint8_t sizeA, uint8_t xA, uint8_t yA, const char* strA,
-    uint8_t sizeB, uint8_t xB, uint8_t yB, const char* strB
-    ) {
-    // 0xFE, 0x8i, class, index, data[], 0xFE, chksum
-    // 0x44, i, color.b, script[]
-
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('D'); // class: D = Display
-    message.AddDataByte(index); // index
-    message.AddDataByte(color & 0x0F); // use only 4 bits (bit 0=R, 1=G, 2=B, 3=Inverted)
-
-    // begin of script
-    // transmit icon
-    message.AddDataByte(icon);
-    message.AddDataByte(xicon);
-    message.AddDataByte(yicon);
-
-    // transmit first text
-    message.AddDataByte(sizeA + strlen(strA)); // size + textLength
-    message.AddDataByte(xA);
-    message.AddDataByte(yA);
-    message.AddString(strA); // this is ASCII, so we can omit byte-stuffing
-
-    message.AddDataByte(sizeB + strlen(strB)); // size + textLength
-    message.AddDataByte(xB);
-    message.AddDataByte(yB);
-    message.AddString(strB); // this is ASCII, so we can omit byte-stuffing
-    SendData(&message, true);
-}
-
-void Surface::SetLcdX(LcdData* p_data, uint8_t p_textCount) {
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + p_data->boardId);
-    message.AddDataByte('D'); // class: D = Display
-    message.AddDataByte(p_data->lcdIndex); 
-    message.AddDataByte((p_data->color) & 0x0F);
-    message.AddDataByte(p_data->icon.icon);
-    message.AddDataByte(p_data->icon.x);
-    message.AddDataByte(p_data->icon.y);
-    for (int i=0;i<p_textCount;i++){
-        message.AddDataByte(p_data->texts[i].size + strlen(p_data->texts[i].text.c_str())); // size + textLength
-        message.AddDataByte(p_data->texts[i].x);
-        message.AddDataByte(p_data->texts[i].y);
-        message.AddString(p_data->texts[i].text.c_str()); // this is ASCII, so we can omit byte-stuffing  
-    }
-    SendData(&message, true);
+void Surface::SetLcd(LcdData* p_data, uint textcount)
+{
+    surfaceController->SetLcd(p_data, textcount);
 }
 
 void Surface::Blink()
@@ -1542,71 +1067,31 @@ void Surface::Blink()
 
 void Surface::FaderReset()
 {
-    if (faderController) {
-        faderController->FaderReset();
+    if (surfaceController) {
+        surfaceController->FaderReset();
     }
 }
 
 void Surface::SetFader(uint8_t boardId, uint8_t index, uint16_t position) {
-    if (faderController) {
-        faderController->SetFader(boardId, index, position);
+    if (surfaceController) {
+        surfaceController->SetFader(boardId, index, position);
     }
 }
 
 void Surface::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value)
 {
-    if (faderController) {
-        faderController->FaderMoved(boardId, index, value);
+    if (surfaceController) {
+        surfaceController->FaderMoved(boardId, index, value);
     }
 }
 
 void Surface::Touchcontrol() {
-    if (faderController) {
-        faderController->Touchcontrol();
+    if (surfaceController) {
+        surfaceController->Touchcontrol();
     }
 }
 
-// position = 0x0000 ... 0x0FFF
-void Surface::SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position) {
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('F'); // class: F = Fader
-    message.AddDataByte(index); // index
-    message.AddDataByte((position & 0xFF)); // LSB
-    message.AddDataByte((char)((position & 0x0F00) >> 8)); // MSB
 
-    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Set fader position on board %d at index %d to %d", boardId, index, position);
 
-    SendData(&message, true);
-}
 
-// incoming message has the form: 0xFE 0x8i Class Index Data[] 0xFE
-// Checksum is calculated using the following equation:
-// chksum = ( 0xFE - i - class - index - sumof(data[]) - sizeof(data[]) ) and 0x7F
-uint8_t Surface::calculateChecksum(const char* data, uint16_t len) {
-  // a single message can contain up to max. 64 chars
-  int32_t sum = 0xFE;
-  for (uint8_t i = 0; i < (len-1); i++) {
-    sum -= data[i];
-  }
-  sum -= (len - 3); // remove 2-byte HEADER (0xFE 0x8i) and 1-byte end (0xFE)
 
-  // write the calculated sum to the last element of the array
-  return (sum & 0x7F);
-}
-
-int Surface::SendData(MessageBase* message, bool addChecksum) {
-    message->AddRawByte(0xFE); // Endbyte
-
-    if (addChecksum) {
-        char checksum = 0;
-        if (message->current_length >= 2) { // at least start- and end-byte
-            checksum = calculateChecksum(message->buffer, message->current_length);
-        }
-
-        // add checksum to message and send data via serial-port
-        message->AddRawByte(checksum);
-    }
-
-    return uart->Tx(message);
-}
