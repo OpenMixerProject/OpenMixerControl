@@ -11,6 +11,10 @@ Linux and Custom Firmware for the Behringer X32 and Midas M32 Audio-Mixing-Conso
 
 <img width="4000" height="3000" alt="IMG_20260520_211131" src="https://github.com/user-attachments/assets/3de539e1-a078-476b-a97a-3dda304b144d" />
 
+<img width="1920" height="2560" alt="IMG_1998" src="https://github.com/user-attachments/assets/2b54524f-3dc2-481a-8f43-dbc0ac0b3ec7" />
+
+<img width="1920" height="2560" alt="IMG_2001" src="https://github.com/user-attachments/assets/526c40a5-20a3-4d98-9bcb-a256bbed57de" />
+
 ## [OpenWING](https://github.com/OpenMixerProject/OpenWING)
 Linux and Custom Firmware for the Behringer WING Audio-Mixing-Consoles
 
