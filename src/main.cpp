@@ -269,55 +269,6 @@ int main(int argc, char* argv[]) {
 	state = new State();
     Helper* helper = new Helper();
 
-
-	//##################################################################################
-	//#
-	//# 	Read hardware configuration, before any more classes are constructed!
-	//#
-	//##################################################################################
-
-	// first try to find what we are: Fullsize, Compact, Producer, Rack or Core
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Reading hardware config...");
-	char model[12];
-	char serial[15];
-	char date[16];
-	char cfg[5];
-
-	#ifdef TARGET_XM32
-	
-	helper->ReadConfig("/etc/x32.conf", "MDL=", model, 12);
-	helper->ReadConfig("/etc/x32.conf", "SN=", serial, 15);
-	helper->ReadConfig("/etc/x32.conf", "DATE=", date, 16);
-	helper->ReadConfig("/etc/x32.conf", "CFG", cfg, 5);
-	
-	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
-
-	#elifdef TARGET_WING
-
-	// DEBUG
-	strcpy(model, "WINGC"); // asume WING Compact for now
-	strcpy(serial, "DEV_NO_SERIAL");
-	strcpy(date, "DEV_NO_DATE");
-
-	// TODO
-	// helper->ReadConfig("/etc/wing.conf", "MDL=", model, 12);
-	// helper->ReadConfig("/etc/wing.conf", "SN=", serial, 15);
-	// helper->ReadConfig("/etc/wing.conf", "DATE=", date, 16);
-	// helper->ReadConfig("/etc/wing.conf", "CFG", cfg, 5);
-
-	#endif
-
-	String model_str = String(model);
-	if (state->bodyless)
-	{
-		model_str ="X32C";
-	}
-	else if (state->raspi)
-	{
-		model_str = "X32RACK";
-	}
-
-	X32Config* config = new X32Config(model, helper);
 	app = new CLI::App();
 	app->description("Open Mixer Control");
 	argv = app->ensure_utf8(argv);
@@ -438,6 +389,56 @@ int main(int argc, char* argv[]) {
 		printf("%s build on %s %s\n\n%s\n", OMC_VERSION, __DATE__, __TIME__, OMC_URL);
 		return 0;
 	}
+
+	//##################################################################################
+	//#
+	//# 	Read hardware configuration, before any more classes are constructed!
+	//#
+	//##################################################################################
+
+	// first try to find what we are: Fullsize, Compact, Producer, Rack or Core
+	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Reading hardware config...");
+	char model[12];
+	char serial[15];
+	char date[16];
+	char cfg[5];
+
+	#ifdef TARGET_XM32
+	
+	helper->ReadConfig("/etc/x32.conf", "MDL=", model, 12);
+	helper->ReadConfig("/etc/x32.conf", "SN=", serial, 15);
+	helper->ReadConfig("/etc/x32.conf", "DATE=", date, 16);
+	helper->ReadConfig("/etc/x32.conf", "CFG", cfg, 5);
+	
+	helper->Log("Detected model: %s with Serial %s built on %s\n", model, serial, date);
+
+	#elifdef TARGET_WING
+
+	// DEBUG
+	strcpy(model, "WINGC"); // asume WING Compact for now
+	strcpy(serial, "DEV_NO_SERIAL");
+	strcpy(date, "DEV_NO_DATE");
+
+	// TODO
+	// helper->ReadConfig("/etc/wing.conf", "MDL=", model, 12);
+	// helper->ReadConfig("/etc/wing.conf", "SN=", serial, 15);
+	// helper->ReadConfig("/etc/wing.conf", "DATE=", date, 16);
+	// helper->ReadConfig("/etc/wing.conf", "CFG", cfg, 5);
+
+	#endif
+
+	String model_str = String(model);
+	if (state->bodyless)
+	{
+		model_str ="X32C";
+	}
+	else if (state->raspi)
+	{
+		model_str = "X32RACK";
+	}
+
+	X32Config* config = new X32Config(model_str, helper);
+	
 
 	config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 

@@ -402,10 +402,14 @@ void X32Config::DefineMixerparameters() {
 
     cat = MP_CAT::STATE;
 
-    DefParameter(CLEAR_SOLO, cat, "Clear Solo")
+    DefParameter(CLEAR_SOLO, cat, "Clear Solo State")
     ->DefNoConfig()
     ->DefStandard_Bool(false)
     ->DefButtonBlink();
+
+    DefParameter(CLEAR_SOLO_COMMAND, cat, "Clear Solo Command")
+    ->DefNoConfig()
+    ->DefStandard_Bool(false);
 
     // DefParameter(ACTIVE_SCENE, cat, "Active Scene")
     // ->DefMinMaxStandard_Uint(0, 99, 0);
@@ -500,6 +504,7 @@ void X32Config::DefineMixerparameters() {
         ->DefAssignMembersIfTo(DISPLAY_UTILITY, MpCalcId(DCA_GROUP_1, i))
         ->DefButtonBlink();
     }
+
 
     // ###########
     // # Channels
