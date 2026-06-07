@@ -32,28 +32,36 @@ class SurfaceControllerWing : public SurfaceController
 
         uint8_t csc_ledBuffer[10] = {0};
         uint8_t csc_led_Strip_buffer[13] = {0};
+        uint8_t pnlc_led_buffer[3] = {0};
         std::map<SurfaceElementId, uint> csc_led_map;
         std::map<SurfaceElementId, uint> csc_led_strip_map;
+        std::map<SurfaceElementId, uint> pnlc_led_map;
 
         uint ledDebug = 0;
 
         WingFrameParser parser;
-        void WingParserFeed(uint8_t byte);
-        void WingHandleParsedFrame(uint8_t cmd, const uint8_t* payload, size_t len);
+        void WingParserFeed(bool pnlc, uint8_t byte);
+        void WingHandleParsedFrame(bool pnlc, uint8_t cmd, const uint8_t* payload, size_t len);
 
         uint8_t GetWingFaderIndex(uint8_t boardId, uint8_t index);
-        void SendWingFrame(uint8_t cmd, const uint8_t* payload, uint len);
+        void SendWingFrame(bool pnlc, uint8_t cmd, const uint8_t* payload, uint len);
         void SetFaderRaw(uint8_t wingFaderIndex, uint16_t position);
-        
+
         void SendHeartbeat();
         void setCSCBrightnessRaw();
 
+        // LED CSC
         void setCSCLedRaw(int ledIndex, LedState state);
         const uint8_t* getCSCLedBuffer() const;
         void debugCSCLedPrint() const;
         
+        // LED CSC Channel Strip
         void setCSCLedStripRaw(int ledIndex, LedState state);
         const uint8_t* getCSCLedStripBuffer() const;
+
+        // LED PNLC
+        void setPnlcLedRaw(int ledIndex, LedState state);
+        const uint8_t* getPnlcLedBuffer() const;
 
     public:
         SurfaceControllerWing(X32BaseParameter* basepar);

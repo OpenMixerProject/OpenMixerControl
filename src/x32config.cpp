@@ -133,6 +133,11 @@ bool X32Config::HasSmallDisplay()
     return IsModelX32Producer() || IsModelX32Rack() || IsModelM32R();
 }
 
+bool X32Config::HasTouchDisplay()
+{
+    return IsModelAnyWing();
+}
+
 //#####################################################################################################################
 //
 // ##        #######     ###    ########  
@@ -2008,17 +2013,19 @@ void X32Config::DefineSurfaceElements()
     //
     //########################################
 
-    DefSurfaceElements(WING_CH1_12, "CH 1-12");
-    DefSurfaceElements(WING_CH13_24, "CH 13-24");
-    DefSurfaceElements(WING_CH25_36, "CH 25-36");
-    DefSurfaceElements(WING_CH37_40_AUX, "CH 37-40 AUX");
-    DefSurfaceElements(WING_BUS_MASTER, "BUS MASTER");
-    DefSurfaceElements(WING_MAIN_MATRIX, "MAIN MATRIX");
-    DefSurfaceElements(WING_DCA, "DCA");
-    DefSurfaceElements(WING_USER_1, "USER_1");
-    DefSurfaceElements(WING_USER_2, "USER_2");
-    DefSurfaceElements(WING_FOUR_PREV, "< 4");
-    DefSurfaceElements(WING_FOUR_FWD, "4 >");
+    DefSurfaceElements(SurfaceElementId::WING_SELECT, "SELECT BUTTON");
+
+    DefSurfaceElements(SurfaceElementId::WING_CH1_12, "CH 1-12");
+    DefSurfaceElements(SurfaceElementId::WING_CH13_24, "CH 13-24");
+    DefSurfaceElements(SurfaceElementId::WING_CH25_36, "CH 25-36");
+    DefSurfaceElements(SurfaceElementId::WING_CH37_40_AUX, "CH 37-40 AUX");
+    DefSurfaceElements(SurfaceElementId::WING_BUS_MASTER, "BUS MASTER");
+    DefSurfaceElements(SurfaceElementId::WING_MAIN_MATRIX, "MAIN MATRIX");
+    DefSurfaceElements(SurfaceElementId::WING_DCA, "DCA");
+    DefSurfaceElements(SurfaceElementId::WING_USER_1, "USER_1");
+    DefSurfaceElements(SurfaceElementId::WING_USER_2, "USER_2");
+    DefSurfaceElements(SurfaceElementId::WING_FOUR_PREV, "< 4");
+    DefSurfaceElements(SurfaceElementId::WING_FOUR_FWD, "4 >");
 
     for (uint i = 0; i < WING_MAX_FADERS; i++)
     {
@@ -2866,32 +2873,51 @@ void X32Config::DefineSurfaceElements()
     //
     //########################################
 
+    if (IsModelAnyWing())
+    {
+        // PNLC
+        GetSurfaceElement(SurfaceElementId::WING_CH1_12)             ->DefButton(OMC_BOARD_WING, 0x28);
+
+    }
 
     if (IsModelWingCompact())
     {
         /* Define just the elements the detected hardware has! */
 
-        GetSurfaceElement(WING_CH1_12)                                      ->DefButton_Wing(0x28);
-        GetSurfaceElement(WING_CH13_24)                                     ->DefButton_Wing(0x29);
-        GetSurfaceElement(WING_CH25_36)                                     ->DefButton_Wing(0x2A);
-        GetSurfaceElement(WING_CH37_40_AUX)                                 ->DefButton_Wing(0x2B);
-        GetSurfaceElement(WING_BUS_MASTER)                                  ->DefButton_Wing(0x2C);
-        GetSurfaceElement(WING_MAIN_MATRIX)                                 ->DefButton_Wing(0x2D);
-        GetSurfaceElement(WING_DCA)                                         ->DefButton_Wing(0x2E);
-        GetSurfaceElement(WING_USER_1)                                      ->DefButton_Wing(0x2F);
-        GetSurfaceElement(WING_USER_2)                                      ->DefButton_Wing(0x30);
-        GetSurfaceElement(WING_FOUR_PREV)                                   ->DefButton_Wing(0x31);
-        GetSurfaceElement(WING_FOUR_FWD)                                    ->DefButton_Wing(0x32);
+        // PNLC
+        GetSurfaceElement(SurfaceElementId::HOME)                    ->DefButton(OMC_BOARD_WING_PNLC, 0x00);
+        GetSurfaceElement(SurfaceElementId::EFFECTS)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x01);
+        GetSurfaceElement(SurfaceElementId::METERS)                  ->DefButton(OMC_BOARD_WING_PNLC, 0x02);
+        GetSurfaceElement(SurfaceElementId::ROUTING)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x03);
+        GetSurfaceElement(SurfaceElementId::SETUP)                   ->DefButton(OMC_BOARD_WING_PNLC, 0x04);
+        GetSurfaceElement(SurfaceElementId::LIBRARY)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x05);
+        GetSurfaceElement(SurfaceElementId::UTILITY)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x06);
 
-        GetSurfaceElement(SurfaceElementId::ASSIGN_1)                       ->DefButton_Wing(0x38);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_2)                       ->DefButton_Wing(0x39);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_3)                       ->DefButton_Wing(0x3A);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_4)                       ->DefButton_Wing(0x3B);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_5)                       ->DefButton_Wing(0x3C);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_6)                       ->DefButton_Wing(0x3D);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_7)                       ->DefButton_Wing(0x3E);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_8)                       ->DefButton_Wing(0x3F);
-        GetSurfaceElement(SurfaceElementId::ASSIGN_9)                       ->DefButton_Wing(0x40);
+        GetSurfaceElement(SurfaceElementId::WING_SELECT)             ->DefButton(OMC_BOARD_WING_PNLC, 0x07);
+        GetSurfaceElement(SurfaceElementId::CLEAR_SOLO)              ->DefButton(OMC_BOARD_WING_PNLC, 0x08);
+
+        // CSC
+        GetSurfaceElement(SurfaceElementId::WING_CH1_12)                                      ->DefButton(OMC_BOARD_WING, 0x28);
+        GetSurfaceElement(SurfaceElementId::WING_CH13_24)                                     ->DefButton(OMC_BOARD_WING, 0x29);
+        GetSurfaceElement(SurfaceElementId::WING_CH25_36)                                     ->DefButton(OMC_BOARD_WING, 0x2A);
+        GetSurfaceElement(SurfaceElementId::WING_CH37_40_AUX)                                 ->DefButton(OMC_BOARD_WING, 0x2B);
+        GetSurfaceElement(SurfaceElementId::WING_BUS_MASTER)                                  ->DefButton(OMC_BOARD_WING, 0x2C);
+        GetSurfaceElement(SurfaceElementId::WING_MAIN_MATRIX)                                 ->DefButton(OMC_BOARD_WING, 0x2D);
+        GetSurfaceElement(SurfaceElementId::WING_DCA)                                         ->DefButton(OMC_BOARD_WING, 0x2E);
+        GetSurfaceElement(SurfaceElementId::WING_USER_1)                                      ->DefButton(OMC_BOARD_WING, 0x2F);
+        GetSurfaceElement(SurfaceElementId::WING_USER_2)                                      ->DefButton(OMC_BOARD_WING, 0x30);
+        GetSurfaceElement(SurfaceElementId::WING_FOUR_PREV)                                   ->DefButton(OMC_BOARD_WING, 0x31);
+        GetSurfaceElement(SurfaceElementId::WING_FOUR_FWD)                                    ->DefButton(OMC_BOARD_WING, 0x32);
+
+        GetSurfaceElement(SurfaceElementId::ASSIGN_1)                       ->DefButton(OMC_BOARD_WING, 0x38);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_2)                       ->DefButton(OMC_BOARD_WING, 0x39);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_3)                       ->DefButton(OMC_BOARD_WING, 0x3A);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_4)                       ->DefButton(OMC_BOARD_WING, 0x3B);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_5)                       ->DefButton(OMC_BOARD_WING, 0x3C);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_6)                       ->DefButton(OMC_BOARD_WING, 0x3D);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_7)                       ->DefButton(OMC_BOARD_WING, 0x3E);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_8)                       ->DefButton(OMC_BOARD_WING, 0x3F);
+        GetSurfaceElement(SurfaceElementId::ASSIGN_9)                       ->DefButton(OMC_BOARD_WING, 0x40);
 
         for (uint i = 0; i < 13; i++)
         {
@@ -2937,13 +2963,14 @@ SurfaceElement* X32Config::GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_
     return 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElementButton_Wing(uint index)
+SurfaceElement* X32Config::GetSurfaceElementButton_Wing(OMC_BOARD board, uint index)
 {
     for (SurfaceElement* element : sem)
 	{
         if (
             element != 0 &&
             element->element_type == SurfaceElementType::Button &&
+            element->GetBoard() == board &&
             element->GetIndex() == index
         )
         {

@@ -2089,7 +2089,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 		}
 		else if (config->IsModelAnyWing())
 		{
-			button = config->GetSurfaceElementButton_Wing(index);
+			button = config->GetSurfaceElementButton_Wing(board, index);
 		}
 		if (button == 0) 
 		{
@@ -2106,7 +2106,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 		}
 		else if (config->IsModelAnyWing())
 		{
-			isButtonPressed = value;
+			isButtonPressed = (value==1);
 		}
 
 		// Logic for double button press

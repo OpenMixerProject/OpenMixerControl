@@ -9,6 +9,7 @@ typedef enum
     X32_BOARD_M =       0x05, // only X32 Full or M32
     X32_BOARD_R =       0x08,
     OMC_BOARD_WING =    0x10,
+    OMC_BOARD_WING_PNLC =    0x11,
 } OMC_BOARD;
 
 enum class OMC_MODEL
@@ -822,6 +823,8 @@ enum class SurfaceElementId
     MUTE_GROUP_6,
 
     // WING
+
+    WING_SELECT, // PNLC
 
     WING_CH1_12,
     WING_CH13_24,

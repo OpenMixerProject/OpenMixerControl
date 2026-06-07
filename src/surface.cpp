@@ -124,17 +124,27 @@ void Surface::LoadDefaultSurfaceBinding()
 {
 	LoadMainFaderSurfaceBinding();
 
-	if (config->IsModelAnyXM32())
-	{
-		// Display
+    if (config->HasTouchDisplay())
+    {
+        // Display - XM32 and WING
 		config->SurfaceBind(SurfaceElementId::HOME, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::HOME));
 		config->SurfaceBind(SurfaceElementId::METERS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::METERS));
 		config->SurfaceBind(SurfaceElementId::ROUTING, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::ROUTING));
 		config->SurfaceBind(SurfaceElementId::SETUP, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP));
 		config->SurfaceBind(SurfaceElementId::LIBRARY, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::LIBRARY));
 		config->SurfaceBind(SurfaceElementId::EFFECTS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EFFECTS));
+        config->SurfaceBind(SurfaceElementId::UTILITY, MixerparameterAction::TOGGLE, DISPLAY_UTILITY);
+    }
+
+    if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() || config->IsModelAnyWing())
+    {
+        config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, CLEAR_SOLO);
+    }
+
+	if (config->IsModelAnyXM32())
+	{
+		// Display
 		config->SurfaceBind(SurfaceElementId::MUTE_GRP, MixerparameterAction::TOGGLE, DISPLAY_MUTE_GROUP);
-		config->SurfaceBind(SurfaceElementId::UTILITY, MixerparameterAction::TOGGLE, DISPLAY_UTILITY);
 
 		config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
 		config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
@@ -272,10 +282,7 @@ void Surface::LoadDefaultSurfaceBinding()
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_6, MixerparameterAction::TOGGLE, MUTE_GROUP_6_MUTE);
 		}
 
-		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
-		{
-			config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, CLEAR_SOLO);
-		}
+		
 
 		if (config->IsModelX32Rack())
 		{
