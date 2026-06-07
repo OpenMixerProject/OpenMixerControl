@@ -329,7 +329,7 @@ void Surface::LoadMainFaderSurfaceBinding()
     {
         if (config->IsModelWingCompact())
         {
-            //config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_LCD_13, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
             config->SurfaceBind(SurfaceElementId::WING_SELECT_13, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
             config->SurfaceBind(SurfaceElementId::WING_SOLO_13, MixerparameterAction::TOGGLE, CHANNEL_SOLO, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
             config->SurfaceBind(SurfaceElementId::WING_MUTE_13, MixerparameterAction::TOGGLE, CHANNEL_MUTE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));

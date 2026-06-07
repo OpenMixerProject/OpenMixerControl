@@ -1552,6 +1552,11 @@ void X32Ctrl::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t cha
 
     LcdData* data = new LcdData();
 	uint textcount = 0;
+
+	if (config->IsModelAnyWing() && lcdIndex == 12) // Fader 13 (zero based index)
+	{
+		lcdIndex = 0x54; // Header on User LCD
+	}
 	
 	switch(config->GetUint(CHANNEL_LCD_MODE))
 	{

@@ -539,6 +539,13 @@ void SurfaceControllerWing::SetLcd(LcdData* p_data, uint p_textCount)
     uint lcdIndex = p_data->lcdIndex;
     uint lcdGroup = 0;
 
+    if (lcdIndex == 0x54) // User LCD Header
+    {
+        SetUserLcd(p_data, p_textCount);
+        return;
+    }
+
+
     while(lcdIndex > 3)
     {
         lcdIndex = lcdIndex - 4;
@@ -601,13 +608,20 @@ void SurfaceControllerWing::SetUserLcd(LcdData* p_data, uint p_textCount)
     uint8_t payload[200];
     uint p = 0;
 
-    payload[p++] = 0x41 + p_data->lcdIndex;
-    payload[p++] = 0x42; // color
-    payload[p++] = 0x14 + p_data->lcdIndex; // index "Aufzählungszeichen": 0x10 M1, 0x11 M2, 0x12 M3, 0x13 M4, 0x14 1 ... 0x1b 16
-    payload[p++] = 0x00;
-    payload[p++] = 0x00;
-    payload[p++] = 0x00;
-
+    if (p_data->lcdIndex == 0x54) // Main Fader / Header
+    {
+        payload[p++] = p_data->lcdIndex; // index
+    }
+    else
+    {
+        payload[p++] = 0x41 + p_data->lcdIndex; // index
+        payload[p++] = 0x42; // color
+        payload[p++] = 0x14 + p_data->lcdIndex; // index "Aufzählungszeichen": 0x10 M1, 0x11 M2, 0x12 M3, 0x13 M4, 0x14 1 ... 0x1b 16
+        payload[p++] = 0x00;
+        payload[p++] = 0x00;
+        payload[p++] = 0x00;
+    }
+    
     // 1. Text
     String text = p_data->texts[0].text;
     payload[p++] = text.length();
@@ -615,6 +629,21 @@ void SurfaceControllerWing::SetUserLcd(LcdData* p_data, uint p_textCount)
     for (uint c = 0; c < text.length(); c++)
     {
         payload[p++] = text[c];
+    }
+
+    if (p_data->lcdIndex == 0x54) // Header
+    {
+        payload[p++] = 0x08; // color
+        payload[p++] = 0x00; // 0x02 - Picture
+        payload[p++] = 0x00; // Pictureindex
+
+        String text = p_data->texts[1].text;
+        payload[p++] = text.length();
+
+        for (uint c = 0; c < text.length(); c++)
+        {
+            payload[p++] = text[c];
+        }
     }
 
     SendWingFrame(false, 'T', payload, p);
