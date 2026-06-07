@@ -430,7 +430,8 @@ int main(int argc, char* argv[]) {
 	String model_str = String(model);
 	if (state->bodyless)
 	{
-		model_str ="X32C";
+		//model_str ="X32C";
+		model_str ="WINGC";
 	}
 	else if (state->raspi)
 	{

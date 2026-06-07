@@ -21,16 +21,22 @@ class SurfaceControllerXM32 : public SurfaceController
         char surfaceBufferUart[256]; // buffer for UART-readings
         uint8_t receivedBoardId = 0; // BoardID from last received surface event, needed for short messages!
 
+        uint blinkwait = 0;
+        bool blinkstate = false;
+        set<SurfaceElementId> blinklist;
+
         SurfaceFader faders[XM32_MAX_FADERS];
 
         uint8_t GetBoardId(uint8_t faderindex);
         uint8_t GetFaderId(uint8_t faderindex);
         uint8_t GetChannelstripIndex(uint8_t boardId, uint8_t index);
 
-        void SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position);
-
         uint8_t calculateChecksum(const char* data, uint16_t len);
-        
+
+        void Blink();
+
+        void SetLedRaw(uint board, uint index, bool ledOn);
+        void SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position);
 
     public:
 
@@ -40,6 +46,8 @@ class SurfaceControllerXM32 : public SurfaceController
         void Reset() override;
         void ProcessUartData() override;
 
+        void Tick100ms() override;
+
         void SendData(MessageBase* message, bool addChecksum) override;
 
         void SetFader(uint8_t boardId, uint8_t index, uint16_t position) override;
@@ -47,7 +55,8 @@ class SurfaceControllerXM32 : public SurfaceController
         void Touchcontrol() override;
         void FaderReset() override;
 
-        void SetLedRaw(uint board, uint index, bool ledOn) override;
+        
+        void SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink) override;
         void SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds) override;
         void SetLcd(LcdData* p_data, uint p_textCount) override;
 };

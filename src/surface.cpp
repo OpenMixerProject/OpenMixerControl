@@ -74,6 +74,22 @@ void Surface::Reset(void)
     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "... Done");
 }
 
+void Surface::Tick10ms()
+{
+    if (surfaceController)
+    {
+        surfaceController->Tick10ms();
+    }
+};
+
+void Surface::Tick100ms()
+{
+    if (surfaceController)
+    {
+        surfaceController->Tick100ms();
+    }
+};
+
 void Surface::ProcessUartDataSurface()
 {
     surfaceController->ProcessUartData();
@@ -106,6 +122,8 @@ void Surface::ProcessUartDataSurface()
 // Bind Surfaceelements to Mixerparameter or special functions
 void Surface::LoadDefaultSurfaceBinding()
 {
+	LoadMainFaderSurfaceBinding();
+
 	if (config->IsModelAnyXM32())
 	{
 		// Display
@@ -245,8 +263,6 @@ void Surface::LoadDefaultSurfaceBinding()
 			config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
 			config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
 
-			LoadMainFaderSurfaceBinding_XM32();
-
 			// Mute Groups
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_1, MixerparameterAction::TOGGLE, MUTE_GROUP_1_MUTE);
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_2, MixerparameterAction::TOGGLE, MUTE_GROUP_2_MUTE);
@@ -290,14 +306,29 @@ void Surface::LoadDefaultSurfaceBinding()
 	}
 }
 
-void Surface::LoadMainFaderSurfaceBinding_XM32()
+void Surface::LoadMainFaderSurfaceBinding()
 {
     // Main Fader
-    config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-    config->SurfaceBind(SurfaceElementId::BOARD_R_SOLO_MAIN, MixerparameterAction::TOGGLE, CHANNEL_SOLO, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-    config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-    config->SurfaceBind(SurfaceElementId::BOARD_R_MUTE_MAIN, MixerparameterAction::TOGGLE, CHANNEL_MUTE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-    config->SurfaceBind(SurfaceElementId::BOARD_R_FADER_MAIN, MixerparameterAction::SET, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+
+    if (config->IsModelAnyXM32())
+    {
+        config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_SOLO_MAIN, MixerparameterAction::TOGGLE, CHANNEL_SOLO, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_MUTE_MAIN, MixerparameterAction::TOGGLE, CHANNEL_MUTE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_FADER_MAIN, MixerparameterAction::SET, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+    } 
+    else if (config->IsModelAnyWing())
+    {
+        if (config->IsModelWingCompact())
+        {
+            //config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_SELECT_13, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_SOLO_13, MixerparameterAction::TOGGLE, CHANNEL_SOLO, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_MUTE_13, MixerparameterAction::TOGGLE, CHANNEL_MUTE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_FADER_13, MixerparameterAction::SET, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+        }
+    }
 }
 
 //#####################################################################################################################
@@ -811,32 +842,7 @@ void Surface::SetContrast(uint8_t boardId, uint8_t contrast) {
     surfaceController->SendData(&message, true);
 }
 
-void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
-{
-    if(blink)
-    {
-        blinklist.insert(buttonOrLed);
-    }
-    else
-    {
-        if (!blinklist.empty())
-        {
-            set<SurfaceElementId>::iterator it = blinklist.find(buttonOrLed);
-            if (it != blinklist.end())
-            {
-                blinklist.erase(it);
-            }
-        }
-    }
 
-    SetLed(buttonOrLed, ledOn);
-}
-
-void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn)
-{
-    SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
-    surfaceController->SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
-}
 
 
 
@@ -1047,24 +1053,6 @@ void Surface::SetLcd(LcdData* p_data, uint textcount)
     surfaceController->SetLcd(p_data, textcount);
 }
 
-void Surface::Blink()
-{
-    if (blinkwait == 0)
-    {
-        blinkstate = !blinkstate;
-
-        for(SurfaceElementId button : blinklist) {
-            SetLed(button, blinkstate);
-        }
-
-        blinkwait = 5;
-    }
-
-    blinkwait--; 
-}
-
-
-
 void Surface::FaderReset()
 {
     if (surfaceController) {
@@ -1091,7 +1079,12 @@ void Surface::Touchcontrol() {
     }
 }
 
-
+void Surface::SetLed(SurfaceElementId buttonOrLed, bool state, bool blink)
+{
+    if (surfaceController) {
+        surfaceController->SetLed(buttonOrLed, state, blink);
+    }
+}
 
 
 

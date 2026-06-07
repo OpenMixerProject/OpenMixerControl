@@ -22,6 +22,9 @@ class SurfaceController : public X32Base
         }
         virtual void Reset() {};
 
+        virtual void Tick10ms() {};
+        virtual void Tick100ms() {};
+
         virtual void ProcessUartData() {};
 
         virtual void SendData(MessageBase* message, bool addChecksum) {};
@@ -31,7 +34,7 @@ class SurfaceController : public X32Base
         virtual void Touchcontrol() {};
         virtual void FaderReset() {};
         
-        virtual void SetLedRaw(uint board, uint index, bool ledOn) {};
+        virtual void SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink) {};
         virtual void SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds) {};
         virtual void SetLcd(LcdData* p_data, uint p_textCount) {};
 };

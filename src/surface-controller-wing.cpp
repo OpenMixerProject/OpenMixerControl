@@ -7,9 +7,50 @@ SurfaceControllerWing::SurfaceControllerWing(X32BaseParameter* basepar) : Surfac
     uart_csc = new Uart(basepar);
     uart_pnlc = new Uart(basepar);
 
+    uart_pnlc->Open("/dev/ttymxc3", 115200, true);
     uart_csc->Open("/dev/ttymxc4", 115200, true);
+
+    csc_led_map.insert({
+        {SurfaceElementId::WING_CH1_12, 1},
+        {SurfaceElementId::WING_CH13_24, 2},
+        {SurfaceElementId::WING_CH25_36, 3}
+    });
+    
+    if(config->IsModelWingCompact())
+    {
+        // Channel Strips
+        for (uint i = 0; i < 13; i++)
+        {
+            csc_led_strip_map.insert({
+                {config->CalcSurfaceElementId(SurfaceElementId::WING_SELECT_1, i), i},
+                {config->CalcSurfaceElementId(SurfaceElementId::WING_SOLO_1, i), i + 13},
+                {config->CalcSurfaceElementId(SurfaceElementId::WING_MUTE_1, i), i + 13 + 13}
+            });
+        }
+    }
+
+    for (int i = 0; i < 40; ++i) {
+            setCSCLedRaw(i, LedState::AUS);
+    }
+
+    for (int i = 0; i < 39; ++i) {
+            setCSCLedStripRaw(i, LedState::AUS);
+    }
     
     Reset();
+}
+
+
+void SurfaceControllerWing::Tick100ms()
+{
+    heartbeatWaitCounter++;
+    if (heartbeatWaitCounter > 30) // 3 seconds
+    {
+        SendHeartbeat();
+
+        heartbeatWaitCounter = 0;
+    }
+    
 }
 
 void SurfaceControllerWing::ProcessUartData()
@@ -112,12 +153,34 @@ void SurfaceControllerWing::WingHandleParsedFrame(uint8_t cmd, const uint8_t* pa
 		helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Button: index=0x%02x value=%u", index, value);
 		//ProcessSurface(OMC_BOARD_WING, 'b', index, value);
         surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
+
+        // DEBUG
+        if (value && (index == 0x46 || index == 0x47))
+        {
+            if (index == 0x46)
+            {
+                ledDebug--;
+            }
+            else if (index == 0x47)
+            {
+                ledDebug++;
+            }
+
+            printf("LED DEBUG: %d\n", ledDebug);
+            setCSCLedRaw(ledDebug, LedState::LED_AN);
+            debugCSCLedPrint();
+            SendWingFrame('L', getCSCLedBuffer(), 10);
+        }   
     }
 }
+
+
+
 
 void SurfaceControllerWing::Reset()
 {
     FaderReset();
+    setCSCBrightnessRaw();
 }
 
 void SurfaceControllerWing::FaderReset()
@@ -176,7 +239,7 @@ uint8_t SurfaceControllerWing::GetWingFaderIndex(uint8_t boardId, uint8_t index)
 
 
 
-void SurfaceControllerWing::SendWingFrame(uint8_t cmd, const uint8_t* payload, size_t len)
+void SurfaceControllerWing::SendWingFrame(uint8_t cmd, const uint8_t* payload, uint len)
 {
     MessageBase msg;
     msg.AddRawByte(0x2a); // WING_FRAME_STAR
@@ -188,7 +251,7 @@ void SurfaceControllerWing::SendWingFrame(uint8_t cmd, const uint8_t* payload, s
         msg.AddRawByte(cmd);
     }
 
-    for (size_t i = 0; i < len; ++i) {
+    for (uint i = 0; i < len; ++i) {
         if (payload[i] == 0x2a) {
             msg.AddRawByte(0x2a);
             msg.AddRawByte(0x40);
@@ -209,6 +272,96 @@ void SurfaceControllerWing::SendWingFrame(uint8_t cmd, const uint8_t* payload, s
     uart_csc->Tx(&msg);
 }
 
+// Setzt den Zustand einer einzelnen LED (0 bis 39)
+void SurfaceControllerWing::setCSCLedRaw(int ledIndex, LedState state)
+{
+    if (ledIndex < 0 || ledIndex >= 40) {
+        return; // Index außerhalb des gültigen Bereichs
+    }
+
+    // 1. Bestimmen, in welchem Byte sich die LED befindet (4 LEDs pro Byte)
+    int byteIndex = ledIndex / 4;
+
+    // 2. Bestimmen, welches Bit-Paar im Byte adressiert wird (von links nach rechts)
+    // LED 0 -> Paar 3 (Bits 7,6), LED 1 -> Paar 2 (Bits 5,4), etc.
+    int pairPosition = (ledIndex % 4);
+    int bitShift = pairPosition * 2;
+
+    // 3. Altes Bit-Paar an dieser Position löschen (auf 00 setzen)
+    csc_ledBuffer[byteIndex] &= ~(0x03 << bitShift);
+
+    // 4. Neuen Zustand an die richtige Position schieben und per ODER einfügen
+    csc_ledBuffer[byteIndex] |= (static_cast<uint8_t>(state) << bitShift);
+
+    return;
+}
+
+
+const uint8_t* SurfaceControllerWing::getCSCLedBuffer() const
+{
+    return csc_ledBuffer;
+}
+
+// Hilfsfunktion zur Ausgabe auf der Konsole (Hex-Format)
+void SurfaceControllerWing::debugCSCLedPrint() const {
+    for (int i = 0; i < 10; ++i) {
+        std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') 
+                    << static_cast<int>(csc_ledBuffer[i]) << " ";
+    }
+    std::cout << "\n";
+}
+
+// Setzt den Zustand einer einzelnen LED (0 bis 39)
+void SurfaceControllerWing::setCSCLedStripRaw(int ledIndex, LedState state)
+{
+    if (ledIndex < 0 || ledIndex >= 39) {
+        return; // Ungültiger LED-Index
+    }
+
+    // Berechnung der Spalte und der Reihe:
+    // Wir nehmen an: LED 0-12 ist Reihe 1, 13-25 Reihe 2, 26-38 Reihe 3.
+    // Falls deine LEDs spaltenweise durchnummeriert sind, müsste man hier / und % tauschen.
+    int row = ledIndex / 13; // Bestimmt die Reihe (0, 1 oder 2)
+    int col = ledIndex % 13; // Bestimmt die Spalte (0 bis 12)
+
+    // Zuordnung im Byte (von rechts nach links):
+    // Reihe 0 -> Bits 1 & 0 (Shift 0)
+    // Reihe 1 -> Bits 3 & 2 (Shift 2)
+    // Reihe 2 -> Bits 5 & 4 (Shift 4)
+    int bitShift = row * 2;
+
+    // 1. Altes Bit-Paar an dieser Position im jeweiligen Spalten-Byte löschen
+    csc_led_Strip_buffer[col] &= ~(0x03 << bitShift);
+
+    // 2. Neuen Zustand an die richtige Position schieben und einfügen
+    csc_led_Strip_buffer[col] |= (static_cast<uint8_t>(state) << bitShift);
+    
+    return;
+}
+
+const uint8_t* SurfaceControllerWing::getCSCLedStripBuffer() const
+{
+    return csc_led_Strip_buffer;
+}
+
+//###################################################################################
+//
+//  ########  ########   #######  ########  #######   ######   #######  ##       
+//  ##     ## ##     ## ##     ##    ##    ##     ## ##    ## ##     ## ##       
+//  ##     ## ##     ## ##     ##    ##    ##     ## ##       ##     ## ##       
+//  ########  ########  ##     ##    ##    ##     ## ##       ##     ## ##       
+//  ##        ##   ##   ##     ##    ##    ##     ## ##       ##     ## ##       
+//  ##        ##    ##  ##     ##    ##    ##     ## ##    ## ##     ## ##       
+//  ##        ##     ##  #######     ##     #######   ######   #######  ######## 
+//
+//###################################################################################
+
+
+void SurfaceControllerWing::SendHeartbeat()
+{
+    SendWingFrame('H', nullptr, 0);
+}
+
 void SurfaceControllerWing::SetFaderRaw(uint8_t wingFaderIndex, uint16_t position)
 {
     if (wingFaderIndex > 12 || position > 4095) return;
@@ -220,3 +373,51 @@ void SurfaceControllerWing::SetFaderRaw(uint8_t wingFaderIndex, uint16_t positio
 
     SendWingFrame('F', payload, 3);
 }
+
+void SurfaceControllerWing::setCSCBrightnessRaw()
+{
+    // <ButtonBacklight> <ButtonLeds> <Meters> <ColorLeds> <Scribble> <ContrastScribble> <User LCD> <PatchLeds> 0x02
+
+    uint8_t payload[9];
+    payload[0] = 100; // % ButtonBacklight
+    payload[1] = 100; // % ButtonLeds
+    payload[2] = 100; // % Meters
+    payload[3] = 80; // % ColorLeds
+    payload[4] = 40; // % Scribble
+    payload[5] = 40; // % ContrastScribble
+    payload[6] = 60; // % User LCD
+    payload[7] = 0; // % PatchLeds
+    payload[8] = 0x02; // unknown
+    SendWingFrame('B', payload, 9);
+}
+
+void SurfaceControllerWing::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
+{
+    LedState state = LedState::AUS;
+
+    if (ledOn)
+    {
+        state = LedState::LED_AN;
+    }
+    else if (blink)
+    {
+        state = LedState::BLINKEN;
+    }
+    else
+    {
+        state = LedState::AUS;
+    }
+
+    if (csc_led_map.count(buttonOrLed))
+    {
+        setCSCLedRaw(csc_led_map.at(buttonOrLed), state);
+        SendWingFrame('L', getCSCLedBuffer(), 10);
+    }
+    
+    if (csc_led_strip_map.count(buttonOrLed))
+    {
+        setCSCLedStripRaw(csc_led_strip_map.at(buttonOrLed), state);
+        SendWingFrame('l', getCSCLedStripBuffer(), 13);
+    }
+}
+

@@ -30,9 +30,7 @@ class Surface : public X32Base
 
         std::map<OMCBankTarget, OMCBankId> bankloaded;
 
-        uint blinkwait = 0;
-        bool blinkstate = false;
-        set<SurfaceElementId> blinklist;
+
 
         uint8_t int2segment(int8_t p_value);
 
@@ -62,6 +60,9 @@ class Surface : public X32Base
         void Init(SurfaceCallback callback, void* arg);
         void Reset();
 
+        void Tick10ms();
+        void Tick100ms();
+
         void ProcessUartDataSurface();
         
         void LoadBank(OMCBankTarget target, OMCBankId id);
@@ -71,7 +72,7 @@ class Surface : public X32Base
         X32FaderBank* GetBank(OMCBankId id);
         void SetChannelstripBinding(X32FaderBank *bank, uint i, uint chanIndex);
         void LoadDefaultSurfaceBinding();
-        void LoadMainFaderSurfaceBinding_XM32();
+        void LoadMainFaderSurfaceBinding();
         void ResetBank(OMCBankId id);
 
         void LoadX32CoreDefinitions();
@@ -85,7 +86,6 @@ class Surface : public X32Base
         void SetX32RackDisplayRaw(uint8_t p_value2, uint8_t p_value1);
         void SetX32RackDisplay(uint8_t p_value);
         void SetLed(SurfaceElementId buttonOrLed, bool state, bool blink);
-        void SetLed(SurfaceElementId buttonOrLed, bool ledOn);
         void SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds);
         void SetMeterLedMain_Rack(uint8_t preamp, uint32_t meterL, uint32_t meterR, uint32_t meterSolo);
         void SetMeterLedMain_Producer(uint8_t preamp, uint8_t dynamics, uint32_t meterL, uint32_t meterR, uint32_t meterSolo);

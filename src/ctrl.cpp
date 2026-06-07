@@ -140,6 +140,7 @@ void X32Ctrl::Tick10ms(void)
 
 	// read incoming data from surface and handle it
 	surface->ProcessUartDataSurface();
+	surface->Tick10ms();
 
 	// read incoming data from adda-boards and expansion-card
 	ProcessUartDataAdda();
@@ -209,8 +210,7 @@ void X32Ctrl::Tick100ms(void)
 
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "100ms");
 
-	// Led Blinking
-	surface->Blink();
+	surface->Tick10ms();
 
 	// request data from all known clients
 	wsm->RequestDataFromClients();
@@ -1318,7 +1318,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 				if (parameter_id == NONE)
 				{
 					// set dark
-					surface->SetLed(element_id, false);
+					surface->SetLed(element_id, false, false);
 
 					continue;
 				}
@@ -1920,13 +1920,13 @@ void X32Ctrl::UpdateMeters(void) {
 void X32Ctrl::setLedChannelIndicator_Rack(void)
 {
 	uint chanIdx = config->GetUint(SELECTED_CHANNEL);
-	surface->SetLed(SurfaceElementId::LED_IN, (chanIdx <= 31));
-	surface->SetLed(SurfaceElementId::LED_AUX_FX, (chanIdx >= 32)&&(chanIdx <= 47));
-	surface->SetLed(SurfaceElementId::LED_BUS, (chanIdx >= 48)&&(chanIdx <= 63));
-	surface->SetLed(SurfaceElementId::LED_MATRIX, (chanIdx >= 64)&&(chanIdx <= 69));
-	surface->SetLed(SurfaceElementId::LED_MAIN, (chanIdx >= 70)&&(chanIdx <= 71));
-	surface->SetLed(SurfaceElementId::LED_DCA, (chanIdx >= 72)&&(chanIdx <= 79));
-	surface->SetLed(SurfaceElementId::LED_MAIN, (chanIdx == 80));
+	surface->SetLed(SurfaceElementId::LED_IN, (chanIdx <= 31), false);
+	surface->SetLed(SurfaceElementId::LED_AUX_FX, (chanIdx >= 32)&&(chanIdx <= 47), false);
+	surface->SetLed(SurfaceElementId::LED_BUS, (chanIdx >= 48)&&(chanIdx <= 63), false);
+	surface->SetLed(SurfaceElementId::LED_MATRIX, (chanIdx >= 64)&&(chanIdx <= 69), false);
+	surface->SetLed(SurfaceElementId::LED_MAIN, (chanIdx >= 70)&&(chanIdx <= 71), false);
+	surface->SetLed(SurfaceElementId::LED_DCA, (chanIdx >= 72)&&(chanIdx <= 79), false);
+	surface->SetLed(SurfaceElementId::LED_MAIN, (chanIdx == 80), false);
 
 	// set 7-Segment Display
 	surface->SetX32RackDisplay(chanIdx);        
@@ -2278,7 +2278,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 					// Reload current banking
 					config->Refresh(BANKING_INPUT);
 					config->Refresh(BANKING_BUS);
-					surface->LoadMainFaderSurfaceBinding_XM32();
+					surface->LoadMainFaderSurfaceBinding();
 				}
 				// Normal Mode
 				else

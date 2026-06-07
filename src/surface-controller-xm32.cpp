@@ -265,6 +265,10 @@ void SurfaceControllerXM32::ProcessUartData()
     }
 }
 
+void SurfaceControllerXM32::Tick100ms()
+{
+    Blink();    
+}
 
 void SurfaceControllerXM32::SendData(MessageBase* message, bool addChecksum)
 {
@@ -303,6 +307,23 @@ void SurfaceControllerXM32::Reset() {
     FaderReset();
     FaderReset();
 }
+
+void SurfaceControllerXM32::Blink()
+{
+    if (blinkwait == 0)
+    {
+        blinkstate = !blinkstate;
+
+        for(SurfaceElementId button : blinklist) {
+            SetLed(button, blinkstate, false);
+        }
+
+        blinkwait = 5;
+    }
+
+    blinkwait--; 
+}
+
 
 void SurfaceControllerXM32::FaderReset() {
     // Reset touchcontrol wait time
@@ -489,4 +510,26 @@ void SurfaceControllerXM32::SetLcd(LcdData* p_data, uint p_textCount)
         message.AddString(p_data->texts[i].text.c_str()); // this is ASCII, so we can omit byte-stuffing  
     }
     SendData(&message, true);
+}
+
+void SurfaceControllerXM32::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
+{
+    if(blink)
+    {
+        blinklist.insert(buttonOrLed);
+    }
+    else
+    {
+        if (!blinklist.empty())
+        {
+            set<SurfaceElementId>::iterator it = blinklist.find(buttonOrLed);
+            if (it != blinklist.end())
+            {
+                blinklist.erase(it);
+            }
+        }
+    }
+
+    SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
+    SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
 }
