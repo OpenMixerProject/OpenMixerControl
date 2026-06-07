@@ -421,7 +421,10 @@ const uint8_t* SurfaceControllerWing::getPnlcLedBuffer() const
 
 void SurfaceControllerWing::SendHeartbeat()
 {
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Heartbeat to CSC");
     SendWingFrame(false, 'H', nullptr, 0);
+
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Heartbeat to PNLC");
     SendWingFrame(true, 'H', nullptr, 0);
 }
 
@@ -446,8 +449,8 @@ void SurfaceControllerWing::setCSCBrightnessRaw()
     payload[1] = 100; // % ButtonLeds
     payload[2] = 100; // % Meters
     payload[3] = 80; // % ColorLeds
-    payload[4] = 40; // % Scribble
-    payload[5] = 40; // % ContrastScribble
+    payload[4] = 60; // % Scribble
+    payload[5] = 60; // % ContrastScribble
     payload[6] = 60; // % User LCD
     payload[7] = 0; // % PatchLeds
     payload[8] = 0x02; // unknown
@@ -499,5 +502,105 @@ void SurfaceControllerWing::SetLed(SurfaceElementId buttonOrLed, bool ledOn, boo
         setPnlcLedRaw(pnlc_led_map.at(buttonOrLed), state);
         SendWingFrame(true, 'L', getPnlcLedBuffer(), 3);
     }
+}
+
+void SurfaceControllerWing::SetLcd(LcdData* p_data, uint p_textCount)
+{
+    uint8_t payload[200];
+    uint p = 0;
+
+    uint lcdIndex = p_data->lcdIndex;
+    uint lcdGroup = 0;
+
+    while(lcdIndex > 3)
+    {
+        lcdIndex = lcdIndex - 4;
+        lcdGroup++;
+    }
+
+    payload[p++] = lcdGroup; // LCD 4er Gruppe
+    payload[p++] = lcdIndex; // LCD Index in 4er Gruppe
+
+    for (uint t = 0; t < p_textCount; t++)
+    {
+        if (t == 2)
+        {
+            if (p_textCount == 3)
+            {
+                payload[p++] = 0x04; // einzeilig
+            }
+            else if (p_textCount == 4)
+            {
+                payload[p++] = 0x05; // zweizeilig
+            }
+            else
+            {
+                // TODO
+                payload[p++] = 0x06; // dreizeilig?
+            }
+        }
+
+        uint textindex = t;
+        if (textindex == 1)
+        {
+            textindex = 2;
+        }
+        else if (textindex == 2)
+        {
+            textindex = 1;
+        }
+        String text = p_data->texts[textindex].text;
+        
+        payload[p++] = text.length(); // + 0x80 - solid background
+
+        for (uint c = 0; c < text.length(); c++)
+        {
+            payload[p++] = text[c];
+        }
+    }
+
+    SendWingFrame(false, 'D', payload, p);
+}
+
+void SurfaceControllerWing::SetUserLcd(LcdData* p_data, uint p_textCount)
+{
+    // SurfaceMessage message;
+
+    // message.AddDataByte(0x80 + p_data->boardId);
+    // message.AddDataByte('D'); // class: D = Display
+    // message.AddDataByte(p_data->lcdIndex); 
+    // message.AddDataByte((p_data->color) & 0x0F);
+    // message.AddDataByte(p_data->icon.icon);
+    // message.AddDataByte(p_data->icon.x);
+    // message.AddDataByte(p_data->icon.y);
+    // for (int i=0;i<p_textCount;i++){
+    //     message.AddDataByte(p_data->texts[i].size + strlen(p_data->texts[i].text.c_str())); // size + textLength
+    //     message.AddDataByte(p_data->texts[i].x);
+    //     message.AddDataByte(p_data->texts[i].y);
+    //     message.AddString(p_data->texts[i].text.c_str()); // this is ASCII, so we can omit byte-stuffing  
+    // }
+    // SendData(&message, true);
+
+
+    uint8_t payload[200];
+    uint p = 0;
+
+    payload[p++] = 0x41 + p_data->lcdIndex;
+    payload[p++] = 0x42; // color
+    payload[p++] = 0x14 + p_data->lcdIndex; // index "Aufzählungszeichen": 0x10 M1, 0x11 M2, 0x12 M3, 0x13 M4, 0x14 1 ... 0x1b 16
+    payload[p++] = 0x00;
+    payload[p++] = 0x00;
+    payload[p++] = 0x00;
+
+    // 1. Text
+    String text = p_data->texts[0].text;
+    payload[p++] = text.length();
+
+    for (uint c = 0; c < text.length(); c++)
+    {
+        payload[p++] = text[c];
+    }
+
+    SendWingFrame(false, 'T', payload, p);
 }
 

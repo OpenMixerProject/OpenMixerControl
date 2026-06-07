@@ -210,7 +210,7 @@ void X32Ctrl::Tick100ms(void)
 
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "100ms");
 
-	surface->Tick10ms();
+	surface->Tick100ms();
 
 	// request data from all known clients
 	wsm->RequestDataFromClients();

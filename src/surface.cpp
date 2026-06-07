@@ -386,7 +386,7 @@ void Surface::InitBank_Channelstrip_WING(X32FaderBank* bank, uint offset)
 {
     for (uint i = 0; i < 12; i++)
     	{
-			//bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Channel, NONE, i + offset);
+			bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Channel, NONE, i + offset);
 			bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, i + offset);
 			bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_SOLO, i + offset);
 			// bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::VUMETER, NONE, i + offset);
@@ -522,7 +522,7 @@ void Surface::LoadBank(OMCBankTarget target, OMCBankId id)
 	{
 		for (uint i = 0; i < 12; i++)
 		{
-			// config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
 			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_SELECT_1 + i), bank_to_load->channelstrip[i]->select);
 			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
 			//config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);

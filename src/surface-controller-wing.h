@@ -63,6 +63,8 @@ class SurfaceControllerWing : public SurfaceController
         void setPnlcLedRaw(int ledIndex, LedState state);
         const uint8_t* getPnlcLedBuffer() const;
 
+        void SetUserLcd(LcdData* p_data, uint p_textCount);
+
     public:
         SurfaceControllerWing(X32BaseParameter* basepar);
         ~SurfaceControllerWing() override = default;
@@ -79,4 +81,5 @@ class SurfaceControllerWing : public SurfaceController
         void FaderReset() override;
 
         void SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink) override;
+        void SetLcd(LcdData* p_data, uint p_textCount);
 };

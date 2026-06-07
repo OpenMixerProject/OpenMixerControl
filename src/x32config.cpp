@@ -2923,7 +2923,7 @@ void X32Config::DefineSurfaceElements()
         {
             GetSurfaceElement((SurfaceElementId)(((int)WING_SELECT_1)+i))    ->DefButton(OMC_BOARD_WING, 0x00 + (0x03 * i));
             GetSurfaceElement((SurfaceElementId)(((int)WING_SOLO_1)+i))      ->DefButton(OMC_BOARD_WING, 0x01 + (0x03 * i));
-            //GetSurfaceElement((SurfaceElementId)(((int)WING_LCD_1)+i))       ->DefLcd(OMC_BOARD_WING, i);
+            GetSurfaceElement((SurfaceElementId)(((int)WING_LCD_1)+i))       ->DefLcd(OMC_BOARD_WING, i);
             GetSurfaceElement((SurfaceElementId)(((int)WING_MUTE_1)+i))      ->DefButton(OMC_BOARD_WING, 0x02 + (0x03 * i));
             GetSurfaceElement((SurfaceElementId)(((int)WING_FADER_1)+i))     ->DefFader(OMC_BOARD_WING, i);
         }
