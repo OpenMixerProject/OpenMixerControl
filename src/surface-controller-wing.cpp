@@ -4,6 +4,9 @@ SurfaceControllerWing::SurfaceControllerWing(X32BaseParameter* basepar) : Surfac
 {
     memset(&parser, 0, sizeof(parser));
 
+    uart_csc = new Uart(basepar);
+    uart_pnlc = new Uart(basepar);
+
     uart_csc->Open("/dev/ttymxc4", 115200, true);
     
     Reset();
