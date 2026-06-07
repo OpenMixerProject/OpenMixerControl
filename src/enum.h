@@ -824,7 +824,8 @@ enum class SurfaceElementId
 
     // WING
 
-    WING_SELECT, // PNLC
+    WING_DISPLAY_SELECT, // PNLC
+    WING_DISPLAY_ENCODER, // PNLC
 
     WING_CH1_12,
     WING_CH13_24,

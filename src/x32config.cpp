@@ -2013,7 +2013,8 @@ void X32Config::DefineSurfaceElements()
     //
     //########################################
 
-    DefSurfaceElements(SurfaceElementId::WING_SELECT, "SELECT BUTTON");
+    DefSurfaceElements(SurfaceElementId::WING_DISPLAY_ENCODER, "SELECT Encoder");
+    DefSurfaceElements(SurfaceElementId::WING_DISPLAY_SELECT, "SELECT Button");
 
     DefSurfaceElements(SurfaceElementId::WING_CH1_12, "CH 1-12");
     DefSurfaceElements(SurfaceElementId::WING_CH13_24, "CH 13-24");
@@ -2877,14 +2878,6 @@ void X32Config::DefineSurfaceElements()
     {
         // PNLC
         GetSurfaceElement(SurfaceElementId::WING_CH1_12)             ->DefButton(OMC_BOARD_WING, 0x28);
-
-    }
-
-    if (IsModelWingCompact())
-    {
-        /* Define just the elements the detected hardware has! */
-
-        // PNLC
         GetSurfaceElement(SurfaceElementId::HOME)                    ->DefButton(OMC_BOARD_WING_PNLC, 0x00);
         GetSurfaceElement(SurfaceElementId::EFFECTS)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x01);
         GetSurfaceElement(SurfaceElementId::METERS)                  ->DefButton(OMC_BOARD_WING_PNLC, 0x02);
@@ -2893,8 +2886,24 @@ void X32Config::DefineSurfaceElements()
         GetSurfaceElement(SurfaceElementId::LIBRARY)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x05);
         GetSurfaceElement(SurfaceElementId::UTILITY)                 ->DefButton(OMC_BOARD_WING_PNLC, 0x06);
 
-        GetSurfaceElement(SurfaceElementId::WING_SELECT)             ->DefButton(OMC_BOARD_WING_PNLC, 0x07);
+        GetSurfaceElement(SurfaceElementId::WING_DISPLAY_SELECT)     ->DefButton(OMC_BOARD_WING_PNLC, 0x07);
+        GetSurfaceElement(SurfaceElementId::WING_DISPLAY_ENCODER)    ->DefEncoder(OMC_BOARD_WING_PNLC, 0x00);
+
         GetSurfaceElement(SurfaceElementId::CLEAR_SOLO)              ->DefButton(OMC_BOARD_WING_PNLC, 0x08);
+
+        GetSurfaceElement(SurfaceElementId::DISPLAY_ENCODER_1)       ->DefEncoder(OMC_BOARD_WING_PNLC, 0x01);
+        GetSurfaceElement(SurfaceElementId::DISPLAY_ENCODER_2)       ->DefEncoder(OMC_BOARD_WING_PNLC, 0x02);
+        GetSurfaceElement(SurfaceElementId::DISPLAY_ENCODER_3)       ->DefEncoder(OMC_BOARD_WING_PNLC, 0x03);
+        GetSurfaceElement(SurfaceElementId::DISPLAY_ENCODER_4)       ->DefEncoder(OMC_BOARD_WING_PNLC, 0x04);
+        GetSurfaceElement(SurfaceElementId::DISPLAY_ENCODER_5)       ->DefEncoder(OMC_BOARD_WING_PNLC, 0x05);
+        GetSurfaceElement(SurfaceElementId::DISPLAY_ENCODER_6)       ->DefEncoder(OMC_BOARD_WING_PNLC, 0x06);
+    }
+
+    if (IsModelWingCompact())
+    {
+        /* Define just the elements the detected hardware has! */
+
+        
 
         // CSC
         GetSurfaceElement(SurfaceElementId::WING_CH1_12)                                      ->DefButton(OMC_BOARD_WING, 0x28);

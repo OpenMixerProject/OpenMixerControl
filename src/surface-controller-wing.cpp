@@ -148,7 +148,7 @@ void SurfaceControllerWing::WingParserFeed(bool pnlc, uint8_t byte) {
 
 void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const uint8_t* payload, size_t len)
 {
-    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "WingFaderController parsed frame cmd=0x%02x len=%zu", cmd, len);
+    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "SurfaceControllerWing parsed frame cmd=%c len=%zu", cmd, len);
 
     if (len > 0)
     {
@@ -159,7 +159,7 @@ void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const 
             pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", payload[i]);
         }
         hex[pos] = '\0';
-        helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "WingFaderController payload: %s", hex);
+        helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "SurfaceControllerWing payload: %s", hex);
     }
 
     if (cmd == 'b' && len == 2)
@@ -167,7 +167,7 @@ void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const 
         uint8_t index = payload[0];
         uint16_t value = payload[1];
 
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Button: pnlc=%d index=0x%02x value=%u", pnlc, index, value);
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Button: pnlc=%d index=0x%02x value=%u", pnlc, index, value);
         surfaceCallback(callbackArg, pnlc ? OMC_BOARD_WING_PNLC : OMC_BOARD_WING, cmd, index, value);
 
         // DEBUG
@@ -194,9 +194,17 @@ void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const 
         uint8_t index = payload[0];
         uint16_t value = payload[1] | (payload[2] << 8);
 
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WingFaderController Fader: index=0x%02x value=%u", index, value);
-        //ProcessSurface(OMC_BOARD_WING, 'f', index, value);
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Fader: index=0x%02x value=%u", index, value);
         surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
+    }
+
+    if (pnlc && cmd == 'v' && len == 2)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1];
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Encoder: index=0x%02x value=%u", index, value);
+        surfaceCallback(callbackArg, OMC_BOARD_WING_PNLC, 'e', index, value);
     }
 }
 
@@ -206,7 +214,24 @@ void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const 
 void SurfaceControllerWing::Reset()
 {
     FaderReset();
+
+    // TODO implement with Mixerparameters
     setCSCBrightnessRaw();
+
+    LcdData* lcd = new LcdData();
+    lcd->lcdIndex = 0;
+    lcd->texts[0].text = "<-";
+    SetUserLcd(lcd, 1);
+    lcd->lcdIndex = 1;
+    lcd->texts[0].text = "->";
+    SetUserLcd(lcd, 1);
+    lcd->lcdIndex = 3;
+    lcd->texts[0].text = "UP";
+    SetUserLcd(lcd, 1);
+    lcd->lcdIndex = 5;
+    lcd->texts[0].text = "DOWN";
+    SetUserLcd(lcd, 1);
+
 }
 
 void SurfaceControllerWing::FaderReset()
@@ -442,6 +467,8 @@ void SurfaceControllerWing::SetFaderRaw(uint8_t wingFaderIndex, uint16_t positio
 
 void SurfaceControllerWing::setCSCBrightnessRaw()
 {
+    // TODO - implement using Mixerparameter
+
     uint8_t payload[9];
 
     // CSC <ButtonBacklight> <ButtonLeds> <Meters> <ColorLeds> <Scribble> <ContrastScribble> <User LCD> <PatchLeds> 0x02
@@ -521,9 +548,9 @@ void SurfaceControllerWing::SetLcd(LcdData* p_data, uint p_textCount)
     payload[p++] = lcdGroup; // LCD 4er Gruppe
     payload[p++] = lcdIndex; // LCD Index in 4er Gruppe
 
-    for (uint t = 0; t < p_textCount; t++)
+    for (uint textindex = 0; textindex < p_textCount; textindex++)
     {
-        if (t == 2)
+        if (textindex == 2)
         {
             if (p_textCount == 3)
             {
@@ -540,18 +567,25 @@ void SurfaceControllerWing::SetLcd(LcdData* p_data, uint p_textCount)
             }
         }
 
-        uint textindex = t;
+        // switch text 1 and text 2 -> Channel Name <-> Channel Internal Name
+        uint textsourceindex = textindex;
+        if (textsourceindex == 1)
+        {
+            textsourceindex = 2;
+        }
+        else if (textsourceindex == 2)
+        {
+            textsourceindex = 1;
+        }
+
+        String text = p_data->texts[textsourceindex].text;
+        
+        uint textlength  = text.length(); 
         if (textindex == 1)
         {
-            textindex = 2;
+            textlength = textlength | 0x80; // + 0x80 - solid background
         }
-        else if (textindex == 2)
-        {
-            textindex = 1;
-        }
-        String text = p_data->texts[textindex].text;
-        
-        payload[p++] = text.length(); // + 0x80 - solid background
+        payload[p++] = textlength;
 
         for (uint c = 0; c < text.length(); c++)
         {
@@ -564,24 +598,6 @@ void SurfaceControllerWing::SetLcd(LcdData* p_data, uint p_textCount)
 
 void SurfaceControllerWing::SetUserLcd(LcdData* p_data, uint p_textCount)
 {
-    // SurfaceMessage message;
-
-    // message.AddDataByte(0x80 + p_data->boardId);
-    // message.AddDataByte('D'); // class: D = Display
-    // message.AddDataByte(p_data->lcdIndex); 
-    // message.AddDataByte((p_data->color) & 0x0F);
-    // message.AddDataByte(p_data->icon.icon);
-    // message.AddDataByte(p_data->icon.x);
-    // message.AddDataByte(p_data->icon.y);
-    // for (int i=0;i<p_textCount;i++){
-    //     message.AddDataByte(p_data->texts[i].size + strlen(p_data->texts[i].text.c_str())); // size + textLength
-    //     message.AddDataByte(p_data->texts[i].x);
-    //     message.AddDataByte(p_data->texts[i].y);
-    //     message.AddString(p_data->texts[i].text.c_str()); // this is ASCII, so we can omit byte-stuffing  
-    // }
-    // SendData(&message, true);
-
-
     uint8_t payload[200];
     uint p = 0;
 
