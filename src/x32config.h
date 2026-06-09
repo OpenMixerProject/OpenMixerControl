@@ -140,7 +140,7 @@ class X32Config
         bool IsModelWingRack();
         bool IsModelAnyWing();
 
-        bool HasGui();
+        bool HasDisplay();
         bool HasBigDisplay();
         bool HasSmallDisplay();
         bool HasTouchDisplay();

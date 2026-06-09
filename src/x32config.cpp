@@ -118,7 +118,7 @@ bool X32Config::IsModelAnyWing() {
     return IsModelWingFull() || IsModelWingCompact() || IsModelWingRack();
 }
 
-bool X32Config::HasGui()
+bool X32Config::HasDisplay()
 {
     return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R();
 }

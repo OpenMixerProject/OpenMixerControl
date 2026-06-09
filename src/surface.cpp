@@ -124,7 +124,7 @@ void Surface::LoadDefaultSurfaceBinding()
 {
 	LoadMainFaderSurfaceBinding();
 
-    if (config->HasTouchDisplay())
+    if (config->HasDisplay())
     {
         // Display - XM32 and WING
 		config->SurfaceBind(SurfaceElementId::HOME, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::HOME));

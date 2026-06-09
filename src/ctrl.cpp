@@ -226,7 +226,7 @@ void X32Ctrl::Tick100ms(void)
     }
 
 	// DEBUG Row in GUI-Header
-	if (config->GetBool(DEBUG_HEADER) && config->HasGui())
+	if (config->GetBool(DEBUG_HEADER) && config->HasDisplay())
 	{
 		// calculate mean-value and show the current DSP-load
 		dspLoadHistory[0][dspLoadHistoryPointer] = state->dspLoad[0];
@@ -2059,7 +2059,7 @@ void X32Ctrl::OnSurfaceCallback(void* arg, OMC_BOARD board, char command, uint8_
 
 void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint16_t value)
 {
-	if (config->HasGui())
+	if (config->HasDisplay())
 	{
 		lv_label_set_text_fmt(objects.header_debug, "Surface Input: BoardId 0x%02X, Command %c, Index 0x%02X, Value 0x%04X", (uint)board, command, index, value);
 	}
