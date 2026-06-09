@@ -27,10 +27,7 @@
     #define ENABLE_ARTNET 0
 #endif
 
-
 typedef unsigned int uint;
-
-#define OMC_VERSION "v0.3.0"
 
 #define OMC_URL "https://github.com/OpenMixerProject/OpenMixerControl"
 

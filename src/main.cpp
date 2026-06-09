@@ -47,6 +47,7 @@
 #include <signal.h>
 
 #include "ctrl.h"
+#include "version.h"
 
 
 X32Ctrl* ctrl;
@@ -386,7 +387,7 @@ int main(int argc, char* argv[]) {
         printf("       | |                                                                        \n");
         printf("       |_|                                                                        \n");
 		printf("\n");
-		printf("%s build on %s %s\n\n%s\n", OMC_VERSION, __DATE__, __TIME__, OMC_URL);
+		printf("%s build on %s %s\n\n%s\n", GIT_VERSION, __DATE__, __TIME__, OMC_URL);
 		return 0;
 	}
 

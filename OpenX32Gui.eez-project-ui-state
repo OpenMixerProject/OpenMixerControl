@@ -201,22 +201,10 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 29.22519670487072,
+              "weight": 29.90867580656051,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
-                {
-                  "type": "tab",
-                  "id": "#0c2a50b2-c244-4950-984a-b369a31680b1",
-                  "name": "Settings",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[OpenX32Gui.eez-project]:/settings",
-                    "subObjectPath": "[OpenX32Gui.eez-project]:/settings",
-                    "permanent": false
-                  },
-                  "icon": "material:settings"
-                },
                 {
                   "type": "tab",
                   "id": "#dbab9156-9676-43a9-aac2-052835856f54",
@@ -234,7 +222,7 @@
             {
               "type": "tabset",
               "id": "#5f1a3c3a-2fe6-49fc-865b-e77b2b5f558d",
-              "weight": 14.212908966062685,
+              "weight": 13.529429864372895,
               "children": [
                 {
                   "type": "tab",
@@ -1074,10 +1062,10 @@
       },
       "transform": {
         "translate": {
-          "x": -412.5667493058917,
-          "y": -219.98080961949128
+          "x": -356.8829480460048,
+          "y": -192.88246201001186
         },
-        "scale": 1
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1089,26 +1077,8 @@
       "selectionBack": {
         "0": {
           "4": {},
-          "5": {
-            "0": {
-              "0": {
-                "1": {
-                  "0": {
-                    "$selected": true
-                  }
-                }
-              }
-            },
-            "3": {
-              "0": {
-                "1": {},
-                "2": {
-                  "0": {}
-                },
-                "3": {},
-                "4": {}
-              }
-            }
+          "7": {
+            "$selected": true
           }
         }
       }
@@ -1339,14 +1309,13 @@
   "logsPanelFilter": "all",
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
-  "lvglState": "FOCUSED",
+  "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "TEXT",
-    "BACKGROUND"
+    "TEXT"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1,
+  "flowZoom": 1.1,
   "implementationLanguage": "C",
   "openDialogDefaultPath": "C:\\Cloud\\Dokumente\\OpenX32_Website\\SoftwareImages\\sdcard_all.png"
 }

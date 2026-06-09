@@ -2,6 +2,8 @@
 # Makefile SDL2
 #
 
+GITREF = $(shell git describe --abbrev=10 --dirty --always --tags)
+
 BIN             = omc
 BUILD_DIR       ?= build/SDL2
 BUILD_OBJ_DIR   = $(BUILD_DIR)/obj
@@ -42,7 +44,7 @@ CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
 				   $(shell find $(LVGL_DIR)/src -type f -name '*.cpp' -print) \
 				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.cpp' -print)
 
-all: copy default
+all: versionfile copy default
 
 OBJEXT          ?= .o
 
@@ -95,3 +97,8 @@ default: $(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm src/version.h
+
+
+versionfile:
+	@echo "#define GIT_VERSION \"$(GITREF)\"" > src/version.h

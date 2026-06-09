@@ -2,6 +2,8 @@
 # Makefile
 #
 
+GITREF = $(shell git describe --abbrev=10 --dirty --always --tags)
+
 COPTS           ?= -mcpu=arm926ej-s -Os -fno-caller-saves -pipe -funit-at-a-time -msoft-float -fno-plt -fno-unwind-tables -fno-asynchronous-unwind-tables
 CC              = arm-linux-gnueabi-gcc
 CXX             = arm-linux-gnueabi-g++
@@ -53,7 +55,7 @@ CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
 
 
 
-all: copy default
+all: versionfile copy default
 
 test:
 	@echo $(CSRCS)
@@ -119,3 +121,7 @@ default: $(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm src/version.h
+
+versionfile:
+	@echo "#define GIT_VERSION \"$(GITREF)\"" > src/version.h

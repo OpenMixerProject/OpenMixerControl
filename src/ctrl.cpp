@@ -1,5 +1,7 @@
 #include "ctrl.h"
 
+#include "version.h"
+
 
 X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 {
@@ -615,7 +617,7 @@ void X32Ctrl::UdpHandleCommunication_WSM()
 void X32Ctrl::InitPagesAndGUI()
 {
 	// Show OMC Version and builddate in GUI Header
-	lv_label_set_text_fmt(objects.header_omc_version, "OMC %s build on %s at %s", OMC_VERSION, __DATE__, __TIME__);
+	lv_label_set_text_fmt(objects.header_omc_version, "OMC %s build on %s at %s", GIT_VERSION, __DATE__, __TIME__);
 
 	// OMC vX.X.X build on 01.01.1999 
 
