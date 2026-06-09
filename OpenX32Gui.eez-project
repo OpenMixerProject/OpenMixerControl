@@ -366,7 +366,7 @@
             {
               "objID": "787459bf-85ac-4355-953a-e454ee753797",
               "type": "LVGLLabelWidget",
-              "left": 403,
+              "left": 102,
               "top": 3,
               "width": 17,
               "height": 16,
@@ -411,7 +411,7 @@
               "objID": "20c5562c-8b18-4f45-81f2-a81cf9c65be2",
               "type": "LVGLLabelWidget",
               "left": 101,
-              "top": 32,
+              "top": 39,
               "width": 57,
               "height": 16,
               "customInputs": [],
@@ -455,7 +455,7 @@
               "objID": "49696a6f-abfe-46b7-d826-ce6a8582df83",
               "type": "LVGLLabelWidget",
               "left": 102,
-              "top": 3,
+              "top": 20,
               "width": 52,
               "height": 16,
               "customInputs": [],
@@ -12933,6 +12933,56 @@
               },
               "group": "",
               "groupIndex": 0
+            },
+            {
+              "objID": "1bf07aa1-6b6b-4b4a-d29f-7dd3c32e6255",
+              "type": "LVGLLabelWidget",
+              "left": 318,
+              "top": 3,
+              "width": 218,
+              "height": 16,
+              "customInputs": [],
+              "customOutputs": [],
+              "style": {
+                "objID": "25b8c262-ddd9-4e9a-d25a-1877ca418e48",
+                "useStyle": "default",
+                "conditionalStyles": [],
+                "childStyles": []
+              },
+              "timeline": [],
+              "eventHandlers": [],
+              "identifier": "header_omc_version",
+              "leftUnit": "px",
+              "topUnit": "px",
+              "widthUnit": "content",
+              "heightUnit": "content",
+              "children": [],
+              "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+              "hiddenFlagType": "literal",
+              "clickableFlagType": "literal",
+              "flagScrollbarMode": "",
+              "flagScrollDirection": "",
+              "scrollSnapX": "",
+              "scrollSnapY": "",
+              "checkedStateType": "literal",
+              "disabledStateType": "literal",
+              "states": "",
+              "localStyles": {
+                "objID": "ea29a15d-db12-42ba-e073-e759bdf14341",
+                "definition": {
+                  "MAIN": {
+                    "DEFAULT": {
+                      "text_color": "#7d7d7d"
+                    }
+                  }
+                }
+              },
+              "group": "",
+              "groupIndex": 0,
+              "text": "OMC vX.X.X build on 01.01.1999 ",
+              "textType": "literal",
+              "longMode": "WRAP",
+              "recolor": false
             }
           ],
           "widgetFlags": "CLICKABLE|PRESS_LOCK|CLICK_FOCUSABLE|GESTURE_BUBBLE|SNAPPABLE|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLLABLE",

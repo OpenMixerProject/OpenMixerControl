@@ -130,8 +130,8 @@ const char * getenv_default(const char * name, const char * default_val)
 }
 
 
-void guiInit(X32Config* config) {
-
+void guiInit(X32Config* config)
+{
 	lv_init();
 
 	if (state->bodyless)
@@ -481,7 +481,8 @@ int main(int argc, char* argv[]) {
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "ctrl->Init()");
 	ctrl->Init();  // initialize the whole thing and load config
 
-	if (config->IsModelX32Core()){
+	if (config->IsModelX32Core())
+	{
 		// only necessary if LVGL is not used
 		helper->Log("Starting Timers...\n");
 		init10msTimer_NonGUI();
@@ -490,7 +491,9 @@ int main(int argc, char* argv[]) {
 		while (1) {
 			sleep(10); // Basically sleep forever :-) Timers do their job
 		}
-	} else {
+	}
+	else
+	{
 		helper->Log("Initializing GUI...\n");
 		guiInit(config); // initializes LVGL, FBDEV and starts endless loop
 	}

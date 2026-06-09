@@ -87,7 +87,7 @@ void create_screen_main() {
             // header_ip
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.header_ip = obj;
-            lv_obj_set_pos(obj, 403, 3);
+            lv_obj_set_pos(obj, 102, 3);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text_static(obj, "IP:");
         }
@@ -95,7 +95,7 @@ void create_screen_main() {
             // header_debug
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.header_debug = obj;
-            lv_obj_set_pos(obj, 101, 32);
+            lv_obj_set_pos(obj, 101, 39);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text_static(obj, "DEBUG:");
         }
@@ -103,7 +103,7 @@ void create_screen_main() {
             // header_aes50_info
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.header_aes50_info = obj;
-            lv_obj_set_pos(obj, 102, 3);
+            lv_obj_set_pos(obj, 102, 20);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text_static(obj, "AES50: ");
         }
@@ -2838,6 +2838,15 @@ void create_screen_main() {
                     lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
                 }
             }
+        }
+        {
+            // header_omc_version
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.header_omc_version = obj;
+            lv_obj_set_pos(obj, 318, 3);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0x7d7d7d), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text_static(obj, "OMC vX.X.X build on 01.01.1999 ");
         }
     }
     
