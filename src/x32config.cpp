@@ -2833,13 +2833,13 @@ void X32Config::DefineSurfaceElements()
         GetSurfaceElement(BUS1_8_MASTER)                ->DefButton(X32_BOARD_MAIN, 0x26);
         GetSurfaceElement(BUS9_16_MASTER)               ->DefButton(X32_BOARD_MAIN, 0x27);
         
-        GetSurfaceElement(DAW_REMOTE)                   ->DefButton(X32_BOARD_R, 0xA8);
-        GetSurfaceElement(SEND_ON_FADER)                ->DefButton(X32_BOARD_R, 0xA9);
+        GetSurfaceElement(DAW_REMOTE)                   ->DefButton(X32_BOARD_MAIN, 0x28);
+        GetSurfaceElement(SEND_ON_FADER)                ->DefButton(X32_BOARD_MAIN, 0x29);
 
-        GetSurfaceElement(DCA)                          ->DefButton(X32_BOARD_R, 0xAA);
-        GetSurfaceElement(BUS1_8)                       ->DefButton(X32_BOARD_R, 0xAB);
-        GetSurfaceElement(BUS9_16)                      ->DefButton(X32_BOARD_R, 0xAC);
-        GetSurfaceElement(MATRIX_MAIN)                  ->DefButton(X32_BOARD_R, 0xAD);
+        GetSurfaceElement(DCA)                          ->DefButton(X32_BOARD_MAIN, 0x2A);
+        GetSurfaceElement(BUS1_8)                       ->DefButton(X32_BOARD_MAIN, 0x2B);
+        GetSurfaceElement(BUS9_16)                      ->DefButton(X32_BOARD_MAIN, 0x2C);
+        GetSurfaceElement(MATRIX_MAIN)                  ->DefButton(X32_BOARD_MAIN, 0x2D);
 
         // Display
         GetSurfaceElement(HOME)                         ->DefButton(X32_BOARD_MAIN, 0x2E);
