@@ -2062,6 +2062,15 @@ void X32Config::DefineSurfaceElements()
 
     if (IsModelX32Full())
     {
+        // ######## ##     ## ##       ##       
+        // ##       ##     ## ##       ##       
+        // ##       ##     ## ##       ##       
+        // ######   ##     ## ##       ##       
+        // ##       ##     ## ##       ##       
+        // ##       ##     ## ##       ##       
+        // ##        #######  ######## ######## 
+
+
         // Board Main
 
         GetSurfaceElement(VIEW_CONFIG)                  ->DefButton(X32_BOARD_MAIN, 0x00);
@@ -2217,6 +2226,15 @@ void X32Config::DefineSurfaceElements()
     }
     else if (IsModelX32Compact())
     {
+        //  ######   #######  ##     ## ########     ###     ######  ######## 
+        // ##    ## ##     ## ###   ### ##     ##   ## ##   ##    ##    ##    
+        // ##       ##     ## #### #### ##     ##  ##   ##  ##          ##    
+        // ##       ##     ## ## ### ## ########  ##     ## ##          ##    
+        // ##       ##     ## ##     ## ##        ######### ##          ##    
+        // ##    ## ##     ## ##     ## ##        ##     ## ##    ##    ##    
+        //  ######   #######  ##     ## ##        ##     ##  ######     ##    
+
+
         // Board Main
 
         GetSurfaceElement(TALK_A)                       ->DefButton(X32_BOARD_MAIN, 0x00);
@@ -2353,6 +2371,15 @@ void X32Config::DefineSurfaceElements()
     }
     else if (IsModelX32Producer())
     {
+        // ########  ########   #######  ########  ##     ##  ######  ######## ########  
+        // ##     ## ##     ## ##     ## ##     ## ##     ## ##    ## ##       ##     ## 
+        // ##     ## ##     ## ##     ## ##     ## ##     ## ##       ##       ##     ## 
+        // ########  ########  ##     ## ##     ## ##     ## ##       ######   ########  
+        // ##        ##   ##   ##     ## ##     ## ##     ## ##       ##       ##   ##   
+        // ##        ##    ##  ##     ## ##     ## ##     ## ##    ## ##       ##    ##  
+        // ##        ##     ##  #######  ########   #######   ######  ######## ##     ## 
+
+
         // Board Main - upper LCD-area buttons
         // Producer has dedicated 48V / polarity / low-cut keys where
         // Compact places VIEW_USB, so the preamp/gate/comp/EQ block is
@@ -2490,6 +2517,14 @@ void X32Config::DefineSurfaceElements()
     }
     else if (IsModelX32Rack())
     {
+        // ########     ###     ######  ##     ## 
+        // ##     ##   ## ##   ##    ## ##    ##  
+        // ##     ##  ##   ##  ##       ##   ##   
+        // ########  ##     ## ##       #####     
+        // ##   ##   ######### ##       ##   ##   
+        // ##    ##  ##     ## ##    ## ##    ##  
+        // ##     ## ##     ##  ######  ##     ## 
+
         GetSurfaceElement(VIEW_USB)                     ->DefButton(X32_BOARD_EXTRA, 0x00);
         GetSurfaceElement(CHANNEL_SOLO)                 ->DefButton(X32_BOARD_EXTRA, 0x01);
         GetSurfaceElement(CHANNEL_MUTE)                 ->DefButton(X32_BOARD_EXTRA, 0x02);
@@ -2546,6 +2581,15 @@ void X32Config::DefineSurfaceElements()
     }
     else if (IsModelM32())
     {
+        // ##     ## ########    #####   
+        // ###   ###        ## ##     ## 
+        // #### ####        ##        ## 
+        // ## ### ##  #######       ##   
+        // ##     ##        ##   ##      
+        // ##     ##        ## ##        
+        // ##     ## ########  ######### 
+
+
         // Config / Preamp
         GetSurfaceElement(GAIN_ENCODER)                 ->DefEncoder(X32_BOARD_MAIN, 0x00, 0x2A);
         GetSurfaceElement(PHANTOM_48V)                  ->DefButton(X32_BOARD_MAIN, 0x01);
@@ -2704,6 +2748,14 @@ void X32Config::DefineSurfaceElements()
     }
     else if (IsModelM32R())
     {
+        // ##     ## ########    #####   ########  
+        // ###   ###        ## ##     ## ##     ## 
+        // #### ####        ##        ## ##     ## 
+        // ## ### ##  #######       ##   ########  
+        // ##     ##        ##   ##      ##   ##   
+        // ##     ##        ## ##        ##    ##  
+        // ##     ## ########  ######### ##     ## 
+
         // Talkback
         GetSurfaceElement(TALK_A)                       ->DefButton(X32_BOARD_MAIN, 0x00);
         GetSurfaceElement(TALK_B)                       ->DefButton(X32_BOARD_MAIN, 0x01);
@@ -2781,13 +2833,13 @@ void X32Config::DefineSurfaceElements()
         GetSurfaceElement(BUS1_8_MASTER)                ->DefButton(X32_BOARD_MAIN, 0x26);
         GetSurfaceElement(BUS9_16_MASTER)               ->DefButton(X32_BOARD_MAIN, 0x27);
         
-        GetSurfaceElement(DAW_REMOTE)                   ->DefButton(X32_BOARD_R, 0x28);
-        GetSurfaceElement(SEND_ON_FADER)                ->DefButton(X32_BOARD_R, 0x29);
+        GetSurfaceElement(DAW_REMOTE)                   ->DefButton(X32_BOARD_R, 0xA8);
+        GetSurfaceElement(SEND_ON_FADER)                ->DefButton(X32_BOARD_R, 0xA9);
 
-        GetSurfaceElement(DCA)                          ->DefButton(X32_BOARD_R, 0x2A);
-        GetSurfaceElement(BUS1_8)                       ->DefButton(X32_BOARD_R, 0x2B);
-        GetSurfaceElement(BUS9_16)                      ->DefButton(X32_BOARD_R, 0x2C);
-        GetSurfaceElement(MATRIX_MAIN)                  ->DefButton(X32_BOARD_R, 0x2D);
+        GetSurfaceElement(DCA)                          ->DefButton(X32_BOARD_R, 0xAA);
+        GetSurfaceElement(BUS1_8)                       ->DefButton(X32_BOARD_R, 0xAB);
+        GetSurfaceElement(BUS9_16)                      ->DefButton(X32_BOARD_R, 0xAC);
+        GetSurfaceElement(MATRIX_MAIN)                  ->DefButton(X32_BOARD_R, 0xAD);
 
         // Display
         GetSurfaceElement(HOME)                         ->DefButton(X32_BOARD_MAIN, 0x2E);
