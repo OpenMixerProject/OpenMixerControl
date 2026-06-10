@@ -50,4 +50,6 @@ The big plan on one page :-)
 
 <img width="666" height="500" alt="grafik" src="https://github.com/user-attachments/assets/4a6cf4b3-30f2-4f33-a738-9d827689afaf" />
 
-
+                        
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/OpenMixerProject/OpenMixerControl.svg?variant=adaptive)](https://starchart.cc/OpenMixerProject/OpenMixerControl)
