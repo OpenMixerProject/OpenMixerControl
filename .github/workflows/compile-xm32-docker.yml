@@ -1,4 +1,4 @@
-name: X32/M32
+name: Build for X32/M32
 
 on:
   push:
