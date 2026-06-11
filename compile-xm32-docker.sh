@@ -84,9 +84,9 @@ if [ ! -d "$LIB_EXT_DIR" ]; then
 fi
 
 # externe Bibliotheken holen
-git clone --depth 1 --single-branch --branch v9.5.0 https://github.com/lvgl/lvgl.git ${LVGL_DIR} || true
-git clone --depth 1 --single-branch --branch v7.7.1 https://github.com/stephenberry/glaze.git ${GLAZE_DIR} || true
-git clone --depth 1 --single-branch https://github.com/OpenLightingProject/libartnet.git ${LIBARTNET_DIR} || true
+git clone --depth 1 --single-branch --branch v9.5.0 https://github.com/lvgl/lvgl.git ${LVGL_DIR} || git reset --hard HEAD
+git clone --depth 1 --single-branch --branch v7.7.1 https://github.com/stephenberry/glaze.git ${GLAZE_DIR} || git reset --hard HEAD
+git clone --depth 1 --single-branch https://github.com/OpenLightingProject/libartnet.git ${LIBARTNET_DIR} || git reset --hard HEAD
 
 make BUILD_DIR=${BUILD_DIR} -j$(nproc)
 
