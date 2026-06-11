@@ -1,3 +1,5 @@
+[![X32/M32](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml/badge.svg?event=push)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml)
+
 # Service Anouncement
 
 We are currently (June 2026) in a repo transition phase 👷‍♂️, so more content will follow soon(TM) and dead links will become alive 🚀
