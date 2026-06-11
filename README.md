@@ -1,4 +1,5 @@
 [![Build for X32/M32](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml)
+[![Build for WING](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-wing-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-wing-docker.yml)
 
 # Service Anouncement
 
