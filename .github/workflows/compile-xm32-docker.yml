@@ -14,4 +14,4 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run:  bash compile-wing-docker.sh
+    - run:  bash compile-xm32-docker.sh

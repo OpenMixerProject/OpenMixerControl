@@ -31,7 +31,7 @@ DEPFLAGS        = -MMD -MP -D=TARGET_PC_SDL2
 CFLAGS          ?= -g -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS) 
 CXXFLAGS        ?= -std=c++23 -g -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
 
-LDFLAGS         ?= -lSDL2 -lm -lrt -lpthread #-lartnet
+LDFLAGS         ?= -lSDL2 -lm -lrt -lpthread -L$(BUILD_OBJ_DIR)
 
 # Collect source files recursively
 CSRCS           := $(shell find src -type f -name '*.c' -print) \

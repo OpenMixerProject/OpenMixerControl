@@ -40,7 +40,7 @@ CXXFLAGS        ?= -std=c++23 -flto=auto $(COPTS) -g0 -D_GNU_SOURCE -I$(LIB_DIR)
 #CFLAGS          ?= -std=c11 -g -D_GNU_SOURCE -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
 #CXXFLAGS         ?= -std=c++23 -D_GNU_SOURCE -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
 
-LDFLAGS         ?= -flto=auto -lm -lrt -lpthread -lartnet
+LDFLAGS         ?= -flto=auto -lm -lrt -lpthread -L$(BUILD_OBJ_DIR)
 
 # Collect source files recursively
 CSRCS           := $(shell find src -type f -name '*.c' -print) \
