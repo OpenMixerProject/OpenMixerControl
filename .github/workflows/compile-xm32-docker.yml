@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: X32/M32
 
 on:
   push:
