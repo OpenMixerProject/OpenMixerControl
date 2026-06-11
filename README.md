@@ -1,4 +1,4 @@
-[![X32/M32](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml/badge.svg?event=push)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml)
+[![Build for X32/M32](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml)
 
 # Service Anouncement
 
