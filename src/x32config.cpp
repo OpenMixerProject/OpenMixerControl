@@ -426,7 +426,7 @@ void X32Config::DefineMixerparameters() {
 
     DefParameter(ACTIVE_PAGE, cat, "Active Page")
     ->DefHideEncoderSlider()
-    ->DefMinMaxStandard_Uint(0, 255, (uint)X32_PAGE::HOME);
+    ->DefMinMaxStandard_Uint(0, (uint)X32_PAGE::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)X32_PAGE::HOME);
 
     DefParameter(BANKING_EQ, cat, "EQ")
     ->DefNoConfig()
@@ -436,11 +436,11 @@ void X32Config::DefineMixerparameters() {
 
     DefParameter(BANKING_INPUT, cat, "Banking Input")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, (uint)(OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE), 1);
+    ->DefMinMaxStandard_Uint(0, (uint)(OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1), (uint)OMCBankId::None);
 
     DefParameter(BANKING_BUS, cat, "Banking Bus")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, (uint)(OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE), 13);
+    ->DefMinMaxStandard_Uint(0, (uint)(OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1), (uint)OMCBankId::None);
 
     DefParameter(BANKING_BUS_SENDS, cat, "Banking Bus Sends")
     ->DefNoConfig()

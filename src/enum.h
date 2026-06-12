@@ -56,7 +56,9 @@ enum class X32_PAGE :int
         PROTOTYPEGUI,
     LIBRARY,
     EFFECTS,
-    SCENES
+    SCENES,
+
+    __ELEMENT_COUNTER_DO_NOT_MOVE
 };
 
 enum class X32_VCHANNELTYPE {
