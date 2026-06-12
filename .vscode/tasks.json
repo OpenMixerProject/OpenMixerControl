@@ -1,31 +1,6 @@
 {
     "tasks": [
         {
-            "label": "openx32-build",
-            "type": "shell",
-            "command": "./compile.sh && cp ./build/omc /var/www/html/x32/ &&  ssh root@192.168.188.104 \"cd /openx32 && rm omc && wget http://192.168.188.123/x32/omc && chmod +x omc\"",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            }
-        },
-        {
-            "label": "openx32-rpi",
-            "type": "shell",
-            "command": "make -j14 && dd if=../bin/x32ctrl status=progress | ssh root@192.168.188.114 \"dd of=/root/x32ctrl\"",
-            "options": {},
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            }
-        },
-        {
             "label": "openx32-x64-SDL2",
             "type": "shell",
             "command": "export PATH=/opt/cross/bin:$PATH; make --file=Makefile_x64_SDL2 -j14",
@@ -42,6 +17,18 @@
             "label": "omc-wing",
             "type": "shell",
             "command": "./compile-wing-docker.sh && cp ./build/wing/wing-omc /var/www/html/x32/ &&  ssh root@192.168.188.103 \" wget http://192.168.188.123/x32/wing-omc -O /usr/bin/wing-omc && chmod +x /usr/bin/wing-omc\"",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "omc-xm32",
+            "type": "shell",
+            "command": "./compile-xm32-docker.sh && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@192.168.188.104 \" wget http://192.168.188.123/x32/omc -O /usr/bin/omc && chmod +x /usr/bin/omc\"",
             "problemMatcher": [
                 "$gcc"
             ],
