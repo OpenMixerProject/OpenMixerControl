@@ -11,6 +11,7 @@
 #include "../lib/WString.h"
 
 #include "enum.h"
+#include "types.h"
 
 #define DEBUGLEVEL_OFF -1 // No Debug
 #define DEBUGLEVEL_NORMAL 0 // General highlevel debug messages

@@ -151,13 +151,13 @@ void guiInit(X32Config* config)
 {
 	lv_init();
 
-	if (state->bodyless)
-	{
-		printf("bodyless mode (Development Simulator) startet\n");
+	#ifdef TARGET_PC_SDL2
 
-		#ifdef TARGET_PC_SDL2
+		printf("bodyless mode (Development Simulator) startet\n");
+		state->bodyless = true;
+		
 		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
-	 	lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
+		lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
 		keyboard = lv_sdl_keyboard_create();
 		//mouse = lv_sdl_mouse_create();
 		//mouse_wheel = lv_sdl_mousewheel_create();
@@ -168,12 +168,9 @@ void guiInit(X32Config* config)
 		// set group for your input device
 		lv_group_set_default(groups.grp_KEY);
 		lv_indev_set_group(keyboard, groups.grp_KEY);
-
-
-		#endif
-	}
-	else
-	{
+	
+	#else
+		
 		const char * device = getenv_default("LV_LINUX_FBDEV_DEVICE", "/dev/fb0");
 		display = lv_linux_fbdev_create();
 
@@ -182,8 +179,9 @@ void guiInit(X32Config* config)
 			return;
 		}
 
-		lv_linux_fbdev_set_file(display, device);		
-	}
+		lv_linux_fbdev_set_file(display, device);	
+
+	#endif
 
 	#ifdef BUILD_DEBUG
 	printf("lv_timer_create(timer10msCallbackLvgl, 10, NULL)\n");

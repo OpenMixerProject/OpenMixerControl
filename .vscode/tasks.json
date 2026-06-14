@@ -3,7 +3,7 @@
         {
             "label": "openx32-x64-SDL2",
             "type": "shell",
-            "command": "export PATH=/opt/cross/bin:$PATH; make --file=Makefile_x64_SDL2 -j14",
+            "command": "./compile-docker.sh TARGET_PC_SDL2",
             "options": {},
             "problemMatcher": [
                 "$gcc"
@@ -16,7 +16,7 @@
         {
             "label": "omc-wing",
             "type": "shell",
-            "command": "./compile-wing-docker.sh && cp ./build/wing/wing-omc /var/www/html/x32/ &&  ssh root@192.168.188.103 \" wget http://192.168.188.123/x32/wing-omc -O /usr/bin/wing-omc && chmod +x /usr/bin/wing-omc\"",
+            "command": "./compile-docker.sh TARGET_WING && cp ./build/wing/omc /var/www/html/x32/ &&  ssh root@192.168.188.103 \" wget http://192.168.188.123/x32/omc -O /usr/bin/wing-omc && chmod +x /usr/bin/omc\"",
             "problemMatcher": [
                 "$gcc"
             ],
@@ -28,7 +28,7 @@
         {
             "label": "omc-xm32",
             "type": "shell",
-            "command": "./compile-xm32-docker.sh && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@192.168.188.104 \" wget http://192.168.188.123/x32/omc -O /usr/bin/omc && chmod +x /usr/bin/omc\"",
+            "command": "./compile-docker.sh TARGET_XM32 && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@192.168.188.104 \" wget http://192.168.188.123/x32/omc -O /usr/bin/omc && chmod +x /usr/bin/omc\"",
             "problemMatcher": [
                 "$gcc"
             ],
