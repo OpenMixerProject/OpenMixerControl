@@ -438,21 +438,26 @@ TEST_CASE("Mixerparameter - float value check")
         CHECK(p->GetFloat() == 9.75f);
     }
 
-    SUBCASE("set value on readonly")
+    SUBCASE("readonly")
     {
         p->DefReadonly();
+
+        SUBCASE("IsReadonly()")
+        {
+            CHECK(p->IsReadonly());
+        }
         
-        SUBCASE("increase")
+        SUBCASE("increase value")
         {
             CHECK_THROWS(p->Change(1));
         }
 
-        SUBCASE("decrease")
+        SUBCASE("decrease value")
         {
             CHECK_THROWS(p->Change(-1));
         }
 
-        SUBCASE("set")
+        SUBCASE("set value")
         {
             CHECK_THROWS(p->Set(0.5f));
         }
@@ -469,14 +474,6 @@ TEST_CASE("Mixerparameter")
     CHECK(p->BelongsToChannel());
     CHECK_FALSE(p->BelongsToFX());
     CHECK(p->GetName() == "Ch Vol");
-
-    SUBCASE("Readonly")
-    {
-        p->DefReadonly();
-
-        bool result = p->IsReadonly();
-        CHECK(result == true);
-    }
 
     SUBCASE("NoConfig")
     {
