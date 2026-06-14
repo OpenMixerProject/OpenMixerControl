@@ -1,5 +1,6 @@
 [![Build for X32/M32](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-xm32-docker.yml)
 [![Build for WING](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-wing-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-wing-docker.yml)
+[![Build for PC (SDL2)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-pc_sdl2-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-pc_sdl2-docker.yml)
 
 # Service Anouncement
 
