@@ -4,7 +4,7 @@
 #include "types.h"
 #include "../lib/WString.h"
 #include "uart.h"
-#include "adda-message.h"
+
 
 #define ADDA_MAX_PACKET_LENGTH 32
 #define ADDA_MAX_BOARDS 8

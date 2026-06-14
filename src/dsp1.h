@@ -1,12 +1,10 @@
 #pragma once
 
-#include "external.h"
 #include "types.h"
-#include "const.h"
-
 #include "base.h"
 #include "spi.h"
 #include "fxmath.h"
+#include "fxslot.h"
 
 class DSP1 : X32Base {
 

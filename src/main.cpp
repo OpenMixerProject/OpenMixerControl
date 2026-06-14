@@ -42,12 +42,28 @@
   Parts of this software with kind permission of Music Tribe. Thank you!
 */
 
+#pragma once
+
 // includes for timer
 #include <time.h>
 #include <signal.h>
 
+#include "defines.h"
 #include "ctrl.h"
 #include "version.h"
+
+#define DOCTEST_CONFIG_IMPLEMENT // we start doctest within our own main()
+#include "../lib_ext/doctest/doctest/doctest.h"
+
+// including the GUI built by EEZ-Studio
+#include "eez/actions.h"
+// #include "eez/fonts.h"
+// #include "eez/images.h"
+#include "eez/screens.h"
+// #include "eez/structs.h"
+// #include "eez/styles.h"
+#include "eez/ui.h"
+// #include "eez/vars.h"
 
 
 X32Ctrl* ctrl;
@@ -265,7 +281,23 @@ void action_action_key(lv_event_t * e)
 	#endif
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
+	// run Doctest if "--test" is the first commandline argument
+	if (argc > 1 && !strcmp(argv[1], "--test"))
+	{
+		// remove "--test" commandline, as is would confuse doctest
+		argv[1] = "";
+
+		doctest::Context context;
+		context.applyCommandLine(argc, argv);
+
+		int res = context.run(); // run
+
+    	return res; // propagate the result of the tests and exit
+	}
+
+
 	srand(time(NULL));
 	state = new State();
     Helper* helper = new Helper();

@@ -22,7 +22,17 @@
   GNU General Public License for more details.
 */
 
+#include <math.h>
+
+// includes for reading IP-Address
+#include <sys/stat.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "helper.h"
+
+#include "defines.h"
 
 void Helper::Log(const char* format, ...)
 {

@@ -1,14 +1,11 @@
 #pragma once
 
-#include <linux/spi/spidev.h>
-#include <linux/gpio.h>
-#include <fcntl.h>
+#include <stdint.h>
+
+
 #include <list>
 
-#include "defines.h"
-#include "types.h"
 #include "base.h"
-#include "state.h"
 #include "spi-event.h"
 
 // defines for FPGA-configuration via SPI

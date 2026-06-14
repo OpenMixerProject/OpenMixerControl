@@ -17,7 +17,7 @@ class Uart : public X32Base
  {
     
     private:
-        int fd;
+        int fd = -1; // default: not connected
 
     public:
         Uart(X32BaseParameter* basepar);

@@ -1,26 +1,16 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdint.h>
 #include <stdarg.h>
-#include <string.h>
-#include <sys/stat.h>
+
 #include <string>
 #include <vector>
 #include <map>
-#include <math.h>
-
-// includes for reading IP-Address
-#include <sys/stat.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include "../lib/plf_nanotimer.h"
-
-#include "defines.h"
-#include "enum.h"
 #include "../lib/WString.h"
 
+#include "enum.h"
 
 #define DEBUGLEVEL_OFF -1 // No Debug
 #define DEBUGLEVEL_NORMAL 0 // General highlevel debug messages
@@ -30,7 +20,8 @@
 using namespace std;
 using namespace WString;
 
-class Helper {
+class Helper
+{
     private:
         uint32_t debug_;
         uint8_t debuglevel_;

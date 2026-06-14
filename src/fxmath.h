@@ -1,11 +1,6 @@
 #pragma once
 
-#include <math.h>
-
 #include "base.h"
-#include "defines.h"
-
-#include "fxslot.h"
 
 class FxMath : X32Base {
 

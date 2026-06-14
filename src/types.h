@@ -6,8 +6,6 @@
 #include "enum.h"
 #include "../lib/WString.h"
 
-#include "mixerparameter.h"
-
 using namespace std;
 
 typedef unsigned int uint;
@@ -120,8 +118,8 @@ typedef struct {
 } sDsp2Oscillator;
 
 typedef struct {
-	String label;
-	String value;
+	WString::String label;
+	WString::String value;
 } sDisplayEncoder;
 
 struct WingFrameParser {

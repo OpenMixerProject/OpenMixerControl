@@ -1,5 +1,7 @@
 #pragma once
 
+//#include "../lib_ext/doctest/doctest/doctest.h"
+
 #include <stdint.h>
 #include <vector>
 #include "../lib/WString.h"
@@ -1085,6 +1087,21 @@ class Mixerparameter
         {
             return readonly;
         }
+
+        // TEST_CASE("test")
+        // {
+        //     int i = 0;
+
+        //     CHECK(i == 0);
+        // }
+
+        // TEST_CASE("Test Mixerparameter Readonly") {
+        //     Mixerparameter* p = new Mixerparameter(MP_ID::NONE, MP_CAT::NONE, "", 1);
+        //     p->DefReadonly();
+
+        //     bool isReadonly = p->IsReadonly();
+        //     CHECK(isReadonly == true);
+        // }
 
         vector<float> Config_GetValue()
         {

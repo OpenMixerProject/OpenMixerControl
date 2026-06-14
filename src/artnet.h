@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 #include "defines.h"
-#include "../lib/WString.h"
 #include "base.h"
 
 using namespace std;

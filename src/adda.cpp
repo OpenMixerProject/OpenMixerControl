@@ -24,6 +24,8 @@
 
 #include "adda.h"
 
+#include "adda-message.h"
+
 
 Adda::Adda(X32BaseParameter* basepar): X32Base(basepar) {
     SetMuteAll(true);

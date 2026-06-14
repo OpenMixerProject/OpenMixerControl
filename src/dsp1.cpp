@@ -24,6 +24,8 @@
 
 #include "dsp1.h"
 
+#include "const.h"
+
 DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
 {
     spi = new SPI(basepar);

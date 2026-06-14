@@ -18,12 +18,4 @@
 
 // includes for timer
 #include <time.h>
-// #include <signal.h>
 
-// includes for lvgl
-//#include "../build/lib_ext/lvgl/lvgl.h"
-//#include "../lib/lv_port_linux/src/lib/backends.h"
-//#include "../lib/lv_port_linux/src/lib/driver_backends.h"
-
-// includes for GLAZE
-//#include "glaze/glaze.hpp"

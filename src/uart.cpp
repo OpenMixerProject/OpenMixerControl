@@ -22,7 +22,9 @@
   GNU General Public License for more details.
 */
 
+#include "../lib_ext/doctest/doctest/doctest.h"
 #include "uart.h"
+#include "base-parameter.h"
 
 
 Uart::Uart(X32BaseParameter* basepar): X32Base(basepar) {}
@@ -129,9 +131,10 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
     return 0;
 }
 
-int Uart::Tx(MessageBase* message) {
-    if (fd < 0) {
-        fprintf(stderr, "Error: Problem on opening serial port\n");
+int Uart::Tx(MessageBase* message)
+{
+    if (fd < 1) {
+        helper->DEBUG_UART(DEBUGLEVEL_NORMAL, "serial port not opened");
         return -1;
     }
 
@@ -168,6 +171,11 @@ int Uart::Rx(char* buf, uint16_t bufLen) {
     int bytesRead;
     int bytesAvailable;
     int bytesToRead;
+
+    if (fd < 1) {
+        helper->DEBUG_UART(DEBUGLEVEL_NORMAL, "serial port not opened");
+        return -1;
+    }
 
 	if (ioctl(fd, FIONREAD, &bytesAvailable) == -1) {
 		perror("Error on ioctl FIONREAD");
@@ -212,35 +220,63 @@ int Uart::Rx(char* buf, uint16_t bufLen) {
 	return 0;
 }
 
-/*
-void Uart::MirrorBack() {
-    int bytesRead;
-    int bytesAvailable;
-    char buf[100];
-    int bytesToRead;
-
-	if (ioctl(fd, FIONREAD, &bytesAvailable) == -1) {
-		perror("Error on ioctl FIONREAD");
-		close(fd);
-		return;
-	}
-    bytesToRead = bytesAvailable;
-    if (bytesToRead > 100) {
-        bytesToRead = 100;
-    }
-
-	if (bytesToRead > 0) {
-        bytesRead = read(fd, &buf[0], bytesToRead);
-
-		if (bytesRead > 0) {
-            // send via same UART
-            write(fd, &buf[0], bytesRead);
-		}
-	}
-}
-*/
-
 void Uart::FlushRxBuffer() {
     char buf;
 	while (Rx(&buf, 1) > 0);
+}
+
+// ######## ########  ######  ########  ######  
+//    ##    ##       ##    ##    ##    ##    ## 
+//    ##    ##       ##          ##    ##       
+//    ##    ######    ######     ##     ######  
+//    ##    ##             ##    ##          ## 
+//    ##    ##       ##    ##    ##    ##    ## 
+//    ##    ########  ######     ##     ######  
+
+
+TEST_CASE("UART")
+{
+    State* state = new State();
+    Helper* helper = new Helper();
+    X32BaseParameter* basepar = new X32BaseParameter(nullptr, nullptr, state, helper);
+    Uart* u = new Uart(basepar);
+    char* buf = 0;
+    uint16_t bufLen = 0;
+
+    SUBCASE("open not exisiting device")
+    {
+        int result = u->Open("/this/dev/does/not/exist", 9600, true);
+        CHECK(result == 1);
+
+        SUBCASE("should not receive if not connected")
+        {
+            result = u->Rx(buf, bufLen);
+            CHECK(result == -1);
+        }
+
+        SUBCASE("should not send if not connected")
+        {
+            result = u->Tx(nullptr);
+            CHECK(result == -1);
+        }
+    }
+
+    SUBCASE("bodyless mode without surface and adda")
+    {
+        state->bodyless = GENERATE(true, false);
+        state->bodyless_with_surface_and_adda = GENERATE(true, false);
+
+        SUBCASE("receive")
+        {
+            int result = u->Rx(buf, bufLen);
+            CHECK(result == -1);
+        }
+
+        SUBCASE("send")
+        {
+            int result = u->Tx(nullptr);
+            CHECK(result == -1);
+        }
+    }
+    
 }

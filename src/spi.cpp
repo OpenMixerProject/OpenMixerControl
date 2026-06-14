@@ -24,6 +24,14 @@
 
 #include "spi.h"
 
+#include <string.h>
+#include <sys/stat.h>
+#include <linux/spi/spidev.h>
+#include <linux/gpio.h>
+#include <fcntl.h>
+
+#include "defines.h"
+
 SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
 
 // configures a Xilinx Spartan 3A via SPI

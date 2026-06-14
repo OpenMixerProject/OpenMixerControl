@@ -24,6 +24,8 @@
 
 #include "artnet.h"
 
+#include "../lib/WString.h"
+
 #if ENABLE_ARTNET
 
 

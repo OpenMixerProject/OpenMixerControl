@@ -1,66 +1,14 @@
 #pragma once
 
-#include "external.h" // all external includes
-
-#include "x32config.h"
-#include "helper.h"
-#include "state.h"
 #include "mixer.h"
+#include "surface.h"
 #include "xremote.h"
 #include "wsm.h"
-
+#include "lcd-menu.h"
 #if ENABLE_ARTNET
     #include "artnet.h"
 #endif
-
-
-#include "page-meters.h"
-#include "page-rta.h"
-#include "page-home.h"
-#include "page-config.h"
-#include "page-gate.h"
-#include "page-dynamics.h"
-#include "page-eq.h"
-#include "page-sends.h"
-#include "page-main.h"
-#include "page-routing.h"
-#include "page-routing-fpga.h"
-#include "page-routing-channels.h"
-#include "page-routing-dsp.h"
-#include "page-library.h"
-#include "page-effects.h"
-#include "page-setup.h"
-#include "page-setup-card.h"
-#include "page-setup-surface.h"
-#include "page-debug.h"
-#include "page-about.h"
-#include "page-scenes.h"
-#include "page-prototypegui.h"
-#include "lcd-menu.h"
-
-#include "surfaceelement.h"
-#include "surfacebindingparameter.h"
-#include "surface-controller.h"
-
-// Commandline and config file parser CLI11 (https://github.com/CLIUtils/CLI11)
-#include "../lib/CLI11.hpp"
-
-// includes for lvgl
-//#include "../lib/lv_port_linux/lvgl/lvgl.h"
-//#include "../lib/lv_port_linux/src/lib/backends.h"
-//#include "../lib/lv_port_linux/src/lib/driver_backends.h"
-
-// including the GUI built by EEZ-Studio
-#include "eez/actions.h"
-#include "eez/fonts.h"
-#include "eez/images.h"
-#include "eez/screens.h"
-#include "eez/structs.h"
-#include "eez/styles.h"
-#include "eez/ui.h"
-#include "eez/vars.h"
-
-#include "../lib/tinyosc.h"
+#include "page.h"
 
 using namespace std;
 
