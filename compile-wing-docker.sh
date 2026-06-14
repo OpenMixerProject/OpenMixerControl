@@ -68,6 +68,7 @@ LIB_EXT_DIR="${ROOT_DIR}/lib_ext"
 LVGL_DIR="${LIB_EXT_DIR}/lvgl"
 GLAZE_DIR="${LIB_EXT_DIR}/glaze"
 LIBARTNET_DIR="${LIB_EXT_DIR}/libartnet"
+DOCTEST_DIR="${LIB_EXT_DIR}/doctest"
 
 # Ordner anlegen
 if [ ! -d "$BUILD_DIR" ]; then
