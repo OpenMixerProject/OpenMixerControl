@@ -1,4 +1,4 @@
-name: Build for X32/M32
+name: Build for PC (SDL2)
 
 on:
   push:
