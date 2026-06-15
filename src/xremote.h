@@ -22,20 +22,30 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <oscpp/server.hpp>
+
 #include "base.h"
 #include "mixer.h"
 
-class XRemote : public X32Base {
+class XRemote : public X32Base 
+{
     private:
         struct sockaddr_in ServerAddr;
         char TxMessage[450]; // the largest binary blob will take up to 20+(70+1))*4 bytes = 408 bytes
         int counter = 0;
+
+
+        void handlePacket(const OSCPP::Server::Packet& packet);
+
     public:
         int UdpHandle;
         struct sockaddr_in ClientAddr;
 
         XRemote(X32BaseParameter* basepar);
+
         int8_t Init();
+        void UdpHandleCommunication();
+
         void AnswerInfo();
         void AnswerXInfo();
         void AnswerStatus();

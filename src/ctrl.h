@@ -61,7 +61,6 @@ class X32Ctrl : public X32Base
         void Tick10ms(void);
         void Tick50ms(void);
         void Tick100ms(void);
-        void UdpHandleCommunication(void);
         void UdpHandleCommunication_WSM(void);
 
         void InitPagesAndGUI();

@@ -59,11 +59,12 @@ BUILD_BIN_DIR   = $(BUILD_DIR)
 prefix          ?= /usr
 bindir          ?= $(prefix)/bin
 
-LIB_DIR			?= lib
-LIB_EXT_DIR		?= lib_ext
-LVGL_DIR        ?= $(LIB_EXT_DIR)/lvgl
-GLAZE_DIR		?= $(LIB_EXT_DIR)/glaze/include
-LIBARTNET_DIR	?= $(LIB_EXT_DIR)/libartnet
+LIB_DIR			= lib
+LIB_EXT_DIR		= lib_ext
+LVGL_DIR        = $(LIB_EXT_DIR)/lvgl
+GLAZE_DIR		= $(LIB_EXT_DIR)/glaze/include
+LIBARTNET_DIR	= $(LIB_EXT_DIR)/libartnet
+OSC_DIR			= $(LIB_EXT_DIR)/osc/include
 
 WARNINGS        := -Wall -Wshadow -Wundef -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith \
                    -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits \
@@ -75,13 +76,13 @@ ifeq ($(DEBUG), 1)
 
 	# debug build
 	CFLAGS          ?= $(C_STD) -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
-	CXXFLAGS        ?= -std=c++23 -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+	CXXFLAGS        ?= -std=c++23 -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
 
 else
 
 	# normal build
 	CFLAGS          ?= $(C_STD) $(FLTO) $(COPTS) -g0 -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
-	CXXFLAGS        ?= -std=c++23 $(FLTO) $(COPTS) -g0 -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+	CXXFLAGS        ?= -std=c++23 $(FLTO) $(COPTS) -g0 -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
 
 endif
 

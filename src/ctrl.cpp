@@ -4,14 +4,13 @@
 
 #include "external.h" // all external includes
 
+#include <oscpp/client.hpp>
+
 #include "x32config.h"
 #include "helper.h"
 #include "state.h"
 #include "xremote.h"
 #include "wsm.h"
-
-
-
 
 #include "page-meters.h"
 #include "page-rta.h"
@@ -189,7 +188,7 @@ void X32Ctrl::Tick10ms(void)
 	ProcessUartDataAES50();
 
 	// communication with XRemote-clients via UDP (X32-Edit, MixingStation, etc.)
-	//UdpHandleCommunication();
+	xremote->UdpHandleCommunication();
 
 	// communication with Sennheiser Media Control Protocol
 	UdpHandleCommunication_WSM();
