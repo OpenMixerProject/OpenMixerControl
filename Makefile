@@ -64,7 +64,7 @@ LIB_EXT_DIR		= lib_ext
 LVGL_DIR        = $(LIB_EXT_DIR)/lvgl
 GLAZE_DIR		= $(LIB_EXT_DIR)/glaze/include
 LIBARTNET_DIR	= $(LIB_EXT_DIR)/libartnet
-OSC_DIR			= $(LIB_EXT_DIR)/osc/include
+OSC_DIR			= $(LIB_EXT_DIR)/small-osc
 
 WARNINGS        := -Wall -Wshadow -Wundef -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith \
                    -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits \
@@ -75,13 +75,13 @@ WARNINGS        := -Wall -Wshadow -Wundef -Wextra -Wno-unused-function -Wno-erro
 ifeq ($(DEBUG), 1)
 
 	# debug build
-	CFLAGS          ?= $(C_STD) -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
-	CXXFLAGS        ?= -std=c++23 -g -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
+	CFLAGS          ?= $(C_STD) -g -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
+	CXXFLAGS        ?= -std=c++23 -g -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
 
 else
 
 	# normal build
-	CFLAGS          ?= $(C_STD) $(FLTO) $(COPTS) -g0 -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ $(WARNINGS) $(DEPFLAGS)
+	CFLAGS          ?= $(C_STD) $(FLTO) $(COPTS) -g0 -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
 	CXXFLAGS        ?= -std=c++23 $(FLTO) $(COPTS) -g0 -I$(LIB_DIR)/ -I$(LVGL_DIR)/ -I$(GLAZE_DIR)/ -I$(LIBARTNET_DIR)/ -I$(OSC_DIR)/ $(WARNINGS) $(DEPFLAGS)
 
 endif
@@ -93,12 +93,14 @@ LDFLAGS         ?= $(FLTO) -lm -lrt -lpthread -L$(BUILD_OBJ_DIR) $(LDFLAGS_EXTRA
 CSRCS           := $(shell find src -type f -name '*.c' -print) \
 		 	   	   $(shell find $(LIB_DIR) -type f -name '*.c' -print) \
 				   $(shell find $(LVGL_DIR)/src -type f -name '*.c' -print) \
-				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.c' -print)
+				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.c' -print) \
+				   $(shell find $(OSC_DIR) -type f -name '*.c' ! -name "main.c" -print)
 				   
 CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
 				   $(shell find $(LIB_DIR) -type f -name '*.cpp' -print) \
 				   $(shell find $(LVGL_DIR)/src -type f -name '*.cpp' -print) \
-				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.cpp' -print)
+				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.cpp' -print) \
+				   $(shell find $(OSC_DIR) -type f -name '*.cpp' -print)
 
 
 

@@ -3,7 +3,7 @@
 X32Config::X32Config(String model, Helper* h)
 {
     this->helper = h;
-    
+   
     surface_binding = new map<SurfaceElementId, SurfaceBindingParameter*>();
     
     if (model == "X32CORE")
@@ -317,11 +317,13 @@ void X32Config::DefineMixerparameters() {
     
     DefParameter(DEBUG_VALUE, cat, "DEBUG")
     ->DefNoConfig()
-    ->DefMinMaxStandard_Uint(0, 255, 0);
+    ->DefMinMaxStandard_Uint(0, 255, 0)
+    ->DefOSC("/debug");
 
 	DefParameter(LCD_CONTRAST, cat, "LCD Contrast")
     ->DefNameShort("Contrast")
-	->DefMinMaxStandard_Uint(LCD_CONTRAST_MIN, LCD_CONTRAST_MAX, LCD_CONTRAST_DEFAULT);
+	->DefMinMaxStandard_Uint(LCD_CONTRAST_MIN, LCD_CONTRAST_MAX, LCD_CONTRAST_DEFAULT)
+    ->DefOSC("/lcd_contrast");
     
     DefParameter(LED_BRIGHTNESS, cat, "LED Brightness")
 	->DefMinMaxStandard_Uint(LED_BRIGHTNESS_1, LED_BRIGHTNESS_4, LED_BRIGHTNESS_4)

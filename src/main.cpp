@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
 			->group("Debug");
 
 	vector<string> debug_parameters;
-	app->add_option("-d,--debug", debug_parameters, "Prints debugging information to stdout. You can specify one or multiple of the following flags: ADDA DMX DSP1 DSP2 FPGA FX GUI INI MIXER STATE SPI SURFACE TIMER UART X32CTRL XREMOTE")
+	app->add_option("-d,--debug", debug_parameters, "Prints debugging information to stdout. You can specify one or multiple of the following flags: ADDA DMX DSP1 DSP2 FPGA FX GUI INI MIXER OSC STATE SPI SURFACE TIMER UART X32CTRL")
 			->configurable(false)
 			->group("Debug")
 			->expected(1,-1)
@@ -488,7 +488,7 @@ int main(int argc, char* argv[])
 			if (debug_parameters[i] == "SURFACE") { helper->DEBUG_SURFACE(true); }
 			if (debug_parameters[i] == "UART") { helper->DEBUG_UART(true); }
 			if (debug_parameters[i] == "X32CTRL") { helper->DEBUG_X32CTRL(true); }
-			if (debug_parameters[i] == "XREMOTE") { helper->DEBUG_XREMOTE(true); }
+			if (debug_parameters[i] == "OSC") { helper->DEBUG_OSC(true); }
 			if (debug_parameters[i] == "INI") { helper->DEBUG_INI(true); }
 			if (debug_parameters[i] == "STATE") { helper->DEBUG_STATE(true); }
 			if (debug_parameters[i] == "TIMER") { helper->DEBUG_TIMER(true); }

@@ -76,6 +76,8 @@ class Mixerparameter
         /// @brief Hide reset label and function on display encoder.
         bool hide_encoder_reset = false;  
 
+        String osc_path = "";
+
         /// @brief Checks if the index is within the specified size of the Mixerparameter.
         /// @param index The index to check. 
         /// @throws std::out_of_range
@@ -308,6 +310,13 @@ class Mixerparameter
         Mixerparameter* DefNoConfig()
         {
             _no_config = true;
+
+            return this;
+        }
+
+        Mixerparameter* DefOSC(String path)
+        {
+            osc_path = path;
 
             return this;
         }
@@ -779,6 +788,16 @@ class Mixerparameter
         {
             value_string.clear();
             copy(newvalues_string.begin(), newvalues_string.end(), back_inserter(value_string));
+        }
+
+        bool IsOSC()
+        {
+            return osc_path.length() > 0;
+        }
+
+        String GetOSC()
+        {
+            return osc_path;
         }
 };
 

@@ -1,10 +1,15 @@
 #pragma once
 #include "page.h"
+#include "osc-client.h"
 
 using namespace std;
 
 class PageDebug: public Page
 {
+    private:
+
+        OscClient* osc_client;
+
     public:
         PageDebug(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
             prevPage = X32_PAGE::ABOUT;
@@ -13,6 +18,15 @@ class PageDebug: public Page
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 4;
+
+            osc_client = new OscClient(pagebasepar);
+        }
+
+        void OnInit() override
+        {
+            // Test Set Mixerparameter via OSC
+            osc_client->Init();
+            osc_client->UdpSendToServer();
         }
 
         void OnShow() override 
@@ -29,6 +43,8 @@ class PageDebug: public Page
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_5);
 
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE, DEBUG_VALUE);
+
+
         }
 
         void OnChangeCustomButton(SurfaceElementId surface_element_id) override

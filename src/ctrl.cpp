@@ -4,12 +4,10 @@
 
 #include "external.h" // all external includes
 
-#include <oscpp/client.hpp>
-
 #include "x32config.h"
 #include "helper.h"
 #include "state.h"
-#include "xremote.h"
+#include "osc-server.h"
 #include "wsm.h"
 
 #include "page-meters.h"
@@ -44,7 +42,7 @@ X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 {
 	mixer = new Mixer(basepar);
 	surface = new Surface(basepar);
-	xremote = new XRemote(basepar);
+	osc_server = new OscServer(basepar);
 	wsm = new WSM(basepar);
 	lcdmenu = new LcdMenu(basepar, mixer, surface); // only used for X32Core (at the moment, maybe later for assing-section?)
 
@@ -83,7 +81,7 @@ void X32Ctrl::Init()
 	surface->Init(OnSurfaceCallback, this);
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "xremote->Init()");
-	xremote->Init();
+	osc_server->Init();
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "wsm->Init()");
 	wsm->Init();
@@ -188,7 +186,7 @@ void X32Ctrl::Tick10ms(void)
 	ProcessUartDataAES50();
 
 	// communication with XRemote-clients via UDP (X32-Edit, MixingStation, etc.)
-	xremote->UdpHandleCommunication();
+	osc_server->UdpHandleCommunication();
 
 	// communication with Sennheiser Media Control Protocol
 	UdpHandleCommunication_WSM();
@@ -446,7 +444,7 @@ void X32Ctrl::UdpHandleCommunication_WSM()
 		String message = String(rxData);
 		message.replace("\r", "\r\n");
 
-		helper->DEBUG_XREMOTE(DEBUGLEVEL_NORMAL, "Sennheiser Media Control Protocoll (%s): %s", clientIp.c_str(), message.c_str());
+		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Sennheiser Media Control Protocoll (%s): %s", clientIp.c_str(), message.c_str());
 	}
 }
 

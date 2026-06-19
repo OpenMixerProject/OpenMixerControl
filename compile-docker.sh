@@ -104,7 +104,7 @@ LVGL_DIR="${LIB_EXT_DIR}/lvgl"
 GLAZE_DIR="${LIB_EXT_DIR}/glaze"
 LIBARTNET_DIR="${LIB_EXT_DIR}/libartnet"
 DOCTEST_DIR="${LIB_EXT_DIR}/doctest"
-OSC_DIR="${LIB_EXT_DIR}/osc"
+OSC_DIR="${LIB_EXT_DIR}/small-osc"
 
 # Ordner anlegen
 if [ ! -d "$LIB_EXT_DIR" ]; then
@@ -116,7 +116,7 @@ git clone --depth 1 --single-branch --branch v9.5.0 https://github.com/lvgl/lvgl
 git clone --depth 1 --single-branch --branch v7.7.1 https://github.com/stephenberry/glaze.git ${GLAZE_DIR} || git -C ${GLAZE_DIR} reset --hard HEAD
 git clone --depth 1 --single-branch https://github.com/OpenLightingProject/libartnet.git ${LIBARTNET_DIR} || git -C ${LIBARTNET_DIR} reset --hard HEAD
 git clone --depth 1 --single-branch --branch v2.5.2 https://github.com/doctest/doctest.git ${DOCTEST_DIR} || git -C ${DOCTEST_DIR} reset --hard HEAD
-git clone --depth 1 --single-branch --branch 1.0.0 https://github.com/kaoskorobase/oscpp.git ${OSC_DIR} || git -C ${OSC_DIR} reset --hard HEAD
+git clone --depth 1 --single-branch https://github.com/OpenMixerProject/SmallOSC.git ${OSC_DIR} || git -C ${OSC_DIR} reset --hard HEAD
 
 make ROOT_DIR=${ROOT_DIR} BUILD_TARGET=${BUILD_TARGET} -j$(nproc)
 

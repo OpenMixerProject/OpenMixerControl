@@ -2,7 +2,7 @@
 
 #include "mixer.h"
 #include "surface.h"
-#include "xremote.h"
+#include "osc-server.h"
 #include "wsm.h"
 #include "lcd-menu.h"
 #if ENABLE_ARTNET
@@ -22,7 +22,7 @@ class X32Ctrl : public X32Base
 
         Mixer* mixer;
         Surface* surface;
-        XRemote* xremote;
+        OscServer* osc_server;
         WSM* wsm;
         LcdMenu* lcdmenu;
         #if ENABLE_ARTNET
