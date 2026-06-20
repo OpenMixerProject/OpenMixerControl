@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageSetupCard: public Page {
     private:
         uint8_t card_channelmode;
@@ -386,3 +389,5 @@ class PageSetupCard: public Page {
         //     }
         // }
 };
+
+}

@@ -18,6 +18,8 @@
 #define ADDA_BOARD_EXPANSION 8
 #define ADDA_BOARD_EXPANSION_RETURN 9
 
+namespace OMC
+{
 
 class Adda : public X32Base {
     private:
@@ -62,4 +64,4 @@ class Adda : public X32Base {
         int8_t GetXlrInBoardId(uint8_t channel);
 };
 
-
+}

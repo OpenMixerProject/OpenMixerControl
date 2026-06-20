@@ -6,6 +6,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class SurfaceElement
 {
     private:
@@ -129,3 +132,5 @@ class SurfaceElement
         }
 
 };
+
+}

@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageDynamics: public Page {
     using enum MP_ID;
 
@@ -171,3 +174,5 @@ class PageDynamics: public Page {
             lv_chart_refresh(objects.current_channel_comp);
         }
 };
+
+}

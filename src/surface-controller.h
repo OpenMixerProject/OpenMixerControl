@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include "base.h"
 
+namespace OMC
+{
+
 class SurfaceController : public X32Base
 {
     protected:
@@ -38,3 +41,5 @@ class SurfaceController : public X32Base
         virtual void SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds) {};
         virtual void SetLcd(LcdData* p_data, uint p_textCount) {};
 };
+
+}

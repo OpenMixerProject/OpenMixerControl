@@ -24,6 +24,9 @@
 
 #include "fxmath.h"
 
+namespace OMC
+{
+
 FxMath::FxMath(X32BaseParameter* basepar) : X32Base(basepar){ }
 
 void FxMath::RecalcFilterCoefficients_PEQ(sPEQ* peq) {
@@ -417,4 +420,6 @@ void FxMath::fxCalcParameters_DynamicEQ(float data[], int band, int type, float 
   float fs = (float)config->GetUint(MP_ID::SAMPLERATE)/(16.0f); // 16 samples per buffer
   data[9] = 1.0f - exp(-1000.0f / (fs * attack)); // convert ms to coeff
   data[10] = 1.0f - exp(-1000.0f / (fs * release)); // convert ms to coeff
+}
+
 }

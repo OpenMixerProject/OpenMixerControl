@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxDelay : public FxBase {
 
     public:
@@ -17,3 +20,5 @@ class FxDelay : public FxBase {
             return "Delay";
         }
 };
+
+}

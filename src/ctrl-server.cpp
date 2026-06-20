@@ -4,11 +4,14 @@
 
 #include "external.h" // all external includes
 
-#include "x32config.h"
+#include "config.h"
 #include "helper.h"
 #include "state.h"
 #include "osc-server.h"
 #include "wsm.h"
+
+namespace OMC
+{
 
 CtrlServer::CtrlServer(X32BaseParameter* basepar) : X32Base(basepar)
 {
@@ -147,7 +150,7 @@ void CtrlServer::Tick10ms(void)
 	//   Unfreeze changed parameter list
 	//
 	
-	config->SaveResetAndUnfreezeChangedParameterList();
+	//config->SaveResetAndUnfreezeChangedParameterList();
 	//
 	//#####################################
 }
@@ -418,3 +421,4 @@ void CtrlServer::syncXRemote(bool syncAll) {
 }
 
 
+}

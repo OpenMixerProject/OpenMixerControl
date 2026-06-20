@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageHome : public Page
 {
     using enum MP_ID;
@@ -142,3 +145,5 @@ class PageHome : public Page
             // }
         }
 };
+
+}

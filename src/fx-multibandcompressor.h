@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxMultibandCompressor : public FxBase {
 
     public:
@@ -98,3 +101,5 @@ class FxMultibandCompressor : public FxBase {
             return "Combinator";
         }
 };
+
+}

@@ -26,6 +26,9 @@
 
 #include "../lib_ext/doctest/doctest/doctest.h"
 
+namespace OMC
+{
+
 String Mixerparameter::FormatValue_Intern(float value_float, uint index, bool isResetLabel)
 {
     using enum MP_UOM;
@@ -487,4 +490,6 @@ TEST_CASE("Mixerparameter")
     {
         CHECK(p->GetName() == "Ch Vol");
     }
+}
+
 }

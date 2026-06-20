@@ -24,6 +24,9 @@
 
 #include "fpga.h"
 
+namespace OMC
+{
+
 Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 	uart = new Uart(basepar);
 	spi = new SPI(basepar);
@@ -695,4 +698,6 @@ int Fpga::wrapRingBufferIndex(int index, int bufLen) {
 	}else{
 		return index;
 	}
+}
+
 }

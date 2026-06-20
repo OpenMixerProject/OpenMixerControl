@@ -6,6 +6,9 @@
 #include "../lib/WString.h"
 #include "helper.h"
 
+namespace OMC
+{
+
 // Class for holding only "temporary" state data during runtime
 class State {
 
@@ -40,3 +43,6 @@ class State {
         uint32_t dsp_spi_config_speed = 0;
         uint32_t dsp_spi_speed = 0;
 };
+
+
+}

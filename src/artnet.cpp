@@ -28,6 +28,8 @@
 
 #if ENABLE_ARTNET
 
+namespace OMC
+{
 
 Artnet::Artnet(X32BaseParameter* basepar): X32Base(basepar)
 {
@@ -134,5 +136,7 @@ void Artnet::SetChannel(uint16_t channel, float value, float timeMs)
 
 //     return dmx[channel];
 // }
+
+}
 
 #endif

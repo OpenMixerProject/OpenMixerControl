@@ -12,6 +12,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class CtrlServer : public X32Base
 {
     using enum MP_ID;
@@ -47,3 +50,5 @@ class CtrlServer : public X32Base
         
         void syncXRemote(bool syncAll);
 }; 
+
+}

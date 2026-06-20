@@ -23,9 +23,14 @@
 */
 
 #include "surface-message.h"
+
+namespace OMC
+{
     
 SurfaceMessage::SurfaceMessage(){
     current_length = 0;
 
     AddRawByte(0xFE); // Startbyte
+}
+
 }

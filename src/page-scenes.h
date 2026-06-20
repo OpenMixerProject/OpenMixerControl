@@ -4,6 +4,9 @@
 using namespace std;
 using enum MP_ID;
 
+namespace OMC
+{
+
 class PageScenes: public Page
 {
     private:
@@ -51,3 +54,5 @@ class PageScenes: public Page
             }
         }
 };
+
+}

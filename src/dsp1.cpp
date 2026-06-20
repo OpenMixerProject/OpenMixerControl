@@ -26,6 +26,9 @@
 
 #include "const.h"
 
+namespace OMC
+{
+    
 DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
 {
     spi = new SPI(basepar);
@@ -1229,4 +1232,6 @@ void DSP1::callbackDsp2(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
         default:
             break;
     }
+}
+
 }

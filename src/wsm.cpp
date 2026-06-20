@@ -37,6 +37,9 @@
 
 #include "wsm.h"
 
+namespace OMC
+{
+
 WSM::WSM(X32BaseParameter* basepar) : X32Base(basepar) {}
 
 int WSM::Init()
@@ -99,4 +102,6 @@ void WSM::SendCommand(String command, String ip)
         (struct sockaddr *) &Addr,
         sizeof(Addr)
     );
+}
+
 }

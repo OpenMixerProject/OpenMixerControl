@@ -5,6 +5,9 @@
 using namespace std;
 using enum MP_ID;
 
+namespace OMC
+{
+
 class PageRoutingDsp: public Page
 {
 	private:
@@ -276,3 +279,5 @@ class PageRoutingDsp: public Page
             }
         }
 };
+
+}

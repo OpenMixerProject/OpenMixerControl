@@ -18,6 +18,9 @@
 using namespace std;
 using enum MP_ID;
 
+namespace OMC
+{
+
 class Page : public X32Base
 {
     protected:
@@ -91,3 +94,5 @@ class Page : public X32Base
         X32_PAGE GetNextPage();
         X32_PAGE GetPrevPage();
 };
+
+}

@@ -14,6 +14,9 @@
 #include "fx-defeedback.h"
 #include "fx-matrixupmixer.h"
 
+namespace OMC
+{
+
 class FxSlot : X32Base {
 
     private:
@@ -31,3 +34,5 @@ class FxSlot : X32Base {
         FX_TYPE GetFxType();
         bool HasFx();
 };
+
+}

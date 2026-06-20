@@ -25,6 +25,9 @@
 
 #include "base.h"
 
+namespace OMC
+{
+
 class WSM : public X32Base {
     private:
 
@@ -45,3 +48,5 @@ class WSM : public X32Base {
         void SendPush();
         void SendCommand(String command, String ip);
 };
+
+}

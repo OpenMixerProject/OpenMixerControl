@@ -13,6 +13,9 @@
 #include "message-base.h"
 #include "types.h"
 
+namespace OMC
+{
+
 class Uart : public X32Base
  {
     
@@ -27,3 +30,5 @@ class Uart : public X32Base
         //void MirrorBack();
         void FlushRxBuffer();
 };
+
+}

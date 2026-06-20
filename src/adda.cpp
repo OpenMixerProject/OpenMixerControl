@@ -26,6 +26,8 @@
 
 #include "adda-message.h"
 
+namespace OMC
+{
 
 Adda::Adda(X32BaseParameter* basepar): X32Base(basepar) {
     SetMuteAll(true);
@@ -490,4 +492,6 @@ int8_t Adda::GetXlrInBoardId(uint8_t channel) {
 	}
 
 	return -1;
+}
+
 }

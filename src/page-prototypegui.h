@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PagePrototypeGui: public Page
 {
     private:
@@ -41,3 +44,5 @@ class PagePrototypeGui: public Page
             }
         }
 };
+
+}

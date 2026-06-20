@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageRouting: public Page
 {
     public:
@@ -63,3 +66,5 @@ class PageRouting: public Page
             }
         }
 };
+
+}

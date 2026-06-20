@@ -3,6 +3,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageConfig : public Page
 {
     private:
@@ -144,3 +147,5 @@ class PageConfig : public Page
             // }
         }
 };
+
+}

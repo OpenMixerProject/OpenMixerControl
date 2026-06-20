@@ -5,7 +5,8 @@
 
 using namespace std;
 
-
+namespace OMC
+{
 
 class LVGLEncoderWidget {
     public:
@@ -21,3 +22,5 @@ class LVGLEncoderWidget {
             ButtonLabel = encoder_button_label;
         }
 };
+
+}

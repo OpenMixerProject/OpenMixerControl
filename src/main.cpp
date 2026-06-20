@@ -64,7 +64,12 @@
 // #include "eez/vars.h"
 
 
-OMC* omc;
+
+
+namespace OMC
+{
+
+OpenMixerControl* omc;
 State* state;
 CLI::App* app;
 
@@ -137,14 +142,9 @@ const char * getenv_default(const char * name, const char * default_val)
     return value ? value : default_val;
 }
 
-void action_action_key(lv_event_t * e)
-{
-	#ifdef TARGET_PC_SDL2
-	omc->SimulatorButton();
-	#endif
-}
 
-int main(int argc, char* argv[])
+
+int startup(int argc, char* argv[])
 {
 	// run Doctest if "--test" is the first commandline argument
 	if (argc > 1 && !strcmp(argv[1], "--test"))
@@ -170,6 +170,8 @@ int main(int argc, char* argv[])
 	argv = app->ensure_utf8(argv);
 
 	// Command line options
+	app->add_flag("--client", "Run as Client")
+		->configurable(false);
 	app->add_flag("--version", "Get the version number, builddate and a nice logo")
 		->configurable(false);
 	app->add_flag("-p,--print", "Print configuration and exit")
@@ -326,15 +328,16 @@ int main(int argc, char* argv[])
 	String model_str = String(model);
 	if (state->bodyless)
 	{
-		//model_str ="X32C";
-		model_str ="WINGC";
+		model_str ="X32C";
+		//model_str ="WINGC";
 	}
 	else if (state->raspi)
 	{
 		model_str = "X32RACK";
 	}
 
-	X32Config* config = new X32Config(model_str, helper);
+	bool runAsClient = app->count("--client") > 0;
+	X32Config* config = new X32Config(model_str, helper, runAsClient);
 
 	config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 
@@ -372,10 +375,24 @@ int main(int argc, char* argv[])
 
 	X32BaseParameter* basepar = new X32BaseParameter(app, config, state, helper);
 
-	omc = new OMC(basepar);
+	omc = new OpenMixerControl(basepar);
 
 	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "omc->Init()");
 	omc->Init();  // initialize the whole thing and load config
 
     exit(0);
+}
+
+}
+
+void action_action_key(lv_event_t * e)
+{
+	#ifdef TARGET_PC_SDL2
+	OMC::omc->SimulatorButton();
+	#endif
+}
+
+int main(int argc, char* argv[])
+{
+	return OMC::startup(argc, argv);
 }

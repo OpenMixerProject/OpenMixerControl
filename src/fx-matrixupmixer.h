@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxMatrixUpmixer : public FxBase
 {
     using enum  MP_ID;
@@ -15,3 +18,5 @@ class FxMatrixUpmixer : public FxBase
             return "MatrixUpmixer";
         }
 };
+
+}

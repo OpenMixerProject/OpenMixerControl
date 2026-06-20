@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxChorus : public FxBase
 {
     using enum  MP_ID;
@@ -26,3 +29,5 @@ class FxChorus : public FxBase
             return "Chorus";
         }
 };
+
+}

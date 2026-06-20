@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 
+namespace OMC
+{
+
 class SurfaceFader{
     public:
         uint16_t position_real = 0;
@@ -10,3 +13,5 @@ class SurfaceFader{
         uint16_t setcheck_oldvalue = 0;
         uint16_t setcheck_newvalue = 0;
 };
+
+}

@@ -11,6 +11,9 @@
 
 #include "base.h"
 
+namespace OMC
+{
+
 class OscServer : public X32Base 
 {
     private:
@@ -18,7 +21,7 @@ class OscServer : public X32Base
         char TxMessage[450]; // the largest binary blob will take up to 20+(70+1))*4 bytes = 408 bytes
         int counter = 0;
 
-        map<String, MP_ID> oscPaths;
+        map<String, MP_ID>* oscPaths;
 
     public:
         int UdpHandle;
@@ -32,3 +35,5 @@ class OscServer : public X32Base
         void SendUdpPacket(char* buffer, uint16_t size);
         void SendBasicMessage(const char* cmd, char type, char format, char* value);
 };
+
+}

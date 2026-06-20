@@ -21,6 +21,9 @@
 using namespace std;
 using namespace WString;
 
+namespace OMC
+{
+
 class Helper
 {
     private:
@@ -143,3 +146,5 @@ class Helper
         uint8_t CalculateWingChecksum(const uint8_t *payload, size_t len);
         String RoutingGetOutputNameByIndex(uint8_t index);
 };
+
+}

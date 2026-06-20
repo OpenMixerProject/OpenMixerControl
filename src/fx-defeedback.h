@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxDeFeedback : public FxBase
 {
     using enum  MP_ID;
@@ -15,3 +18,5 @@ class FxDeFeedback : public FxBase
             return "DeFeedback";
         }
 };
+
+}

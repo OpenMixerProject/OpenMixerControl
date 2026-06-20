@@ -8,6 +8,9 @@
 #include "surface-fader.h"
 #include "surface-controller.h"
 
+namespace OMC
+{
+
 //class Surface;
 
 // Die 4 möglichen Zustände einer LED
@@ -83,3 +86,6 @@ class SurfaceControllerWing : public SurfaceController
         void SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink) override;
         void SetLcd(LcdData* p_data, uint p_textCount);
 };
+
+
+}

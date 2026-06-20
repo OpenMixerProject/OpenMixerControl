@@ -3,7 +3,10 @@
 #include "ctrl-server.h"
 #include "ctrl-client.h"
 
-class OMC
+namespace OMC
+{
+
+class OpenMixerControl
 {
     private:
 
@@ -14,7 +17,7 @@ class OMC
 
     public:
 
-        OMC(X32BaseParameter* basepar);
+        OpenMixerControl(X32BaseParameter* basepar);
         
         void Init();
         
@@ -24,3 +27,5 @@ class OMC
 
         void SimulatorButton();
 };
+
+}

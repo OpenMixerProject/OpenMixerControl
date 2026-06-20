@@ -1,11 +1,13 @@
 #pragma once
 
-#include "x32config.h"
+#include "config.h"
 #include "state.h"
 #include "helper.h"
 #include "base-parameter.h"
 
-// The string class
+namespace OMC
+{
+
 class X32Base
 {
     protected:
@@ -17,3 +19,5 @@ class X32Base
     public:
         X32Base(X32BaseParameter* basepar);
 };
+
+}

@@ -12,6 +12,9 @@
 using namespace std;
 using namespace WString;
 
+namespace OMC
+{
+
 /// @brief Mixerparameter contains data and many metadata about a mixer parameter. Def*-functions define, Get*-functions retrieve data, Set*/Change*/Toggle*-functions manipulate data.
 class Mixerparameter
 {
@@ -801,15 +804,18 @@ class Mixerparameter
         }
 };
 
+}
 
 template <>
-    struct glz::meta<Mixerparameter> {
-        using T = Mixerparameter;
+    struct glz::meta<OMC::Mixerparameter> {
+        using T = OMC::Mixerparameter;
         static constexpr auto value = glz::object(
             &T::parameter_id,
             &T::value //,            &T::value_string
         );
     };
+
+
 
 namespace glz
 {

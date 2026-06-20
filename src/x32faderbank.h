@@ -5,6 +5,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class X32ChannelStrip
 {
     public:
@@ -79,3 +82,5 @@ class X32FaderBank
             }
         }
 };
+
+}

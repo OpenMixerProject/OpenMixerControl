@@ -27,10 +27,11 @@
 
 #include <small-osc.h>
 
+namespace OMC
+{
 
 OscClient::OscClient(X32BaseParameter* basepar) : X32Base(basepar) 
 {
-
 }
 
 int8_t OscClient::Init()
@@ -59,17 +60,7 @@ int8_t OscClient::Init()
     }
 
     // Build map of osc-paths from Mixerparameters
-
-    Mixerparameter** mpArray = config->GetParameterList();
-    for (uint m = 0; m < (uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE; m++)
-    {
-        Mixerparameter* parameter = mpArray[m];
-
-        if (parameter->IsOSC())
-        {
-            oscPaths.insert({parameter->GetOSC(), parameter->GetId()});
-        }
-    }
+    oscPaths = config->GetOscPaths();
     
     return 0;
 }
@@ -97,11 +88,11 @@ void OscClient::UdpHandleCommunication()
             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Received OSC-Message: Path: %s Format: %s", osc_path.c_str(), osc_format.c_str());
 
             // Find matching Mixerparameter
-            uint found = oscPaths.count(osc_path);
+            uint found = oscPaths->count(osc_path);
 			if (found == 1) 
             {
                 // set the received values
-                Mixerparameter* parameter = config->GetParameter(oscPaths[osc_path]);
+                Mixerparameter* parameter = config->GetParameter(oscPaths->at(osc_path));
                 if (osc_format == "is")
                 {
                     int index = tosc_getNextInt32(&osc);
@@ -178,4 +169,6 @@ void OscClient::SendBasicMessage(const char* cmd, char type, char format, char* 
     // }
 
     // SendUdpPacket(TxMessage, len);
+}
+
 }

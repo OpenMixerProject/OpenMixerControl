@@ -3,6 +3,9 @@
 #include "base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxBase : public X32Base {
 
     protected:
@@ -17,3 +20,5 @@ class FxBase : public X32Base {
         
         virtual String GetName();    
 };
+
+}

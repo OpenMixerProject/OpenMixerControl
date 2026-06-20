@@ -24,6 +24,9 @@
 
 #include "lcd-menu.h"
 
+namespace OMC
+{
+
 LcdMenu::LcdMenu(X32BaseParameter* basepar, Surface* _surface) : X32Base(basepar)
 {
     this->surface = _surface;
@@ -117,4 +120,6 @@ void LcdMenu::OnLcdEncoderPressed()
     encoderModeSelection = !encoderModeSelection;
 
     OnChange(true);
+}
+
 }

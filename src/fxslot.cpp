@@ -24,6 +24,9 @@
 
 #include "fxslot.h"
 
+namespace OMC
+{
+
 FxSlot::FxSlot(X32BaseParameter* basepar) : X32Base(basepar){
 	_basepar = basepar;
 }
@@ -87,4 +90,6 @@ FX_TYPE FxSlot::GetFxType() {
 
 bool FxSlot::HasFx(){
 	return fxType != FX_TYPE::NONE;
+}
+
 }

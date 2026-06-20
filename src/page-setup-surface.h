@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageSetupSurface: public Page
 {
     private:
@@ -448,3 +451,5 @@ class PageSetupSurface: public Page
             }
         }
 };
+
+}

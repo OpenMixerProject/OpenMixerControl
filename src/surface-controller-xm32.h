@@ -7,6 +7,9 @@
 #include "surface-fader.h"
 #include "surface-controller.h"
 
+namespace OMC
+{
+
 class Surface;
 
 class SurfaceControllerXM32 : public SurfaceController
@@ -60,3 +63,5 @@ class SurfaceControllerXM32 : public SurfaceController
         void SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds) override;
         void SetLcd(LcdData* p_data, uint p_textCount) override;
 };
+
+}

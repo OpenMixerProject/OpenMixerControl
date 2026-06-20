@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageRoutingChannels: public Page
 {
 	using enum MP_ID;
@@ -272,3 +275,5 @@ class PageRoutingChannels: public Page
             }
         }
 };
+
+}

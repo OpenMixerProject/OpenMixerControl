@@ -2,10 +2,13 @@
 
 #include "base-parameter.h"
 #include "../lib/CLI11.hpp"
-#include "x32config.h"
+#include "config.h"
 #include "state.h"
 #include "helper.h"
 #include "surface.h"
+
+namespace OMC
+{
 
 class PageBaseParameter : public X32BaseParameter {
     public:
@@ -16,3 +19,5 @@ class PageBaseParameter : public X32BaseParameter {
             surface = su;
         }
 };
+
+}

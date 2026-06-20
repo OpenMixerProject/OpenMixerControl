@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageRoutingFpga: public Page
 {
     using enum MP_ID;
@@ -215,3 +218,5 @@ class PageRoutingFpga: public Page
             SyncEncoderWidgets(true);
         }
 };
+
+}

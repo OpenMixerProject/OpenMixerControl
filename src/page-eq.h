@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageEq: public Page {
 
     using enum MP_ID;
@@ -141,3 +144,5 @@ class PageEq: public Page {
             lv_chart_refresh(objects.current_channel_eq);
         }
 };
+
+}

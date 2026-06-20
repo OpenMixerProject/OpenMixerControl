@@ -4,6 +4,9 @@
 using namespace std;
 using enum MP_ID;
 
+namespace OMC
+{
+
 class PageMeters : public Page 
 {
     private:
@@ -181,3 +184,5 @@ class PageMeters : public Page
             }
         }
 };
+
+}

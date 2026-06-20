@@ -24,6 +24,9 @@
 
 #include "card.h"
 
+namespace OMC
+{
+
 Card::Card(X32BaseParameter* basepar, Adda* _adda) : X32Base(basepar) {
     this->adda = _adda;
 }
@@ -473,4 +476,6 @@ String Card::XLIVE_GetCardNominalSizeString(uint card) {
     }else{
         return "Unsupported Card?";
     }
+}
+
 }

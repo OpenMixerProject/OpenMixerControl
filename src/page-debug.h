@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageDebug: public Page
 {
     private:
@@ -24,13 +27,7 @@ class PageDebug: public Page
 
         void OnInit() override
         {            
-            osc_client->Init();
-
-            // Test Set Mixerparameter via OSC
-            osc_client->UdpSendToServer();
-
-            // Test Get Mixerparameter via OSC
-            osc_client->UdpSendToServer();
+            
         }
 
         void OnShow() override 
@@ -144,3 +141,5 @@ class PageDebug: public Page
             }
         }
 };
+
+}

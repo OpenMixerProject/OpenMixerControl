@@ -18,6 +18,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class SurfaceController;
 
 class Surface : public X32Base
@@ -103,3 +106,5 @@ class Surface : public X32Base
 
         void Blink();
 };
+
+}

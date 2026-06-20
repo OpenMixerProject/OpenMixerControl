@@ -32,6 +32,9 @@
 
 #include "defines.h"
 
+namespace OMC
+{
+
 SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
 
 // configures a Xilinx Spartan 3A via SPI
@@ -1280,4 +1283,6 @@ SpiEvent* SPI::GetNextEvent(void){
     SpiEvent* event = eventBuffer.back();
     eventBuffer.pop_back();
     return event;
+}
+
 }

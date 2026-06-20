@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxTransientshaper : public FxBase {
 
     public:
@@ -21,3 +24,5 @@ class FxTransientshaper : public FxBase {
             return "TranShape";
         }
 };
+
+}

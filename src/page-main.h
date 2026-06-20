@@ -3,6 +3,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageMain : public Page
 {
     using enum MP_ID;
@@ -34,3 +37,5 @@ class PageMain : public Page
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_4, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_SUB);
         }
 };
+
+}

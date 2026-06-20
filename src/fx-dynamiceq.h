@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxDynamicEQ : public FxBase {
 
     public:
@@ -44,3 +47,5 @@ class FxDynamicEQ : public FxBase {
             return "DEQ";
         }
 };
+
+}

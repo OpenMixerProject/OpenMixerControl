@@ -5,7 +5,7 @@
 
 #include "external.h"
 #include "defines.h"
-#include "x32config.h"
+#include "config.h"
 #include "types.h"
 #include "base.h"
 
@@ -20,6 +20,9 @@
 
 using namespace std;
 using enum MP_ID;
+
+namespace OMC
+{
 
 class Mixer : public X32Base
 {
@@ -54,3 +57,5 @@ class Mixer : public X32Base
         void Sync(void);
         uint8_t halGetDspInputSource(uint8_t dspChannel);
 };
+
+}

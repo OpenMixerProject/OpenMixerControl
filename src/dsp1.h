@@ -6,6 +6,9 @@
 #include "fxmath.h"
 #include "fxslot.h"
 
+namespace OMC
+{
+
 class DSP1 : X32Base {
 
     using enum MP_ID;
@@ -68,3 +71,5 @@ class DSP1 : X32Base {
         void callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values);
         void callbackDsp2(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values);
 };
+
+}

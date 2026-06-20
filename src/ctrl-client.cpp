@@ -2,7 +2,7 @@
 
 #include "main.h"
 #include "version.h"
-#include "x32config.h"
+#include "config.h"
 #include "helper.h"
 #include "state.h"
 
@@ -35,6 +35,9 @@
 #include "surface-controller.h"
 
 #include "eez/ui.h"
+
+namespace OMC
+{
 
 CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
 {
@@ -260,6 +263,15 @@ void CtrlClient::Tick10ms(void)
 		// sync GUI(s) last, to get visual response after the hardware is synced!
 		syncSurface(false);
 	}
+
+	// // send changed Mixerparameter to Server
+	// if (config->IsClientMode())
+	// {
+	// 	osc_client->Init();
+
+    //     // Test Set Mixerparameter via OSC
+    //     osc_client->UdpSendToServer();
+	// }
 
     //#####################################
 	//
@@ -2220,4 +2232,6 @@ void CtrlClient::SimulatorButton()
 			ProcessSurface(X32_BOARD_L, 'f', 0, 0x000C);
 			break;
 	}
+}
+
 }

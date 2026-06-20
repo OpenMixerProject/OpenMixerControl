@@ -14,6 +14,9 @@ using enum MP_ID;
 
 #include "artnet/artnet.h"
 
+namespace OMC
+{
+
 class Artnet : public X32Base
 {
     public:
@@ -31,5 +34,7 @@ class Artnet : public X32Base
         float dmxDest[MAX_ARTNET_CHANNELS];
         float dmxStep[MAX_ARTNET_CHANNELS];
 };
+
+}
 
 #endif

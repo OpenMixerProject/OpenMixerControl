@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageEffects: public Page {
 
     private:
@@ -231,3 +234,5 @@ class PageEffects: public Page {
             }
         }
 };
+
+}

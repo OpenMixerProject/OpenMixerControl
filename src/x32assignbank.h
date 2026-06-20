@@ -5,6 +5,9 @@
 #include "surfacebindingparameter.h"
 #include "mixerparameter.h"
 
+namespace OMC
+{
+
 class OMCAssignBank
 {
     private:
@@ -64,3 +67,4 @@ class OMCAssignBank
         }
 };
 
+}

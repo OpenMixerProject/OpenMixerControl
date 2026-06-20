@@ -1,0 +1,175 @@
+#pragma once
+
+#include <algorithm>
+#include <map>
+#include <set>
+
+#include "types.h"
+#include "../lib/WString.h"
+
+#include "helper.h"
+
+#include "mixerparameter.h"
+#include "surfaceelement.h"
+#include "x32faderbank.h"
+#include "x32assignbank.h"
+
+using enum MP_ID;
+
+namespace OMC
+{
+    class X32Config
+    {
+        private:
+
+            bool runAsClient;
+            string serverIp = "127.0.0.1";
+
+            Helper* helper;
+
+            // Mixerparameter
+
+            Mixerparameter* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE];
+            map<MP_ID, set<uint>>* mp_changedlist = new map<MP_ID, set<uint>>();
+            bool MixerParameterChangelistFreeze = false;
+            map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
+
+            
+            void SetParameterChanged(MP_ID mp, uint index);
+
+            // Surfaceelements
+            SurfaceElement* sem[(uint)SurfaceElementId::__ELEMENT_COUNTER_DO_NOT_MOVE];
+
+            // surface binding
+            map<SurfaceElementId, SurfaceBindingParameter*>* surface_binding;
+            set<SurfaceElementId> surface_binding_changed;
+
+            OMCAssignBank* assingBanks[(uint)X32AssignBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
+
+
+            // old
+            OMC_MODEL _model;
+
+        public:
+
+            X32Config(String model, Helper* h, bool runAsClient);
+
+            bool LoadConfig(uint scene);
+            void Save(uint scene);
+
+            void DefineMixerparameters();
+            Mixerparameter* DefParameter(MP_ID mp_type, MP_CAT category, String name, uint count = 1);
+            Mixerparameter* GetParameter(MP_ID mp);
+
+            map<String, MP_ID>* GetOscPaths();
+            
+            map<MP_ID, set<uint>>* GetChangedParameterList();
+
+            MP_ID MpCalcId(MP_ID mp_id, int amount);
+            
+            vector<uint> GetChangedParameterIndexes(MP_CAT parameter_cat);
+            vector<uint> GetChangedParameterIndexes(vector<MP_ID> filter_ids);
+            bool HasParameterChanged(MP_ID parameter_id);
+            bool HasParameterChanged(MP_ID parameter_id, uint index);
+            bool HasBoundParameterChanged(SurfaceElementId id);
+            bool HasParametersChanged(vector<MP_ID> parameter_id);
+            bool HasParametersChanged(vector<MP_ID> parameter_id, uint index);
+            bool HasParametersChanged(MP_CAT parameter_cat);
+            bool HasParametersChanged(MP_CAT parameter_cat, uint index);
+            bool HasAnyParameterChanged();
+            void FreezeParameterList();
+            void SetParameterUnchanged(MP_ID mp);
+            void SaveResetAndUnfreezeChangedParameterList();
+            
+            float GetFloat(MP_ID mp, uint index = 0);
+            int GetInt(MP_ID mp, uint index = 0);
+            uint GetUint(MP_ID mp, uint index = 0);
+            bool GetBool(MP_ID mp, uint index = 0);
+            String GetString(MP_ID mp, uint index = 0);
+            uint GetPercent(MP_ID mp, uint index = 0);
+            bool GetBlink(MP_ID mp);
+            void Set(MP_ID mp, float value, uint index = 0);    
+            void Set(MP_ID mp, String value_string, uint index = 0
+            );
+            void Change(MP_ID mp, int amount, uint index = 0);
+            void Toggle(MP_ID mp, uint index = 0);
+            void Refresh(MP_ID mp, uint index = 0);
+            void Reset(MP_ID mp, uint index = 0);
+
+            MP_ID ParameterCalcId(SurfaceBindingParameter* binding_parameter);
+            uint ParameterCalcIndex(SurfaceBindingParameter* binding_parameter);
+            MP_ID ParameterDependsOn(SurfaceBindingParameter* binding_parameter);
+            MP_ID ParameterDependsOn(MixerparameterAction mp_action);
+
+            void DefineSurfaceElements();
+            SurfaceElement* DefSurfaceElements(SurfaceElementId element_id, String name);
+
+            SurfaceElementId CalcSurfaceElementId(SurfaceElementId id, int amount);
+
+            bool HasSurfaceElement(SurfaceElementId id);
+            SurfaceElement* GetSurfaceElement(SurfaceElementId);
+            SurfaceElement* GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_t value);
+            SurfaceElement* GetSurfaceElementButton_Wing(OMC_BOARD board, uint index);
+            SurfaceElement* GetSurfaceElementEncoder(OMC_BOARD board, uint8_t index);
+            SurfaceElement* GetSurfaceElementFader(OMC_BOARD board, uint8_t index);
+            
+            map<SurfaceElementId, SurfaceBindingParameter*>* GetSurfaceBinding();
+            SurfaceBindingParameter* GetSurfaceBinding(SurfaceElementId elementId);
+            void SurfaceBindParameter(SurfaceElementId surfaceelement_id, SurfaceBindingParameter* binding_parameter);
+            void SurfaceBind(SurfaceElementId surfaceelement_id, MixerparameterAction action, MP_ID mixerparaemter_id, uint mixerparameter_index = 0, uint extra_value = 0);
+            // void SurfaceBind(SurfaceElementId surfaceelement_id, X32Action action);
+            void SurfaceUnbind(SurfaceElementId surfaceelement_id);
+            void SurfaceBindCustom(SurfaceElementId surfaceelement_id, String labeltext = "");
+
+            bool HasAnySurfaceBindingChanged();
+            bool HasSurfaceBindingChanged(SurfaceElementId elementId);
+            void RemoveSurfaceBindingChanged(SurfaceElementId elementId);
+
+            bool IsClientMode();
+
+            bool IsModelX32Full();
+            bool IsModelX32FullOrM32();
+            bool IsModelX32FullOrCompactOrM32();
+            bool IsModelX32FullOrCompactOrProducerOrM32OrM32R();
+            bool IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack();
+            bool IsModelX32CompactOrProducerOrM32R();
+            bool IsModelX32ProducerOrRackOrM32R();
+            bool IsModelX32Core();
+            bool IsModelX32Rack();
+            bool IsModelX32Producer();
+            bool IsModelX32Compact();
+            bool IsModelX32CompactOrM32R();
+            bool IsModelM32();
+            bool IsModelM32R();
+            bool IsModelM32C();
+            bool IsModelAnyXM32();
+            bool IsModelWingFull();
+            bool IsModelWingCompact();
+            bool IsModelWingRack();
+            bool IsModelAnyWing();
+
+            bool HasDisplay();
+            bool HasBigDisplay();
+            bool HasSmallDisplay();
+            bool HasTouchDisplay();
+
+            void InitAssignBanks();
+            OMCAssignBank* GetAssignBank(X32AssignBankId id);
+    };
+
+    class X32ConfigFileEntry
+    {
+        public:
+            MP_ID MixerparameterId;
+            String MixerparameterName;
+            vector<float> value;
+            vector<String> string_value;
+    };
+
+    class X32ConfigFile
+    {
+        public:
+            vector<X32ConfigFileEntry> entries;
+    };
+}
+

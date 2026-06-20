@@ -14,6 +14,9 @@ static lv_indev_t *keyboard;
 
 using namespace std;
 
+namespace OMC
+{
+
 class CtrlClient : public X32Base
 {
     private:
@@ -75,3 +78,5 @@ class CtrlClient : public X32Base
 
         void SimulatorButton();
 };
+
+}

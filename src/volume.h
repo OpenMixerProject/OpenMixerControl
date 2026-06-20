@@ -4,6 +4,9 @@
 #include "defines.h"
 #include "base.h"
 
+namespace OMC
+{
+
 class Volume : public X32Base {
     private:
         float _volumeDbfs;
@@ -13,3 +16,5 @@ class Volume : public X32Base {
         float GetDbfs(void);
         float GetFadervalue(void);
 };
+
+}

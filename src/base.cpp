@@ -24,9 +24,14 @@
 
 #include "base.h"
 
+namespace OMC
+{
+
 X32Base::X32Base(X32BaseParameter* basepar){
     this->app = basepar->app;
     this->config = basepar->config;
     this->state = basepar->state;
     this->helper = basepar->helper;
+}
+
 }

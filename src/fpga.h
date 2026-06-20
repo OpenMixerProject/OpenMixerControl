@@ -19,6 +19,9 @@
 #define FPGA_IDX_CH_VOL    200  // here we need 40 values here
 #define FPGA_UART_BUFFER_SIZE  450 // slightly more than the longest message (408 bytes)
 
+namespace OMC
+{
+
 class Fpga : public X32Base
 {
     using enum MP_ID;
@@ -71,3 +74,5 @@ class Fpga : public X32Base
         bool AES50CalcChecksum(char* buf, bool insertChecksum);
         int wrapRingBufferIndex(int index, int bufLen);
 };
+
+}

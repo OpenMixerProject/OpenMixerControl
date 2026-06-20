@@ -3,6 +3,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageSends : public Page
 {
     using enum MP_ID;
@@ -52,3 +55,5 @@ class PageSends : public Page
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE_SELECTED_CHANNEL, config->MpCalcId(CHANNEL_BUS_SEND02_TAPPOINT, bankingSends * 2));
         }
 };
+
+}

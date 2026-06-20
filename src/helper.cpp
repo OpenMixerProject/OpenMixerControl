@@ -34,6 +34,9 @@
 
 #include "defines.h"
 
+namespace OMC
+{
+
 void Helper::Log(const char* format, ...)
 {
 	va_list args;
@@ -711,4 +714,6 @@ String Helper::RoutingGetOutputNameByIndex(uint8_t index) {
     }
 
     return "???";
+}
+
 }

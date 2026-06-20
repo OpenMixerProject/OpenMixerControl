@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageLibrary: public Page {
     public:
         PageLibrary(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
@@ -9,3 +12,5 @@ class PageLibrary: public Page {
             tabIndex0 = 4;
         }
 };
+
+}

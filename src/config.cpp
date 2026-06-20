@@ -1,9 +1,13 @@
-#include "x32config.h"
+#include "config.h"
 
-X32Config::X32Config(String model, Helper* h)
+namespace OMC
 {
+
+X32Config::X32Config(String model, Helper* h, bool runAsClient)
+{
+    this->runAsClient = runAsClient;
     this->helper = h;
-   
+       
     surface_binding = new map<SurfaceElementId, SurfaceBindingParameter*>();
     
     if (model == "X32CORE")
@@ -55,6 +59,11 @@ X32Config::X32Config(String model, Helper* h)
     DefineMixerparameters();
     DefineSurfaceElements();
     InitAssignBanks();
+}
+
+bool X32Config::IsClientMode()
+{
+    return runAsClient;
 }
 
 bool X32Config::IsModelX32Full() {
@@ -1348,9 +1357,22 @@ void X32Config::DefineMixerparameters() {
 //#
 //########################################################################################################################################
 
-Mixerparameter** X32Config::GetParameterList()
+map<String, MP_ID>* X32Config::GetOscPaths()
 {
-    return mpm;
+    map<String, MP_ID>* oscPaths = new map<String, MP_ID>();
+
+    // Build map of osc-paths from Mixerparameters
+    for (uint m = 0; m < (uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE; m++)
+    {
+        Mixerparameter* parameter = mpm[m];
+
+        if (parameter->IsOSC())
+        {
+            oscPaths->insert({parameter->GetOSC(), parameter->GetId()});
+        }
+    }
+
+    return oscPaths;
 }
 
 map<MP_ID, set<uint>>* X32Config::GetChangedParameterList()
@@ -1586,9 +1608,19 @@ bool X32Config::GetBlink(MP_ID mp)
 
 void X32Config::Set(MP_ID mp, float value, uint index)
 {
-    mpm[(uint)mp]->Set(value, index);
+    if (IsClientMode() )//&& IsServerParameter())
+    {
+        // Send Parameter to Server via Callback
 
-    SetParameterChanged(mp, index);
+
+    }
+    else
+    {
+        // Process Parameter localy
+
+        mpm[(uint)mp]->Set(value, index);
+        SetParameterChanged(mp, index);
+    }
 }
 
 void X32Config::Set(MP_ID mp, String value_string, uint index)
@@ -3260,4 +3292,7 @@ void X32Config::InitAssignBanks()
 OMCAssignBank* X32Config::GetAssignBank(X32AssignBankId id)
 {
     return assingBanks[(uint)id];
+}
+
+
 }

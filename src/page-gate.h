@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageGate: public Page {
     public:
         PageGate(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
@@ -164,3 +167,5 @@ class PageGate: public Page {
             lv_chart_refresh(objects.current_channel_gate);
         }
 };
+
+}

@@ -26,6 +26,8 @@
 #include "uart.h"
 #include "base-parameter.h"
 
+namespace OMC
+{
 
 Uart::Uart(X32BaseParameter* basepar): X32Base(basepar) {}
 
@@ -279,4 +281,6 @@ TEST_CASE("UART")
         }
     }
     
+}
+
 }

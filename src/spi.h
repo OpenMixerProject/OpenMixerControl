@@ -65,6 +65,9 @@ typedef struct {
   int level; // tail will be calculated based on the level
 } sSpiTxRingBuffer;
 
+namespace OMC
+{
+
 class SPI : public X32Base {
 
   /*
@@ -127,3 +130,6 @@ class SPI : public X32Base {
     bool HasNextEvent(void);
     SpiEvent* GetNextEvent(void);
 };
+
+
+}

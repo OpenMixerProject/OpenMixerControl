@@ -14,6 +14,9 @@
 
 using namespace WString;
 
+namespace OMC
+{
+
 class Card : X32Base
 {
     using enum MP_ID;
@@ -65,3 +68,5 @@ class Card : X32Base
         String XLIVE_CardUsedSpaceToString(uint card);
         String XLIVE_GetCardNominalSizeString(uint card);
    };
+
+}

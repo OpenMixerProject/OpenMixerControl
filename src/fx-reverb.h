@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxReverb : public FxBase {
 
     public:
@@ -20,3 +23,5 @@ class FxReverb : public FxBase {
             return "Reeeverb";
         }
 };
+
+}

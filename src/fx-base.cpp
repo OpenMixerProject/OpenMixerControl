@@ -24,6 +24,9 @@
 
 #include "fx-base.h"
 
+namespace OMC
+{
+
 FxBase::FxBase(X32BaseParameter* basepar) : X32Base(basepar){ }
 
 
@@ -43,4 +46,6 @@ MP_ID FxBase::GetParameterDefinition(uint8_t index) {
 
     helper->DEBUG_FX(DEBUGLEVEL_VERBOSE, "FxBase::GetParameterDefinition(%d)", index);
     return parameters[index];
+}
+
 }

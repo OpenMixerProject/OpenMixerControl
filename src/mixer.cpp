@@ -24,6 +24,9 @@
 
 #include "mixer.h"
 
+namespace OMC
+{
+
 Mixer::Mixer(X32BaseParameter* basepar): X32Base(basepar) {
     fpga = new Fpga(basepar);
     dsp = new DSP1(basepar);
@@ -691,3 +694,4 @@ void Mixer::halSendPhantomPower(uint8_t dspChannel) {
     }
 }
 
+}

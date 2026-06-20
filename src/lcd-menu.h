@@ -8,6 +8,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class LcdMenu : public X32Base
 {
     private:
@@ -35,3 +38,5 @@ class LcdMenu : public X32Base
         void OnLcdEncoderTurned(int8_t amount);
         void OnLcdEncoderPressed();
 };
+
+}

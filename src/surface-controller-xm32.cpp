@@ -1,5 +1,8 @@
 #include "surface-controller-xm32.h"
 
+namespace OMC
+{
+
 SurfaceControllerXM32::SurfaceControllerXM32(X32BaseParameter* basepar) : SurfaceController(basepar)
 {
     uart = new Uart(basepar);
@@ -532,4 +535,6 @@ void SurfaceControllerXM32::SetLed(SurfaceElementId buttonOrLed, bool ledOn, boo
 
     SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
     SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
+}
+
 }

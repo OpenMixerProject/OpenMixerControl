@@ -24,6 +24,9 @@
 
 #include "volume.h"
 
+namespace OMC
+{
+
 void Volume::SetDbfs(float vol){
     _volumeDbfs = vol;
 }
@@ -38,4 +41,6 @@ float Volume::GetDbfs(void){
 
 float Volume::GetFadervalue(void){
     return helper->Dbfs2Fader(_volumeDbfs);
+}
+
 }

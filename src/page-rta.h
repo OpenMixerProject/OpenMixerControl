@@ -4,6 +4,9 @@
 using namespace std;
 using enum MP_ID;
 
+namespace OMC
+{
+
 class PageRta : public Page 
 {
      private:
@@ -77,3 +80,5 @@ class PageRta : public Page
             // }
         }      
 };
+
+}

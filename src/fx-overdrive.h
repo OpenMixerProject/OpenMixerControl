@@ -3,6 +3,9 @@
 #include "fx-base.h"
 #include "defines.h"
 
+namespace OMC
+{
+
 class FxOverdrive : public FxBase {
 
     public:
@@ -21,3 +24,5 @@ class FxOverdrive : public FxBase {
             return "Overdrive";
         }
 };
+
+}

@@ -1,5 +1,8 @@
 #include "surface-controller-wing.h"
 
+namespace OMC
+{
+
 SurfaceControllerWing::SurfaceControllerWing(X32BaseParameter* basepar) : SurfaceController(basepar)
 {
     memset(&parser, 0, sizeof(parser));
@@ -649,3 +652,4 @@ void SurfaceControllerWing::SetUserLcd(LcdData* p_data, uint p_textCount)
     SendWingFrame(false, 'T', payload, p);
 }
 
+}

@@ -2,6 +2,9 @@
 
 #include "base.h"
 
+namespace OMC
+{
+
 class FxMath : X32Base {
 
     public:
@@ -27,3 +30,5 @@ class FxMath : X32Base {
         void fxCalcParameters_MultibandCompressorFreq(float data[], int channel, float freq[4]);
         void fxCalcParameters_DynamicEQ(float data[], int band, int type, float frequency, float staticGain, float maxDynamicGain, float Q, float threshold, float ratio, float attack, float release);
 };
+
+}

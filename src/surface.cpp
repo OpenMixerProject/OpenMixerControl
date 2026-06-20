@@ -24,6 +24,8 @@
 
 #include "surface.h"
 
+namespace OMC
+{
 
 Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
 {
@@ -1093,5 +1095,4 @@ void Surface::SetLed(SurfaceElementId buttonOrLed, bool state, bool blink)
     }
 }
 
-
-
+}

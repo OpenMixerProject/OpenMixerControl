@@ -24,6 +24,9 @@
 
 #include "page.h"
 
+namespace OMC
+{
+
 Page::Page(PageBaseParameter* pagebasepar) : X32Base(pagebasepar)
 {
     helper->DEBUG_GUI(DEBUGLEVEL_NORMAL, "Page::Page()");
@@ -369,4 +372,6 @@ void Page::ClearEncoderButton(LVGLEncoderWidget *binding)
 {
     lv_label_set_text(binding->ButtonLabel, "");
     remove_style_label_bg_yellow(binding->ButtonLabel);
+}
+
 }
