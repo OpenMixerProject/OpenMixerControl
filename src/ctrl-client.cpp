@@ -2092,8 +2092,10 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 
 
 // Key was pressed in the bodyless mode
-void CtrlClient::SimulatorButton(uint32_t key)
+void CtrlClient::SimulatorButton()
 {
+	uint32_t key = lv_indev_get_key(keyboard);
+
 	printf("Simulatorbutton: %d\n", key);
 
 	switch (key)
