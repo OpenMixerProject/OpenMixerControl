@@ -337,7 +337,7 @@ int startup(int argc, char* argv[])
 	}
 
 	bool runAsClient = app->count("--client") > 0;
-	X32Config* config = new X32Config(model_str, helper, runAsClient);
+	Config* config = new Config(model_str, helper, runAsClient);
 
 	config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 

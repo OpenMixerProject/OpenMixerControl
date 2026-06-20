@@ -12,7 +12,7 @@ class X32Base
 {
     protected:
         CLI::App* app;
-        X32Config* config;
+        Config* config;
         State* state;
         Helper* helper;
 

@@ -3,7 +3,7 @@
 namespace OMC
 {
 
-X32Config::X32Config(String model, Helper* h, bool runAsClient)
+Config::Config(String model, Helper* h, bool runAsClient)
 {
     this->runAsClient = runAsClient;
     this->helper = h;
@@ -61,88 +61,88 @@ X32Config::X32Config(String model, Helper* h, bool runAsClient)
     InitAssignBanks();
 }
 
-bool X32Config::IsClientMode()
+bool Config::IsClientMode()
 {
     return runAsClient;
 }
 
-bool X32Config::IsModelX32Full() {
+bool Config::IsModelX32Full() {
     return (_model == OMC_MODEL::X32_FULL);
 }
-bool X32Config::IsModelX32FullOrM32() {
+bool Config::IsModelX32FullOrM32() {
     return IsModelX32Full() || IsModelM32();
 }
-bool X32Config::IsModelX32FullOrCompactOrProducerOrM32OrM32R() {
+bool Config::IsModelX32FullOrCompactOrProducerOrM32OrM32R() {
     return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelM32() || IsModelM32R();
 }
-bool X32Config::IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() {
+bool Config::IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() {
     return IsModelX32FullOrCompactOrProducerOrM32OrM32R() || IsModelX32Rack();
 }
-bool X32Config::IsModelX32CompactOrProducerOrM32R() {
+bool Config::IsModelX32CompactOrProducerOrM32R() {
     return IsModelX32Compact() || IsModelX32Producer() || IsModelM32R();
 }
-bool X32Config::IsModelX32Core() {
+bool Config::IsModelX32Core() {
     return (_model == OMC_MODEL::X32_CORE);
 }
-bool X32Config::IsModelX32Rack() {
+bool Config::IsModelX32Rack() {
     return (_model == OMC_MODEL::X32_RACK);
 }
-bool X32Config::IsModelX32Producer() {
+bool Config::IsModelX32Producer() {
     return (_model == OMC_MODEL::X32_PRODUCER);
 }
-bool X32Config::IsModelX32Compact() {
+bool Config::IsModelX32Compact() {
     return (_model == OMC_MODEL::X32_COMPACT);
 }
-bool X32Config::IsModelX32CompactOrM32R() {
+bool Config::IsModelX32CompactOrM32R() {
     return IsModelX32Compact() || IsModelM32R();
 }
-bool X32Config::IsModelX32FullOrCompactOrM32() {
+bool Config::IsModelX32FullOrCompactOrM32() {
     return IsModelX32Full() || IsModelX32Compact() || IsModelM32();
 }
-bool X32Config::IsModelX32ProducerOrRackOrM32R() {
+bool Config::IsModelX32ProducerOrRackOrM32R() {
     return IsModelX32Producer() || IsModelX32Rack() || IsModelM32R();
 }
-bool X32Config::IsModelM32() {
+bool Config::IsModelM32() {
     return (_model == OMC_MODEL::M32_FULL);
 }
-bool X32Config::IsModelM32R() {
+bool Config::IsModelM32R() {
     return (_model == OMC_MODEL::M32_R);
 }
-bool X32Config::IsModelM32C() {
+bool Config::IsModelM32C() {
     return (_model == OMC_MODEL::M32_C);
 }
-bool X32Config::IsModelAnyXM32() {
+bool Config::IsModelAnyXM32() {
     return IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() || IsModelX32Core();
 }
-bool X32Config::IsModelWingFull() {
+bool Config::IsModelWingFull() {
     return (_model == OMC_MODEL::WING_FULL);
 }
-bool X32Config::IsModelWingCompact() {
+bool Config::IsModelWingCompact() {
     return (_model == OMC_MODEL::WING_COMPACT);
 }
-bool X32Config::IsModelWingRack() {
+bool Config::IsModelWingRack() {
     return (_model == OMC_MODEL::WING_RACK);
 }
-bool X32Config::IsModelAnyWing() {
+bool Config::IsModelAnyWing() {
     return IsModelWingFull() || IsModelWingCompact() || IsModelWingRack();
 }
 
-bool X32Config::HasDisplay()
+bool Config::HasDisplay()
 {
     return IsModelX32Full() || IsModelX32Compact() || IsModelX32Producer() || IsModelX32Rack() || IsModelM32() || IsModelM32R() || IsModelAnyWing();
 }
 
-bool X32Config::HasBigDisplay()
+bool Config::HasBigDisplay()
 {
     return IsModelX32Full() || IsModelX32Compact() || IsModelM32();
 }
 
-bool X32Config::HasSmallDisplay()
+bool Config::HasSmallDisplay()
 {
     return IsModelX32Producer() || IsModelX32Rack() || IsModelM32R();
 }
 
-bool X32Config::HasTouchDisplay()
+bool Config::HasTouchDisplay()
 {
     return IsModelAnyWing();
 }
@@ -159,7 +159,7 @@ bool X32Config::HasTouchDisplay()
 //
 //#####################################################################################################################
 
-bool X32Config::LoadConfig(uint scene)
+bool Config::LoadConfig(uint scene)
 {
     WString::String loadFile = String("scene") + String(scene) + String(".json");
 
@@ -171,7 +171,7 @@ bool X32Config::LoadConfig(uint scene)
 
     if (access(loadFile.c_str(), F_OK) == -1)
     {
-        helper->Error("Can not load X32Config. File %s does not exist.", loadFile.c_str());
+        helper->Error("Can not load Config. File %s does not exist.", loadFile.c_str());
     }
 
     // Read file
@@ -223,7 +223,7 @@ bool X32Config::LoadConfig(uint scene)
 //
 //#####################################################################################################################
 
-void X32Config::Save(uint scene)
+void Config::Save(uint scene)
 {
     String saveFile = String("scene") + String(scene) + String(".json");
     helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "Save config to %s", saveFile.c_str());
@@ -293,7 +293,7 @@ void X32Config::Save(uint scene)
 //#
 //######################################################################################################################################
 
-Mixerparameter* X32Config::DefParameter(MP_ID parameter_id, MP_CAT category, String name, uint count) {
+Mixerparameter* Config::DefParameter(MP_ID parameter_id, MP_CAT category, String name, uint count) {
 	
 	// create it
 	Mixerparameter* newMpd = new Mixerparameter(parameter_id, category, name, count);
@@ -305,7 +305,7 @@ Mixerparameter* X32Config::DefParameter(MP_ID parameter_id, MP_CAT category, Str
 	return newMpd;
 }
 
-void X32Config::DefineMixerparameters() {
+void Config::DefineMixerparameters() {
 
 	using enum MP_ID;
 
@@ -1357,7 +1357,7 @@ void X32Config::DefineMixerparameters() {
 //#
 //########################################################################################################################################
 
-map<String, MP_ID>* X32Config::GetOscPaths()
+map<String, MP_ID>* Config::GetOscPaths()
 {
     map<String, MP_ID>* oscPaths = new map<String, MP_ID>();
 
@@ -1375,18 +1375,18 @@ map<String, MP_ID>* X32Config::GetOscPaths()
     return oscPaths;
 }
 
-map<MP_ID, set<uint>>* X32Config::GetChangedParameterList()
+map<MP_ID, set<uint>>* Config::GetChangedParameterList()
 {
     return mp_changedlist;
 }
 
 // Calculate the Mixerparameter ID (usefull for loops or other iterative situations)
-MP_ID X32Config::MpCalcId(MP_ID mp_id, int amount)
+MP_ID Config::MpCalcId(MP_ID mp_id, int amount)
 {
 	return (MP_ID)(((uint)mp_id) + amount);
 }
 
-vector<uint> X32Config::GetChangedParameterIndexes(MP_CAT parameter_cat)
+vector<uint> Config::GetChangedParameterIndexes(MP_CAT parameter_cat)
 {
     vector<uint> changedIndexes;
 
@@ -1407,7 +1407,7 @@ vector<uint> X32Config::GetChangedParameterIndexes(MP_CAT parameter_cat)
     return changedIndexes;
 }
 
-vector<uint> X32Config::GetChangedParameterIndexes(vector<MP_ID> filter_ids)
+vector<uint> Config::GetChangedParameterIndexes(vector<MP_ID> filter_ids)
 {
     vector<uint> changedIndexes;
     
@@ -1434,7 +1434,7 @@ vector<uint> X32Config::GetChangedParameterIndexes(vector<MP_ID> filter_ids)
 /// @param parameter_id The ids of the Mixerparameters to check.
 /// @param index The index of the Mixerparameters (usual the vchannel index or FX slot index).
 /// @return True if any data has changed.
-bool X32Config::HasParametersChanged(vector<MP_ID> parameter_id)
+bool Config::HasParametersChanged(vector<MP_ID> parameter_id)
 {
     for(uint i = 0; i < parameter_id.size(); i++)
     {
@@ -1451,7 +1451,7 @@ bool X32Config::HasParametersChanged(vector<MP_ID> parameter_id)
 /// @param parameter_id The ids of the Mixerparameters to check.
 /// @param index The index of the Mixerparameters (usual the vchannel index or FX slot index).
 /// @return True if any data has changed.
-bool X32Config::HasParametersChanged(vector<MP_ID> parameter_id, uint index)
+bool Config::HasParametersChanged(vector<MP_ID> parameter_id, uint index)
 {
     for(uint i = 0; i < parameter_id.size(); i++)
     {
@@ -1469,7 +1469,7 @@ bool X32Config::HasParametersChanged(vector<MP_ID> parameter_id, uint index)
 /// @param parameter_cat The category of the Mixerparameters to check.
 /// @param index The index of the Mixerparameters (usual the vchannel index or FX slot index).
 /// @return True if any data has changed.
-bool X32Config::HasParametersChanged(MP_CAT parameter_cat)
+bool Config::HasParametersChanged(MP_CAT parameter_cat)
 {
     for (auto const& [parameter_id, indexSet] : *mp_changedlist)
     {
@@ -1486,7 +1486,7 @@ bool X32Config::HasParametersChanged(MP_CAT parameter_cat)
 /// @param parameter_cat The category of the Mixerparameters to check.
 /// @param index The index of the Mixerparameters (usual the vchannel index or FX slot index).
 /// @return True if any data has changed.
-bool X32Config::HasParametersChanged(MP_CAT parameter_cat, uint index)
+bool Config::HasParametersChanged(MP_CAT parameter_cat, uint index)
 {
     for (auto const& [parameter_id, indexSet] : *mp_changedlist)
     {
@@ -1503,7 +1503,7 @@ bool X32Config::HasParametersChanged(MP_CAT parameter_cat, uint index)
 /// @param parameter_id The id of the Mixerparameter to check.
 /// @param index The index of the Mixerparameter (usual the vchannel index or FX slot index).
 /// @return True if the data has changed.
-bool X32Config::HasParameterChanged(MP_ID parameter_id)
+bool Config::HasParameterChanged(MP_ID parameter_id)
 {
     return mp_changedlist->contains(parameter_id);
 }
@@ -1512,7 +1512,7 @@ bool X32Config::HasParameterChanged(MP_ID parameter_id)
 /// @param parameter_id The id of the Mixerparameter to check.
 /// @param index The index of the Mixerparameter (usual the vchannel index or FX slot index).
 /// @return True if the data has changed.
-bool X32Config::HasParameterChanged(MP_ID parameter_id, uint index)
+bool Config::HasParameterChanged(MP_ID parameter_id, uint index)
 {
     return mp_changedlist->contains(parameter_id) &&
            mp_changedlist->at(parameter_id).contains(index);
@@ -1522,7 +1522,7 @@ bool X32Config::HasParameterChanged(MP_ID parameter_id, uint index)
 /// @brief Checks, if the value of the bound Mixerparameter has changed
 /// @param id The surface element which bound Mixerparameter should be checked
 /// @return 
-bool X32Config::HasBoundParameterChanged(SurfaceElementId id)
+bool Config::HasBoundParameterChanged(SurfaceElementId id)
 {
     SurfaceBindingParameter* binding = GetSurfaceBinding(id);    
 
@@ -1541,12 +1541,12 @@ bool X32Config::HasBoundParameterChanged(SurfaceElementId id)
 
 /// @brief Checks if any data in the Mixerparameters has changed.
 /// @return True if the data in any Mixerparameter has changed.
-bool X32Config::HasAnyParameterChanged()
+bool Config::HasAnyParameterChanged()
 {
     return mp_changedlist->size() > 0;
 }
 
-void X32Config::SaveResetAndUnfreezeChangedParameterList()
+void Config::SaveResetAndUnfreezeChangedParameterList()
 {
     // Reset
     if (mp_changedlist->size() != 0)
@@ -1566,47 +1566,47 @@ void X32Config::SaveResetAndUnfreezeChangedParameterList()
     MixerParameterChangelistFreeze = false;
 }
 
-Mixerparameter* X32Config::GetParameter(MP_ID mp)
+Mixerparameter* Config::GetParameter(MP_ID mp)
 {
     return mpm[(uint)mp];
 }
 
-float X32Config::GetFloat(MP_ID mp, uint index)
+float Config::GetFloat(MP_ID mp, uint index)
 {
     return mpm[(uint)mp]->GetFloat(index);
 }
 
-int X32Config::GetInt(MP_ID mp, uint index)
+int Config::GetInt(MP_ID mp, uint index)
 {
     return mpm[(uint)mp]->GetInt(index);
 }
 
-uint X32Config::GetUint(MP_ID mp, uint index)
+uint Config::GetUint(MP_ID mp, uint index)
 {
     return mpm[(uint)mp]->GetUint(index);
 }
 
-bool X32Config::GetBool(MP_ID mp, uint index)
+bool Config::GetBool(MP_ID mp, uint index)
 {
     return mpm[(uint)mp]->GetBool(index);
 }
 
-String X32Config::GetString(MP_ID mp, uint index)
+String Config::GetString(MP_ID mp, uint index)
 {
     return mpm[(uint)mp]->GetString(index);
 }
 
-uint X32Config::GetPercent(MP_ID mp, uint index)
+uint Config::GetPercent(MP_ID mp, uint index)
 {
     return mpm[(uint)mp]->GetPercent(index);
 }
 
-bool X32Config::GetBlink(MP_ID mp)
+bool Config::GetBlink(MP_ID mp)
 {
     return mpm[(uint)mp]->GetBlink();
 }
 
-void X32Config::Set(MP_ID mp, float value, uint index)
+void Config::Set(MP_ID mp, float value, uint index)
 {
     if (IsClientMode() )//&& IsServerParameter())
     {
@@ -1623,14 +1623,14 @@ void X32Config::Set(MP_ID mp, float value, uint index)
     }
 }
 
-void X32Config::Set(MP_ID mp, String value_string, uint index)
+void Config::Set(MP_ID mp, String value_string, uint index)
 {
     mpm[(uint)mp]->Set(value_string, index);
 
     SetParameterChanged(mp, index);
 }
 
-void X32Config::SetParameterUnchanged(MP_ID mp)
+void Config::SetParameterUnchanged(MP_ID mp)
 {
     if (mp_changedlist->contains(mp))
     {
@@ -1639,12 +1639,12 @@ void X32Config::SetParameterUnchanged(MP_ID mp)
 }
 
 // Freeze the mp_changedlist, so it stays consistent
-void X32Config::FreezeParameterList()
+void Config::FreezeParameterList()
 {
     MixerParameterChangelistFreeze = true;
 }
 
-void X32Config::SetParameterChanged(MP_ID mp, uint index)
+void Config::SetParameterChanged(MP_ID mp, uint index)
 {
     // Mixerparameter changelist is frozen, write changes to temporary list
     if (MixerParameterChangelistFreeze)
@@ -1687,14 +1687,14 @@ void X32Config::SetParameterChanged(MP_ID mp, uint index)
     }
 }
 
-void X32Config::Change(MP_ID mp, int amount, uint index)
+void Config::Change(MP_ID mp, int amount, uint index)
 {
     mpm[(uint)mp]->Change(amount, index);
 
     SetParameterChanged(mp, index);
 }
 
-void X32Config::Toggle(MP_ID mp, uint index)
+void Config::Toggle(MP_ID mp, uint index)
 {
     mpm[(uint)mp]->Toggle(index);
 
@@ -1702,19 +1702,19 @@ void X32Config::Toggle(MP_ID mp, uint index)
 }
 
 // sets the Mixerparameter to changed, so that it is reloaded
-void X32Config::Refresh(MP_ID mp, uint index)
+void Config::Refresh(MP_ID mp, uint index)
 {
     SetParameterChanged(mp, index);
 }
 
-void X32Config::Reset(MP_ID mp, uint index)
+void Config::Reset(MP_ID mp, uint index)
 {
     mpm[(uint)mp]->Reset(index);
     
     SetParameterChanged(mp, index);
 }
 
-MP_ID X32Config::ParameterCalcId(SurfaceBindingParameter* binding_parameter)
+MP_ID Config::ParameterCalcId(SurfaceBindingParameter* binding_parameter)
 {
     switch(binding_parameter->mp_action)
     {
@@ -1733,7 +1733,7 @@ MP_ID X32Config::ParameterCalcId(SurfaceBindingParameter* binding_parameter)
     }
 }
 
-uint X32Config::ParameterCalcIndex(SurfaceBindingParameter* binding_parameter)
+uint Config::ParameterCalcIndex(SurfaceBindingParameter* binding_parameter)
 {
     switch(binding_parameter->mp_action)
     {
@@ -1753,12 +1753,12 @@ uint X32Config::ParameterCalcIndex(SurfaceBindingParameter* binding_parameter)
     }
 }
 
-MP_ID X32Config::ParameterDependsOn(SurfaceBindingParameter* binding_parameter)
+MP_ID Config::ParameterDependsOn(SurfaceBindingParameter* binding_parameter)
 {
     return ParameterDependsOn(binding_parameter->mp_action);
 }
 
-MP_ID X32Config::ParameterDependsOn(MixerparameterAction mp_action)
+MP_ID Config::ParameterDependsOn(MixerparameterAction mp_action)
 {
     switch(mp_action)
     {
@@ -1788,7 +1788,7 @@ MP_ID X32Config::ParameterDependsOn(MixerparameterAction mp_action)
 //#############################################################################################################################################
 
 
-SurfaceElement* X32Config::DefSurfaceElements(SurfaceElementId element_id, String name) {
+SurfaceElement* Config::DefSurfaceElements(SurfaceElementId element_id, String name) {
 	
 	// create it
 	SurfaceElement* newSE = new SurfaceElement(element_id, name);
@@ -1799,7 +1799,7 @@ SurfaceElement* X32Config::DefSurfaceElements(SurfaceElementId element_id, Strin
 	return newSE;
 }
 
-void X32Config::DefineSurfaceElements()
+void Config::DefineSurfaceElements()
 {
 	using enum SurfaceElementId;
 
@@ -3025,22 +3025,22 @@ void X32Config::DefineSurfaceElements()
     }
 }
 
-SurfaceElementId X32Config::CalcSurfaceElementId(SurfaceElementId id, int amount)
+SurfaceElementId Config::CalcSurfaceElementId(SurfaceElementId id, int amount)
 {
 	return (SurfaceElementId)(((uint)id) + amount);
 }
 
-bool X32Config::HasSurfaceElement(SurfaceElementId id)
+bool Config::HasSurfaceElement(SurfaceElementId id)
 {
     return sem[(uint)id] != 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElement(SurfaceElementId id)
+SurfaceElement* Config::GetSurfaceElement(SurfaceElementId id)
 {
     return sem[(uint)id];
 }
 
-SurfaceElement* X32Config::GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_t value)
+SurfaceElement* Config::GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_t value)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -3058,7 +3058,7 @@ SurfaceElement* X32Config::GetSurfaceElementButton_XM32(OMC_BOARD board, uint16_
     return 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElementButton_Wing(OMC_BOARD board, uint index)
+SurfaceElement* Config::GetSurfaceElementButton_Wing(OMC_BOARD board, uint index)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -3076,7 +3076,7 @@ SurfaceElement* X32Config::GetSurfaceElementButton_Wing(OMC_BOARD board, uint in
     return 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElementEncoder(OMC_BOARD board, uint8_t index)
+SurfaceElement* Config::GetSurfaceElementEncoder(OMC_BOARD board, uint8_t index)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -3094,7 +3094,7 @@ SurfaceElement* X32Config::GetSurfaceElementEncoder(OMC_BOARD board, uint8_t ind
     return 0;
 }
 
-SurfaceElement* X32Config::GetSurfaceElementFader(OMC_BOARD board, uint8_t index)
+SurfaceElement* Config::GetSurfaceElementFader(OMC_BOARD board, uint8_t index)
 {
     for (SurfaceElement* element : sem)
 	{
@@ -3112,7 +3112,7 @@ SurfaceElement* X32Config::GetSurfaceElementFader(OMC_BOARD board, uint8_t index
     return 0;
 }
 
-void X32Config::SurfaceBindParameter(SurfaceElementId surfaceelement_id, SurfaceBindingParameter* binding_parameter)
+void Config::SurfaceBindParameter(SurfaceElementId surfaceelement_id, SurfaceBindingParameter* binding_parameter)
 {
     if (binding_parameter == 0)
     {
@@ -3160,14 +3160,14 @@ void X32Config::SurfaceBindParameter(SurfaceElementId surfaceelement_id, Surface
 	surface_binding_changed.insert(surfaceelement_id);	
 }
 
-void X32Config::SurfaceBind(SurfaceElementId surfaceelement_id, MixerparameterAction action, MP_ID mixerparaemter_id, uint mixerparameter_index, uint extra_value)
+void Config::SurfaceBind(SurfaceElementId surfaceelement_id, MixerparameterAction action, MP_ID mixerparaemter_id, uint mixerparameter_index, uint extra_value)
 {
 	SurfaceBindingParameter* binding_parameter = new SurfaceBindingParameter();
     binding_parameter->FillBindingParameter(action, mixerparaemter_id, mixerparameter_index, extra_value);
 	SurfaceBindParameter(surfaceelement_id, binding_parameter);
 }
 
-void X32Config::SurfaceUnbind(SurfaceElementId surfaceelement_id)
+void Config::SurfaceUnbind(SurfaceElementId surfaceelement_id)
 {
     if (surface_binding->contains(surfaceelement_id))
     {
@@ -3175,7 +3175,7 @@ void X32Config::SurfaceUnbind(SurfaceElementId surfaceelement_id)
     }
 }
 
-void X32Config::SurfaceBindCustom(SurfaceElementId surfaceelement_id, String labeltext)
+void Config::SurfaceBindCustom(SurfaceElementId surfaceelement_id, String labeltext)
 {
     SurfaceBindingParameter* binding_parameter = new SurfaceBindingParameter();
     binding_parameter->FillBindingParameter(MixerparameterAction::CUSTOM, NONE, 0);
@@ -3183,27 +3183,27 @@ void X32Config::SurfaceBindCustom(SurfaceElementId surfaceelement_id, String lab
 	SurfaceBindParameter(surfaceelement_id, binding_parameter);
 }
 
-bool X32Config::HasAnySurfaceBindingChanged()
+bool Config::HasAnySurfaceBindingChanged()
 {
     return surface_binding_changed.size() > 0;
 }
 
-bool X32Config::HasSurfaceBindingChanged(SurfaceElementId elementId)
+bool Config::HasSurfaceBindingChanged(SurfaceElementId elementId)
 {
     return surface_binding_changed.contains(elementId);
 }
 
-void X32Config::RemoveSurfaceBindingChanged(SurfaceElementId elementId)
+void Config::RemoveSurfaceBindingChanged(SurfaceElementId elementId)
 {
     surface_binding_changed.erase(elementId);
 }
 
-map<SurfaceElementId, SurfaceBindingParameter*>* X32Config::GetSurfaceBinding()
+map<SurfaceElementId, SurfaceBindingParameter*>* Config::GetSurfaceBinding()
 {
     return surface_binding;
 }
 
-SurfaceBindingParameter* X32Config::GetSurfaceBinding(SurfaceElementId elementId)
+SurfaceBindingParameter* Config::GetSurfaceBinding(SurfaceElementId elementId)
 {
     if(surface_binding->contains(elementId))
     {
@@ -3213,7 +3213,7 @@ SurfaceBindingParameter* X32Config::GetSurfaceBinding(SurfaceElementId elementId
     return 0;
 }
 
-void X32Config::InitAssignBanks()
+void Config::InitAssignBanks()
 {
     assingBanks[(uint)X32AssignBankId::Bank_A] = new OMCAssignBank(X32AssignBankId::Bank_A, String("Assign A"));
     assingBanks[(uint)X32AssignBankId::Bank_B] = new OMCAssignBank(X32AssignBankId::Bank_B, String("Assign B"));
@@ -3289,7 +3289,7 @@ void X32Config::InitAssignBanks()
 	}
 }
 
-OMCAssignBank* X32Config::GetAssignBank(X32AssignBankId id)
+OMCAssignBank* Config::GetAssignBank(X32AssignBankId id)
 {
     return assingBanks[(uint)id];
 }

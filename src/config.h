@@ -18,7 +18,7 @@ using enum MP_ID;
 
 namespace OMC
 {
-    class X32Config
+    class Config
     {
         private:
 
@@ -52,7 +52,7 @@ namespace OMC
 
         public:
 
-            X32Config(String model, Helper* h, bool runAsClient);
+            Config(String model, Helper* h, bool runAsClient);
 
             bool LoadConfig(uint scene);
             void Save(uint scene);

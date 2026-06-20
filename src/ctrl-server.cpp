@@ -82,7 +82,7 @@ void CtrlServer::Init()
 
 	//############################################################################
 
-	// X32Config
+	// Config
 	if(!config->LoadConfig(0))
 	{
 		// create new ini file
