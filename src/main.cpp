@@ -172,6 +172,8 @@ int startup(int argc, char* argv[])
 	// Command line options
 	app->add_flag("--client", "Run as Client")
 		->configurable(false);
+	app->add_flag("--osc-doc", "Print OSC-Documentation")
+		->configurable(false);
 	app->add_flag("--version", "Get the version number, builddate and a nice logo")
 		->configurable(false);
 	app->add_flag("-p,--print", "Print configuration and exit")
@@ -273,7 +275,8 @@ int startup(int argc, char* argv[])
         return 0;
     }
 
-	if (app->count("--version") > 0) {
+	if (app->count("--version") > 0)
+	{
 
 		printf("  ____                   __  __ _                _____            _             _ \n");
  		printf(" / __ \\                 |  \\/  (_)              / ____|          | |           | |\n");
@@ -338,6 +341,13 @@ int startup(int argc, char* argv[])
 
 	bool runAsClient = app->count("--client") > 0;
 	Config* config = new Config(model_str, helper, runAsClient);
+
+	// Print OSC-Doku
+	if (app->count("--osc-doc") > 0)
+	{
+		config->PrintOscDoc();
+		exit(0);
+	}
 
 	config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 

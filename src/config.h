@@ -164,6 +164,8 @@ namespace OMC
 
             void InitAssignBanks();
             OMCAssignBank* GetAssignBank(X32AssignBankId id);
+
+            void PrintOscDoc();
     };
 
     class X32ConfigFileEntry
