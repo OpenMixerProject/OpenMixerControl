@@ -16,6 +16,8 @@
 // #  DEV    #
 // ###########
 
+#define TARGET_PC_SDL2
+
 //#################################################################################
 
 // bodyless mode does not compile with artnet, so disable it

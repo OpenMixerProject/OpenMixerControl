@@ -58,7 +58,7 @@ void OMC::Tick100ms(void)
     client->Tick100ms();
 }
 
-void OMC::SimulatorButton(uint key)
+void OMC::SimulatorButton()
 {
-    client->SimulatorButton(key);
+    client->SimulatorButton();
 }

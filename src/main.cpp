@@ -140,7 +140,7 @@ const char * getenv_default(const char * name, const char * default_val)
 void action_action_key(lv_event_t * e)
 {
 	#ifdef TARGET_PC_SDL2
-	omc->SimulatorButton(lv_indev_get_key(keyboard));
+	omc->SimulatorButton();
 	#endif
 }
 

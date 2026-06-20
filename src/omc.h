@@ -22,5 +22,5 @@ class OMC
         void Tick50ms(void);
         void Tick100ms(void);
 
-        void SimulatorButton(uint key);
+        void SimulatorButton();
 };

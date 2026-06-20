@@ -73,5 +73,5 @@ class CtrlClient : public X32Base
         uint8_t CalcPreampMeter_FullOrCompact(uint8_t channel);
         uint8_t surfaceCalcDynamicMeter(uint8_t channel);
 
-        void SimulatorButton(uint key);
+        void SimulatorButton();
 };
