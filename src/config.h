@@ -35,7 +35,7 @@ namespace OMC
             map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
 
             
-            void SetParameterChanged(MP_ID mp, uint index);
+            
 
             // Surfaceelements
             SurfaceElement* sem[(uint)SurfaceElementId::__ELEMENT_COUNTER_DO_NOT_MOVE];
@@ -72,12 +72,10 @@ namespace OMC
             void SetCallbackToogle(OscSendToServerCallbackToogle callback, void* arg);
             void SetCallbackReset(OscSendToServerCallbackReset callback, void* arg);
 
-            
-
-            map<MP_ID, set<uint>>* GetChangedParameterList();
-
             MP_ID MpCalcId(MP_ID mp_id, int amount);
-            
+
+            void SetParameterChanged(MP_ID mp, uint index);
+            map<MP_ID, set<uint>>* GetChangedParameterList();
             vector<uint> GetChangedParameterIndexes(MP_CAT parameter_cat);
             vector<uint> GetChangedParameterIndexes(vector<MP_ID> filter_ids);
             bool HasParameterChanged(MP_ID parameter_id);

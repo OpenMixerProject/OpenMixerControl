@@ -29,7 +29,7 @@ namespace OMC
 
 OpenMixerControl::OpenMixerControl(X32BaseParameter* basepar)
 {
-    if (!runAsClient)
+    if (!basepar->config->IsClientMode())
     {
         server = new CtrlServer(basepar);
     }

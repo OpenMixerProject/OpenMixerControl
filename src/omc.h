@@ -10,8 +10,6 @@ class OpenMixerControl
 {
     private:
 
-        bool runAsClient = false;
-
         CtrlServer* server = 0;
         CtrlClient* client = 0;
 

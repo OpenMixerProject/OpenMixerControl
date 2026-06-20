@@ -5,7 +5,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/pc_sdl2/omc",
-            "args": ["-b", "-d", "OSC", "--trace", "--client"],
+            "args": ["-b", "-d", "OSC", "--trace"],
             //"args": ["-b", "-d", "SURFACE"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/pc_sdl2",

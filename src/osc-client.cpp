@@ -131,7 +131,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, parameter->GetOSC().c_str(), "if", index, floatValue);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC()).c_str(), "if", index, floatValue);
         SendUdpPacket(TxMessage, len);
     }
 
@@ -139,7 +139,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, parameter->GetOSC().c_str(), "ii", index, amount);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/change/") + parameter->GetOSC()).c_str(), "ii", index, amount);
         SendUdpPacket(TxMessage, len);
     }
 
@@ -147,7 +147,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, parameter->GetOSC().c_str(), "i", index);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/toogle/") + parameter->GetOSC()).c_str(), "i", index);
         SendUdpPacket(TxMessage, len);
     }
 
@@ -155,7 +155,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, parameter->GetOSC().c_str(), "i", index);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/reset/") + parameter->GetOSC()).c_str(), "i", index);
         SendUdpPacket(TxMessage, len);
     }
 

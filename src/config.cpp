@@ -327,19 +327,21 @@ void Config::DefineMixerparameters() {
     DefParameter(DEBUG_VALUE, cat, "DEBUG")
     ->DefNoConfig()
     ->DefMinMaxStandard_Uint(0, 255, 0)
-    ->DefOSC("/debug");
+    ->DefOSC("debug");
 
 	DefParameter(LCD_CONTRAST, cat, "LCD Contrast")
     ->DefNameShort("Contrast")
 	->DefMinMaxStandard_Uint(LCD_CONTRAST_MIN, LCD_CONTRAST_MAX, LCD_CONTRAST_DEFAULT)
-    ->DefOSC("/lcd_contrast");
+    ->DefClientParameter();
     
     DefParameter(LED_BRIGHTNESS, cat, "LED Brightness")
 	->DefMinMaxStandard_Uint(LED_BRIGHTNESS_1, LED_BRIGHTNESS_4, LED_BRIGHTNESS_4)
-    ->DefStepsize(64);
+    ->DefStepsize(64)
+    ->DefClientParameter();
 
     DefParameter(DISPLAY_BRIGHTNESS, cat, "Display Brightness")
-	->DefMinMaxStandard_Uint(0, 255, 128); // only guessed
+	->DefMinMaxStandard_Uint(0, 255, 128) // only guessed
+    ->DefClientParameter();
 
     DefParameter(SAMPLERATE, cat, "Samplerate")
     ->DefMinMaxStandard_Uint(44100, 48000, 48000);
@@ -347,7 +349,8 @@ void Config::DefineMixerparameters() {
    DefParameter(CHANNEL_LCD_MODE, cat, "LCD Mode")
     ->DefUOM(MP_UOM::CHANNEL_LCD_MODE)
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, 1, 0);
+    ->DefMinMaxStandard_Uint(0, 1, 0)
+    ->DefClientParameter();
 
     DefParameter(CARD_NUMBER_OF_CHANNELS, cat, "Card Channels")
     ->DefMinMaxStandard_Uint(0, 5, 0)
@@ -548,29 +551,35 @@ void Config::DefineMixerparameters() {
 
     DefParameter(CHANNEL_COLOR, cat, "Ch Color", MAX_VCHANNELS)
     ->DefNameShort("Color")
-    ->DefMinMaxStandard_Uint((uint)X32_COLOR::BLACK, (uint)X32_COLOR::WHITE, (uint)X32_COLOR::YELLOW);
+    ->DefMinMaxStandard_Uint((uint)X32_COLOR::BLACK, (uint)X32_COLOR::WHITE, (uint)X32_COLOR::YELLOW)
+    ->DefOSC("ch_color");
 
     DefParameter(CHANNEL_COLOR_INVERTED, cat, "Ch Color Inverted", MAX_VCHANNELS)
     ->DefNameShort("ColInv")
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefOSC("ch_color_inverted");
     
     DefParameter(CHANNEL_PHASE_INVERT, cat, "Phase Inverted", MAX_VCHANNELS)
     ->DefNameShort("Phase")
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefOSC("ch_phase");
     
     DefParameter(CHANNEL_PHANTOM, cat, "Phantom", MAX_VCHANNELS)
     ->DefNameShort("48V")
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefOSC("ch_phantom");
     
     DefParameter(CHANNEL_GAIN, cat, "Gain", MAX_VCHANNELS)
     ->DefUOM(MP_UOM::DB)
     ->DefStepsize(0.5f)
-    ->DefMinMaxStandard_Float(CHANNEL_GAIN_MIN, CHANNEL_GAIN_MAX, 0.0f, 1);
+    ->DefMinMaxStandard_Float(CHANNEL_GAIN_MIN, CHANNEL_GAIN_MAX, 0.0f, 1)
+    ->DefOSC("ch_gain");
     
     DefParameter(CHANNEL_VOLUME, cat, "Volume", MAX_VCHANNELS)
     ->DefNameShort("Vol")
     ->DefUOM(MP_UOM::DB)
-    ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1);
+    ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
+    ->DefOSC("ch_volume");
 
     DefParameter(CHANNEL_VOLUME_SUB, cat, "Volume Sub", MAX_VCHANNELS)
     ->DefNameShort("Sub")
@@ -578,10 +587,12 @@ void Config::DefineMixerparameters() {
     ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1);
     
     DefParameter(CHANNEL_SOLO, cat, "Solo", MAX_VCHANNELS)
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefOSC("ch_solo");
     
     DefParameter(CHANNEL_MUTE, cat, "Mute", MAX_VCHANNELS)
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefOSC("ch_mute");
 
     // Mute Group Membership
     for (uint i = 0; i < MUTE_GROUPS; i++)
