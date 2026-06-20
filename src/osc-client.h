@@ -32,7 +32,10 @@ class OscClient : public X32Base
         int8_t Init();
         void UdpHandleCommunication();
 
-        void UdpSendToServer();
+        void UdpSendToServerSet(MP_ID parameterId, WString::String strValue, float floatValue, uint index);
+        void UdpSendToServerChange(MP_ID parameterId, int amount, uint index);
+        void UdpSendToServerToogle(MP_ID parameterId, uint index);
+        void UdpSendToServerReset(MP_ID parameterId, uint index);
 
         void SendUdpPacket(char* buffer, uint16_t size);
         void SendBasicMessage(const char* cmd, char type, char format, char* value);

@@ -43,6 +43,7 @@ CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
 {
     surface = new Surface(basepar);
     lcdmenu = new LcdMenu(basepar, surface); // only used for X32Core
+	osc_client = new OscClient(basepar);
 
 	#if ENABLE_ARTNET
 	artnet = new Artnet(basepar);
@@ -63,6 +64,16 @@ CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
 
 void CtrlClient::Init()
 {
+	if (config->IsClientMode())
+	{
+		osc_client->Init();
+
+		config->SetCallbackSet(OnOscSendToServerCallbackSet, this);
+		config->SetCallbackChange(OnOscSendToServerCallbackChange, this);
+		config->SetCallbackToogle(OnOscSendToServerCallbackToogle, this);
+		config->SetCallbackReset(OnOscSendToServerCallbackReset, this);
+	}
+
     if (config->IsModelX32Core())
 	{
 		// only necessary if LVGL is not used
@@ -2089,6 +2100,42 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 	// 			break;
 	// }
 
+
+//###########################################################################################################################
+//# 
+//#   #######   ######   ######        ######     ###    ##       ##       ########     ###     ######  ##     ##  ######  
+//#  ##     ## ##    ## ##    ##      ##    ##   ## ##   ##       ##       ##     ##   ## ##   ##    ## ##    ##  ##    ## 
+//#  ##     ## ##       ##            ##        ##   ##  ##       ##       ##     ##  ##   ##  ##       ##   ##   ##       
+//#  ##     ##  ######  ##            ##       ##     ## ##       ##       ########  ##     ## ##       #####      ######  
+//#  ##     ##       ## ##            ##       ######### ##       ##       ##     ## ######### ##       ##   ##         ## 
+//#  ##     ## ##    ## ##    ##      ##    ## ##     ## ##       ##       ##     ## ##     ## ##    ## ##    ##  ##    ## 
+//#   #######   ######   ######        ######  ##     ## ######## ######## ########  ##     ##  ######  ##     ##  ######  
+//#
+//###########################################################################################################################
+
+void CtrlClient::OnOscSendToServerCallbackSet(void* arg, MP_ID parameterId, WString::String strValue, float floatValue, uint index)
+{
+	CtrlClient* ctrl = static_cast<CtrlClient*>(arg);
+    ctrl->osc_client->UdpSendToServerSet(parameterId, strValue, floatValue, index);
+}
+
+void CtrlClient::OnOscSendToServerCallbackChange(void* arg, MP_ID parameterId, int amount, uint index)
+{
+	CtrlClient* ctrl = static_cast<CtrlClient*>(arg);
+    ctrl->osc_client->UdpSendToServerChange(parameterId, amount, index);
+}
+
+void CtrlClient::OnOscSendToServerCallbackToogle(void* arg, MP_ID parameterId, uint index)
+{
+	CtrlClient* ctrl = static_cast<CtrlClient*>(arg);
+    ctrl->osc_client->UdpSendToServerToogle(parameterId, index);
+}
+
+void CtrlClient::OnOscSendToServerCallbackReset(void* arg, MP_ID parameterId, uint index)
+{
+	CtrlClient* ctrl = static_cast<CtrlClient*>(arg);
+    ctrl->osc_client->UdpSendToServerReset(parameterId, index);
+}
 
 //################################################################################
 //# 

@@ -147,7 +147,7 @@ void OscServer::UdpHandleCommunication()
             }
             else 
             {
-                helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "Received unsupported command: %s", rxData);
+                helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "Received unsupported command: >>%s<<", rxData);
             }
         }
 	}

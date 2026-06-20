@@ -72,6 +72,8 @@ namespace OMC
             void SetCallbackToogle(OscSendToServerCallbackToogle callback, void* arg);
             void SetCallbackReset(OscSendToServerCallbackReset callback, void* arg);
 
+            
+
             map<MP_ID, set<uint>>* GetChangedParameterList();
 
             MP_ID MpCalcId(MP_ID mp_id, int amount);

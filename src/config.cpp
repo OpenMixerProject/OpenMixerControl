@@ -1642,7 +1642,7 @@ bool Config::GetBlink(MP_ID mp)
 
 void Config::Set(MP_ID mp, float value, uint index)
 {
-    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
     {
         // Send Parameter to Server via Callback
         if (oscCallbackSet)
@@ -1660,7 +1660,7 @@ void Config::Set(MP_ID mp, float value, uint index)
 
 void Config::Set(MP_ID mp, String value_string, uint index)
 {
-    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
     {
         // Send Parameter to Server via Callback
         if (oscCallbackSet)
@@ -1735,7 +1735,7 @@ void Config::SetParameterChanged(MP_ID mp, uint index)
 
 void Config::Change(MP_ID mp, int amount, uint index)
 {
-    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
     {
         // Send Parameter to Server via Callback
         if (oscCallbackChange)
@@ -1753,7 +1753,7 @@ void Config::Change(MP_ID mp, int amount, uint index)
 
 void Config::Toggle(MP_ID mp, uint index)
 {
-    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
     {
         // Send Parameter to Server via Callback
         if (oscCallbackToogle)
@@ -1777,7 +1777,7 @@ void Config::Refresh(MP_ID mp, uint index)
 
 void Config::Reset(MP_ID mp, uint index)
 {
-        if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
     {
         // Send Parameter to Server via Callback
         if (oscCallbackReset)

@@ -3,6 +3,7 @@
 #include "surface.h"
 #include "page.h"
 #include "lcd-menu.h"
+#include "osc-client.h"
 
 // LVGL
 static lv_display_t *display;
@@ -23,6 +24,7 @@ class CtrlClient : public X32Base
 
         LcdMenu* lcdmenu;
         Surface* surface;
+        OscClient* osc_client;
 
         OMCBankId preSpillLoadedBank = OMCBankId::None;
 
@@ -43,6 +45,11 @@ class CtrlClient : public X32Base
 
         static void OnSurfaceCallback(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
         void ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint16_t value);
+
+        static void OnOscSendToServerCallbackSet(void* arg, MP_ID parameterId, WString::String strValue, float floatValue, uint index);
+        static void OnOscSendToServerCallbackChange(void* arg, MP_ID parameterId, int amount, uint index);
+        static void OnOscSendToServerCallbackToogle(void* arg, MP_ID parameterId, uint index);
+        static void OnOscSendToServerCallbackReset(void* arg, MP_ID parameterId, uint index);
 
     public:
 
