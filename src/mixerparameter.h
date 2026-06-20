@@ -26,6 +26,9 @@ class Mixerparameter
         MP_CAT category;        // category of parameter, e.g. setting, channel, fx
         MP_VALUE_TYPE value_type;
 
+        // Mixerparameter is only used for the Client (don't need to be transmitted via OSC)
+        bool clientParameter = false;
+
         String _name;           // complete long name
         String _name_short;     // short name for thight spaces
 
@@ -320,6 +323,13 @@ class Mixerparameter
         Mixerparameter* DefOSC(String path)
         {
             osc_path = path;
+
+            return this;
+        }
+
+        Mixerparameter* DefClientParameter()
+        {
+            clientParameter = true;
 
             return this;
         }
@@ -801,6 +811,11 @@ class Mixerparameter
         String GetOSC()
         {
             return osc_path;
+        }
+
+        bool IsClientParameter()
+        {
+            return clientParameter;
         }
 };
 

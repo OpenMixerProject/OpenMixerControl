@@ -58,8 +58,6 @@ class Surface : public X32Base
         
         Surface(X32BaseParameter* basepar);
 
-        void SetCallback(SurfaceCallback callback, void* arg);
-
         void Init(SurfaceCallback callback, void* arg);
         void Reset();
 

@@ -433,48 +433,58 @@ void Config::DefineMixerparameters() {
     DefParameter(SELECTED_CHANNEL, cat, "Selected Ch")
     ->DefUOM(MP_UOM::ZERO_BASED_INDEX__START_BY_ONE)
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, MAX_VCHANNELS - 1, 0);
+    ->DefMinMaxStandard_Uint(0, MAX_VCHANNELS - 1, 0)
+    ->DefClientParameter();
 
     DefParameter(ACTIVE_PAGE, cat, "Active Page")
     ->DefHideEncoderSlider()
-    ->DefMinMaxStandard_Uint(0, (uint)X32_PAGE::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)X32_PAGE::HOME);
+    ->DefMinMaxStandard_Uint(0, (uint)X32_PAGE::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)X32_PAGE::HOME)
+    ->DefClientParameter();
 
     DefParameter(BANKING_EQ, cat, "EQ")
     ->DefNoConfig()
     ->DefUOM(MP_UOM::BANKING_EQ)
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, 3, 0);
+    ->DefMinMaxStandard_Uint(0, 3, 0)
+    ->DefClientParameter();
 
     DefParameter(BANKING_INPUT, cat, "Banking Input")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None);
+    ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None)
+    ->DefClientParameter();
 
     DefParameter(BANKING_BUS, cat, "Banking Bus")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None);
+    ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None)
+    ->DefClientParameter();
 
     DefParameter(BANKING_BUS_SENDS, cat, "Banking Bus Sends")
     ->DefNoConfig()
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, 3, 0);
+    ->DefMinMaxStandard_Uint(0, 3, 0)
+    ->DefClientParameter();
 
     DefParameter(BANKING_ASSIGN, cat, "Banking Assign")
     ->DefHideEncoderReset()
-    ->DefMinMaxStandard_Uint(0, 2, 0);
+    ->DefMinMaxStandard_Uint(0, 2, 0)
+    ->DefClientParameter();
 
     // Virtual keyboard on surface, as a prototype just on the Bus Section
 
     DefParameter(VKEYBOARD_ACTIVE, cat, "Virtual Keyboard Active")
     ->DefNoConfig()
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefClientParameter();
 
     DefParameter(VKEYBOARD_STRING, cat, "Virtual Keyboard", CHANNEL_NAME_MAX_LENGTH)
     ->DefNoConfig()
-    ->DefStandard_String("");
+    ->DefStandard_String("")
+    ->DefClientParameter();
 
     DefParameter(VKEYBOARD_VKEYS, cat, "Virtual Keyboard VKeys", CHANNEL_NAME_MAX_LENGTH * 2)
     ->DefNoConfig()
-    ->DefStandard_Bool(false);
+    ->DefStandard_Bool(false)
+    ->DefClientParameter();
 
     // ###########
     // # Display
@@ -482,13 +492,13 @@ void Config::DefineMixerparameters() {
 
     cat = MP_CAT::DISPLAY;
 
-    DefParameter(DISPLAY_UTILITY, cat, "Display Utility")->DefNoConfig()->DefStandard_Bool(false);
-    DefParameter(DISPLAY_MUTE_GROUP, cat, "Display Mute Group")->DefNoConfig()->DefStandard_Bool(false);
+    DefParameter(DISPLAY_UTILITY, cat, "Display Utility")->DefNoConfig()->DefStandard_Bool(false)->DefClientParameter();
+    DefParameter(DISPLAY_MUTE_GROUP, cat, "Display Mute Group")->DefNoConfig()->DefStandard_Bool(false)->DefClientParameter();
 
-    DefParameter(DISPLAY_LEFT, cat, "Display Left")->DefNoConfig()->DefStandard_Bool(false);
-    DefParameter(DISPLAY_RIGHT, cat, "Display Right")->DefNoConfig()->DefStandard_Bool(false);
-    DefParameter(DISPLAY_UP, cat, "Display Up")->DefNoConfig()->DefStandard_Bool(false);
-    DefParameter(DISPLAY_DOWN, cat, "Display Down")->DefNoConfig()->DefStandard_Bool(false);
+    DefParameter(DISPLAY_LEFT, cat, "Display Left")->DefNoConfig()->DefStandard_Bool(false)->DefClientParameter();
+    DefParameter(DISPLAY_RIGHT, cat, "Display Right")->DefNoConfig()->DefStandard_Bool(false)->DefClientParameter();
+    DefParameter(DISPLAY_UP, cat, "Display Up")->DefNoConfig()->DefStandard_Bool(false)->DefClientParameter();
+    DefParameter(DISPLAY_DOWN, cat, "Display Down")->DefNoConfig()->DefStandard_Bool(false)->DefClientParameter();
 
     // ###########
     // # Global
@@ -1375,6 +1385,30 @@ map<String, MP_ID>* Config::GetOscPaths()
     return oscPaths;
 }
 
+void Config::SetCallbackSet(OscSendToServerCallbackSet callback, void* arg)
+{
+    oscCallbackSet = callback;
+    callbackArg = arg;
+}
+
+void Config::SetCallbackChange(OscSendToServerCallbackChange callback, void* arg)
+{
+    oscCallbackChange = callback;
+    callbackArg = arg;
+}
+
+void Config::SetCallbackToogle(OscSendToServerCallbackToogle callback, void* arg)
+{
+    oscCallbackToogle = callback;
+    callbackArg = arg;
+}
+
+void Config::SetCallbackReset(OscSendToServerCallbackReset callback, void* arg)
+{
+    oscCallbackReset = callback;
+    callbackArg = arg;
+}
+
 map<MP_ID, set<uint>>* Config::GetChangedParameterList()
 {
     return mp_changedlist;
@@ -1608,16 +1642,17 @@ bool Config::GetBlink(MP_ID mp)
 
 void Config::Set(MP_ID mp, float value, uint index)
 {
-    if (IsClientMode() )//&& IsServerParameter())
+    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
     {
         // Send Parameter to Server via Callback
-
-
+        if (oscCallbackSet)
+        {
+            oscCallbackSet(callbackArg, mp, "", value, index);
+        }
     }
     else
     {
         // Process Parameter localy
-
         mpm[(uint)mp]->Set(value, index);
         SetParameterChanged(mp, index);
     }
@@ -1625,9 +1660,20 @@ void Config::Set(MP_ID mp, float value, uint index)
 
 void Config::Set(MP_ID mp, String value_string, uint index)
 {
-    mpm[(uint)mp]->Set(value_string, index);
-
-    SetParameterChanged(mp, index);
+    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    {
+        // Send Parameter to Server via Callback
+        if (oscCallbackSet)
+        {
+            oscCallbackSet(callbackArg, mp, value_string, 0.0f, index);
+        }
+    }
+    else
+    {
+        // Process Parameter localy
+        mpm[(uint)mp]->Set(value_string, index);
+        SetParameterChanged(mp, index);
+    }
 }
 
 void Config::SetParameterUnchanged(MP_ID mp)
@@ -1689,16 +1735,38 @@ void Config::SetParameterChanged(MP_ID mp, uint index)
 
 void Config::Change(MP_ID mp, int amount, uint index)
 {
-    mpm[(uint)mp]->Change(amount, index);
-
-    SetParameterChanged(mp, index);
+    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    {
+        // Send Parameter to Server via Callback
+        if (oscCallbackChange)
+        {
+            oscCallbackChange(callbackArg, mp, amount, index);
+        }
+    }
+    else
+    {
+        // Process Parameter localy
+        mpm[(uint)mp]->Change(amount, index);
+        SetParameterChanged(mp, index);
+    }
 }
 
 void Config::Toggle(MP_ID mp, uint index)
 {
-    mpm[(uint)mp]->Toggle(index);
-
-    SetParameterChanged(mp, index);
+    if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    {
+        // Send Parameter to Server via Callback
+        if (oscCallbackToogle)
+        {
+            oscCallbackToogle(callbackArg, mp, index);
+        }
+    }
+    else
+    {
+        // Process Parameter localy
+        mpm[(uint)mp]->Toggle(index);
+        SetParameterChanged(mp, index);
+    }
 }
 
 // sets the Mixerparameter to changed, so that it is reloaded
@@ -1709,9 +1777,20 @@ void Config::Refresh(MP_ID mp, uint index)
 
 void Config::Reset(MP_ID mp, uint index)
 {
-    mpm[(uint)mp]->Reset(index);
-    
-    SetParameterChanged(mp, index);
+        if (IsClientMode() && !(GetParameter(mp)->IsClientParameter()))
+    {
+        // Send Parameter to Server via Callback
+        if (oscCallbackReset)
+        {
+            oscCallbackReset(callbackArg, mp, index);
+        }
+    }
+    else
+    {
+        // Process Parameter localy
+        mpm[(uint)mp]->Reset(index);
+        SetParameterChanged(mp, index);
+    }
 }
 
 MP_ID Config::ParameterCalcId(SurfaceBindingParameter* binding_parameter)

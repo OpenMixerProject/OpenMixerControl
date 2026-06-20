@@ -132,3 +132,8 @@ struct WingFrameParser {
 };
 
 typedef void (*SurfaceCallback)(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
+
+typedef void (*OscSendToServerCallbackSet)(void* arg, MP_ID parameterId, WString::String strValue, float floatValue, uint index);
+typedef void (*OscSendToServerCallbackChange)(void* arg, MP_ID parameterId, int amount, uint index);
+typedef void (*OscSendToServerCallbackToogle)(void* arg, MP_ID parameterId, uint index);
+typedef void (*OscSendToServerCallbackReset)(void* arg, MP_ID parameterId, uint index);

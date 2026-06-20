@@ -46,6 +46,11 @@ namespace OMC
 
             OMCAssignBank* assingBanks[(uint)X32AssignBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];
 
+            OscSendToServerCallbackSet oscCallbackSet = nullptr;
+            OscSendToServerCallbackChange oscCallbackChange = nullptr;
+            OscSendToServerCallbackToogle oscCallbackToogle = nullptr;
+            OscSendToServerCallbackReset oscCallbackReset = nullptr;
+            void* callbackArg = nullptr;
 
             // old
             OMC_MODEL _model;
@@ -62,7 +67,11 @@ namespace OMC
             Mixerparameter* GetParameter(MP_ID mp);
 
             map<String, MP_ID>* GetOscPaths();
-            
+            void SetCallbackSet(OscSendToServerCallbackSet callback, void* arg);
+            void SetCallbackChange(OscSendToServerCallbackChange callback, void* arg);
+            void SetCallbackToogle(OscSendToServerCallbackToogle callback, void* arg);
+            void SetCallbackReset(OscSendToServerCallbackReset callback, void* arg);
+
             map<MP_ID, set<uint>>* GetChangedParameterList();
 
             MP_ID MpCalcId(MP_ID mp_id, int amount);
