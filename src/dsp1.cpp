@@ -345,13 +345,15 @@ void DSP1::SendGate(uint chanIndex)
     // coeff_attack (envelope is recalculated every sample)
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
     // ln(10%) - ln(90%) = -2.197224577
-    values[2] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
+	// we are using -0.219722 for a good gate-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+    values[2] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
 
     // hold_ticks (recalculated every 16 samples, hence 333 microseconds)
     values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * bufferrate / 1000.0f;
 
     // coeff_release (envelope is recalculated every sample)
-    values[4] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
+	// we are using -0.219722 for a good gate-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+    values[4] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
 
     spi->QueueDspData(0, 'g', chanIndex, 0, 5, &values[0]);
 }
@@ -458,11 +460,13 @@ void DSP1::SendCompressor(uint8_t chanIndex)
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
     // ln(10%) - ln(90%) = -2.197224577
     // attack (envelope is recalculated every sample)
-	values[3] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
+	// we are using -0.219722 for a good compression-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+	values[3] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
     // hold (hold-timer is calculated every 16 samples, hence every 333 microseconds)
 	values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * bufferrate / 1000.0f;
     // release (envelope is recalculated every sample)
-	values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
+	// we are using -0.219722 for a good compression-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+	values[5] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
 
     spi->QueueDspData(0, 'c', chanIndex, 0, 6, &values[0]);
 }
