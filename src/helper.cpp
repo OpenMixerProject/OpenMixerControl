@@ -676,3 +676,39 @@ uint8_t Helper::CalculateWingChecksum(const uint8_t *payload, size_t len) {
     }
     return (uint8_t)(((sum & 0xffu) ^ (len & 0xffu)) | 0x80u);
 }
+
+String Helper::RoutingGetOutputNameByIndex(uint8_t index) {
+/*
+    // 64 DSP-output-channels:
+    // 1-32		Main-Output to FPGA
+    // 33-40	Aux-Output to FPGA
+    // 41-56	FX-Sends 1-16 to DSP2
+    // 57-64	FX-Aux to DSP2
+*/
+    if ((index >= 1) && (index <= 32)) {
+        return String("DSP Out ") + index;
+    } else if ((index >= 33) && (index <= 40)) {
+        return String("DSP AuxOut ") + (index - 32);
+    } else if ((index >= 41) && (index <= 56)) {
+        return String("FX SendOut ") + (index - 40);
+    // the following channels are FX AUX Send 1-8 to DSP2
+    } else if ((index == 57)) {
+        return String("Linux Audio L");
+    } else if ((index == 58)) {
+        return String("Linux Audio R");
+    } else if ((index == 59)) {
+        return String("AES/EBU Out L");
+    } else if ((index == 60)) {
+        return String("AES/EBU Out R");
+    } else if ((index == 61)) {
+        return String("Unused Ch 5");
+    } else if ((index == 62)) {
+        return String("Unused Ch 6");
+    } else if ((index == 63)) {
+        return String("Unused Ch 7");
+    } else if (index == 64) {
+        return String("RTA Source");
+    }
+
+    return "???";
+}

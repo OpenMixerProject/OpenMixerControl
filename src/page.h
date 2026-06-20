@@ -21,7 +21,6 @@ using enum MP_ID;
 class Page : public X32Base
 {
     protected:
-        Mixer* mixer;
         Surface* surface;
 
         X32_PAGE nextPage = X32_PAGE::NONE;

@@ -62,17 +62,17 @@ class PageGate: public Page {
         }
 
         void OnUpdateMeters() override {
-            int32_t gateValueAudioDbfs = -120;
+            // int32_t gateValueAudioDbfs = -120;
 
-            uint8_t selectedChannelIndex = config->GetUint(MP_ID::SELECTED_CHANNEL);
-            if (selectedChannelIndex < 40) {
-                gateValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
-            }
+            // uint8_t selectedChannelIndex = config->GetUint(MP_ID::SELECTED_CHANNEL);
+            // if (selectedChannelIndex < 40) {
+            //     gateValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
+            // }
             
-            // add new value to chart
-            lv_chart_set_next_value(objects.current_channel_gate, chartSeriesGateAudio, gateValueAudioDbfs);
+            // // add new value to chart
+            // lv_chart_set_next_value(objects.current_channel_gate, chartSeriesGateAudio, gateValueAudioDbfs);
 
-            //lv_chart_refresh(objects.current_channel_gate);
+            // //lv_chart_refresh(objects.current_channel_gate);
         }
 
     private:

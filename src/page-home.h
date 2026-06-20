@@ -127,18 +127,18 @@ class PageHome : public Page
 
         void OnUpdateMeters() override
         {
-            for (uint i = 0; i < MAX_DISPLAY_ENCODER; i++)
-            {
-                float dbValue = helper->sample2Dbfs(mixer->dsp->rChannel[channelindex[i]].meterDecay);
-                uint imageOffset = helper->rescale(dbValue, -100.0f, 10.0f, 0.0f, 31.0f);
-                uint newImageOffset = imageOffset * -lv_obj_get_width(vumeters[i]);
+            // for (uint i = 0; i < MAX_DISPLAY_ENCODER; i++)
+            // {
+            //     float dbValue = helper->sample2Dbfs(mixer->dsp->rChannel[channelindex[i]].meterDecay);
+            //     uint imageOffset = helper->rescale(dbValue, -100.0f, 10.0f, 0.0f, 31.0f);
+            //     uint newImageOffset = imageOffset * -lv_obj_get_width(vumeters[i]);
              
-                // only set new offset if it has changed
-                if (newImageOffset != lastImageOffset[i])
-                {
-                    lv_image_set_offset_x(vumeters[i], newImageOffset);
-                    lastImageOffset[i] = newImageOffset;
-                }
-            }
+            //     // only set new offset if it has changed
+            //     if (newImageOffset != lastImageOffset[i])
+            //     {
+            //         lv_image_set_offset_x(vumeters[i], newImageOffset);
+            //         lastImageOffset[i] = newImageOffset;
+            //     }
+            // }
         }
 };

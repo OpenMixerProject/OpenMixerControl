@@ -64,16 +64,18 @@ class PageDynamics: public Page {
 
         void OnUpdateMeters() override
         {
-            int32_t compValueAudioDbfs = -120;
+            // TODO: Metering
 
-            uint8_t selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
-            if (selectedChannelIndex < 40) {
-                compValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
-            }
+            // int32_t compValueAudioDbfs = -120;
 
-            // add new value to chart
-            lv_chart_set_next_value(objects.current_channel_comp, chartSeriesCompressorAudio, compValueAudioDbfs);
-            //lv_chart_refresh(objects.current_channel_comp);
+            // uint8_t selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
+            // if (selectedChannelIndex < 40) {
+            //     compValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
+            // }
+
+            // // add new value to chart
+            // lv_chart_set_next_value(objects.current_channel_comp, chartSeriesCompressorAudio, compValueAudioDbfs);
+            // //lv_chart_refresh(objects.current_channel_comp);
         }
 
     private:

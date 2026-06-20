@@ -24,9 +24,8 @@
 
 #include "lcd-menu.h"
 
-LcdMenu::LcdMenu(X32BaseParameter* basepar, Mixer* _mixer, Surface* _surface) : X32Base(basepar) {
-
-    this->mixer = _mixer;
+LcdMenu::LcdMenu(X32BaseParameter* basepar, Surface* _surface) : X32Base(basepar)
+{
     this->surface = _surface;
 }
 

@@ -177,7 +177,7 @@ class PageRoutingDsp: public Page
 	 		{
 	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 0, config->GetParameter(ROUTING_DSP_OUTPUT)->GetFormatedValue(i).c_str());
 	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 2, config->GetParameter(ROUTING_DSP_OUTPUT_TAPPOINT)->GetFormatedValue(i).c_str());
-	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 4, mixer->dsp->RoutingGetOutputNameByIndex(i+1).c_str());
+	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 4, helper->RoutingGetOutputNameByIndex(i+1).c_str());
 
                 if (i < MAX_DSP1_TO_FPGA_CHANNELS) {
 	 			    lv_table_set_cell_value(objects.table_routing_dsp_output, i, 5, config->GetParameter(DELAY_DSP_OUTPUT)->GetFormatedValue(i).c_str());

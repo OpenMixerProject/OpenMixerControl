@@ -112,37 +112,37 @@ class PageSetupCard: public Page {
             }
         }
 
-        void RefreshTOC() {
-            // Header
-            lv_table_set_column_count(objects.setup_card_toc_header, 3);
-            lv_table_set_column_width(objects.setup_card_toc_header, 0, 25); // selection marker
-            lv_table_set_column_width(objects.setup_card_toc_header, 1, 125); // entries (HEX)
-            lv_table_set_column_width(objects.setup_card_toc_header, 2, 300); // entries (TimeCode)
-            lv_table_set_cell_value(objects.setup_card_toc_header, 0, 1, "File-ID");
-            lv_table_set_cell_value(objects.setup_card_toc_header, 0, 2, "Date and Time");
+        // void RefreshTOC() {
+        //     // Header
+        //     lv_table_set_column_count(objects.setup_card_toc_header, 3);
+        //     lv_table_set_column_width(objects.setup_card_toc_header, 0, 25); // selection marker
+        //     lv_table_set_column_width(objects.setup_card_toc_header, 1, 125); // entries (HEX)
+        //     lv_table_set_column_width(objects.setup_card_toc_header, 2, 300); // entries (TimeCode)
+        //     lv_table_set_cell_value(objects.setup_card_toc_header, 0, 1, "File-ID");
+        //     lv_table_set_cell_value(objects.setup_card_toc_header, 0, 2, "Date and Time");
 
-            lv_obj_add_event_cb(objects.setup_card_toc_header, draw_event_header_cb, LV_EVENT_DRAW_TASK_ADDED, NULL);
-            lv_obj_add_flag(objects.setup_card_toc_header, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+        //     lv_obj_add_event_cb(objects.setup_card_toc_header, draw_event_header_cb, LV_EVENT_DRAW_TASK_ADDED, NULL);
+        //     lv_obj_add_flag(objects.setup_card_toc_header, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
 
-            // Selection-Table
-            lv_table_set_row_count(objects.setup_card_toc, numberOfEntries); /*Not required but avoids a lot of memory reallocation lv_table_set_set_value*/
-            lv_table_set_column_count(objects.setup_card_toc, 3);
-            lv_table_set_column_width(objects.setup_card_toc, 0, 25); // selection marker
-            lv_table_set_column_width(objects.setup_card_toc, 1, 125); // entries (HEX)
-            lv_table_set_column_width(objects.setup_card_toc, 2, 300); // entries (TimeCode)
-            for (uint8_t i=0; i < numberOfEntries; i++)
-            {
-                lv_table_set_cell_value_fmt(objects.setup_card_toc, i, 1, "%s", helper->split(TOC, ',', i).c_str());
-                lv_table_set_cell_value_fmt(objects.setup_card_toc, i, 2, "%s", mixer->card->XLIVE_SessionNameToString(helper->split(TOC, ',', i)).c_str());
-            }
-            lv_table_set_cell_value(objects.setup_card_toc, gui_selected_item, 0, LV_SYMBOL_RIGHT);
+        //     // Selection-Table
+        //     lv_table_set_row_count(objects.setup_card_toc, numberOfEntries); /*Not required but avoids a lot of memory reallocation lv_table_set_set_value*/
+        //     lv_table_set_column_count(objects.setup_card_toc, 3);
+        //     lv_table_set_column_width(objects.setup_card_toc, 0, 25); // selection marker
+        //     lv_table_set_column_width(objects.setup_card_toc, 1, 125); // entries (HEX)
+        //     lv_table_set_column_width(objects.setup_card_toc, 2, 300); // entries (TimeCode)
+        //     for (uint8_t i=0; i < numberOfEntries; i++)
+        //     {
+        //         lv_table_set_cell_value_fmt(objects.setup_card_toc, i, 1, "%s", helper->split(TOC, ',', i).c_str());
+        //         lv_table_set_cell_value_fmt(objects.setup_card_toc, i, 2, "%s", mixer->card->XLIVE_SessionNameToString(helper->split(TOC, ',', i)).c_str());
+        //     }
+        //     lv_table_set_cell_value(objects.setup_card_toc, gui_selected_item, 0, LV_SYMBOL_RIGHT);
 
-            lv_obj_add_event_cb(objects.setup_card_toc, draw_event_cb, LV_EVENT_DRAW_TASK_ADDED, NULL);
-            lv_obj_add_flag(objects.setup_card_toc, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+        //     lv_obj_add_event_cb(objects.setup_card_toc, draw_event_cb, LV_EVENT_DRAW_TASK_ADDED, NULL);
+        //     lv_obj_add_flag(objects.setup_card_toc, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
 
-            // store config pointer in user data for use in draw callback
-            lv_obj_set_user_data(objects.setup_card_toc, &gui_selected_item);
-        }
+        //     // store config pointer in user data for use in draw callback
+        //     lv_obj_set_user_data(objects.setup_card_toc, &gui_selected_item);
+        // }
 
     public:
         PageSetupCard(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
@@ -154,235 +154,235 @@ class PageSetupCard: public Page {
             tabIndex1 = 1;
         }
 
-        void OnShow() override
-        {
-            // request card-information
-            mixer->card->XLIVE_ReadTotalCardSpaceMB(0);
-            mixer->card->XLIVE_ReadTotalCardSpaceMB(1);
+        // void OnShow() override
+        // {
+        //     // request card-information
+        //     mixer->card->XLIVE_ReadTotalCardSpaceMB(0);
+        //     mixer->card->XLIVE_ReadTotalCardSpaceMB(1);
 
-            // get all files from CARD
-            numberOfEntries = 0;
-            TOC = mixer->card->XLIVE_RequestToc(&numberOfEntries);
+        //     // get all files from CARD
+        //     numberOfEntries = 0;
+        //     TOC = mixer->card->XLIVE_RequestToc(&numberOfEntries);
 
-            UpdateEncoderBinding(banking);
-            lv_label_set_text_fmt(objects.setup_card_detected, "%s", mixer->GetCardModelString().c_str());
-        }
+        //     UpdateEncoderBinding(banking);
+        //     lv_label_set_text_fmt(objects.setup_card_detected, "%s", mixer->GetCardModelString().c_str());
+        // }
 
-        void UpdateEncoderBinding(uint bank) {
-            switch (bank) {
-                case 0: // regular controls
-                    config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE, CARD_AUDIO_SOURCE);
-                    config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::CHANGE, CARD_NUMBER_OF_CHANNELS);
-                    config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE, CARD_SDCARD);
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_3, "Stop");
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_4, "Play/Pause");
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_5, "Record");
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Select Track");
-                    break;
-                case 1: // additional controls
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, "<< 15 Seconds");
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_2, "15 Seconds >>");
-                    config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_3);
-                    config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_4);
-                    config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_5);
-                    config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Format Card");
-                    break;
-            }
-        }
+        // void UpdateEncoderBinding(uint bank) {
+        //     switch (bank) {
+        //         case 0: // regular controls
+        //             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE, CARD_AUDIO_SOURCE);
+        //             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::CHANGE, CARD_NUMBER_OF_CHANNELS);
+        //             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE, CARD_SDCARD);
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_3, "Stop");
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_4, "Play/Pause");
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_5, "Record");
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Select Track");
+        //             break;
+        //         case 1: // additional controls
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, "<< 15 Seconds");
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_2, "15 Seconds >>");
+        //             config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_3);
+        //             config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_4);
+        //             config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_5);
+        //             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Format Card");
+        //             break;
+        //     }
+        // }
 
-        void OnChange(bool force_update) override
-        {
-            if (config->HasParameterChanged(DISPLAY_UP))
-            {
-                prevParameterBank();
-            }
+        // void OnChange(bool force_update) override
+        // {
+        //     if (config->HasParameterChanged(DISPLAY_UP))
+        //     {
+        //         prevParameterBank();
+        //     }
 
-            if (config->HasParameterChanged(DISPLAY_DOWN))
-            {
-                nextParameterBank();
-            }
+        //     if (config->HasParameterChanged(DISPLAY_DOWN))
+        //     {
+        //         nextParameterBank();
+        //     }
 
-            if(gui_selected_item_before != gui_selected_item) {
+        //     if(gui_selected_item_before != gui_selected_item) {
 
-                if (numberOfEntries == 0) {
-                    gui_selected_item = 0;
-                }else{
-                    if (gui_selected_item < 0) {
-                        // limit list at the top
-                        gui_selected_item = 0;
-                    }else if (gui_selected_item >= numberOfEntries) {
-                        // limit list at the bottom
-                        gui_selected_item = numberOfEntries - 1;
-                    }
-                }
+        //         if (numberOfEntries == 0) {
+        //             gui_selected_item = 0;
+        //         }else{
+        //             if (gui_selected_item < 0) {
+        //                 // limit list at the top
+        //                 gui_selected_item = 0;
+        //             }else if (gui_selected_item >= numberOfEntries) {
+        //                 // limit list at the bottom
+        //                 gui_selected_item = numberOfEntries - 1;
+        //             }
+        //         }
 
-                // remove old indicator
-                lv_table_set_cell_value(objects.setup_card_toc, gui_selected_item_before, 0, " ");
+        //         // remove old indicator
+        //         lv_table_set_cell_value(objects.setup_card_toc, gui_selected_item_before, 0, " ");
                 
-                // display new indicator
-                lv_table_set_cell_value(objects.setup_card_toc, gui_selected_item, 0, LV_SYMBOL_RIGHT);
+        //         // display new indicator
+        //         lv_table_set_cell_value(objects.setup_card_toc, gui_selected_item, 0, LV_SYMBOL_RIGHT);
                 
-                // set select to scroll table
-                lv_table_set_selected_cell(objects.setup_card_toc, gui_selected_item, 0);
+        //         // set select to scroll table
+        //         lv_table_set_selected_cell(objects.setup_card_toc, gui_selected_item, 0);
                 
-				gui_selected_item_before = gui_selected_item;
-            }
+		// 		gui_selected_item_before = gui_selected_item;
+        //     }
 
-            if (banking != bankingBefore) {
-                UpdateEncoderBinding(banking);
-                bankingBefore = banking;
-            }
+        //     if (banking != bankingBefore) {
+        //         UpdateEncoderBinding(banking);
+        //         bankingBefore = banking;
+        //     }
 
-            if (config->HasParameterChanged(CARD_NUMBER_OF_CHANNELS) || force_update)
-            {
-                lv_label_set_text(objects.setup_card_channelmode, config->GetParameter(CARD_NUMBER_OF_CHANNELS)->GetFormatedValue().c_str());
-            }
+        //     if (config->HasParameterChanged(CARD_NUMBER_OF_CHANNELS) || force_update)
+        //     {
+        //         lv_label_set_text(objects.setup_card_channelmode, config->GetParameter(CARD_NUMBER_OF_CHANNELS)->GetFormatedValue().c_str());
+        //     }
             
-            if (config->HasParameterChanged(CARD_AUDIO_SOURCE) || force_update)
-            {
-                lv_label_set_text(objects.setup_card_sourcemode, config->GetParameter(CARD_AUDIO_SOURCE)->GetFormatedValue().c_str());
-                lv_image_set_offset_x(objects.setup_card_sdusb, config->GetUint(CARD_AUDIO_SOURCE) * -lv_obj_get_width(objects.setup_card_sdusb));
-            }
+        //     if (config->HasParameterChanged(CARD_AUDIO_SOURCE) || force_update)
+        //     {
+        //         lv_label_set_text(objects.setup_card_sourcemode, config->GetParameter(CARD_AUDIO_SOURCE)->GetFormatedValue().c_str());
+        //         lv_image_set_offset_x(objects.setup_card_sdusb, config->GetUint(CARD_AUDIO_SOURCE) * -lv_obj_get_width(objects.setup_card_sdusb));
+        //     }
 
-            if (config->HasParameterChanged(CARD_POSITION) || force_update) {
-                if (mixer->card->XLIVE_Playing) {
-                    // update text-fields and progressbar
-                    lv_label_set_text(objects.setup_card_currentposition, helper->secondsToHmsHuman(mixer->card->currentSongPositionSeconds).c_str());
-                    lv_label_set_text(objects.setup_card_totaltime, helper->secondsToHmsHuman(mixer->card->currentSongTotalSeconds).c_str());
-                    int32_t percentage = (mixer->card->currentSongPositionSeconds * 100) / mixer->card->currentSongTotalSeconds;
-                    lv_bar_set_value(objects.setup_card_progress, percentage, LV_ANIM_OFF);
-                }else{
-                    lv_bar_set_value(objects.setup_card_progress, 0, LV_ANIM_OFF);
-                }
-            }
+        //     if (config->HasParameterChanged(CARD_POSITION) || force_update) {
+        //         if (mixer->card->XLIVE_Playing) {
+        //             // update text-fields and progressbar
+        //             lv_label_set_text(objects.setup_card_currentposition, helper->secondsToHmsHuman(mixer->card->currentSongPositionSeconds).c_str());
+        //             lv_label_set_text(objects.setup_card_totaltime, helper->secondsToHmsHuman(mixer->card->currentSongTotalSeconds).c_str());
+        //             int32_t percentage = (mixer->card->currentSongPositionSeconds * 100) / mixer->card->currentSongTotalSeconds;
+        //             lv_bar_set_value(objects.setup_card_progress, percentage, LV_ANIM_OFF);
+        //         }else{
+        //             lv_bar_set_value(objects.setup_card_progress, 0, LV_ANIM_OFF);
+        //         }
+        //     }
 
-            if (config->HasParameterChanged(CARD_SDCARD) || force_update) {
-                RefreshTOC(); // read TOC again and reset UI as we have changed the SD-Card
-            }
+        //     if (config->HasParameterChanged(CARD_SDCARD) || force_update) {
+        //         RefreshTOC(); // read TOC again and reset UI as we have changed the SD-Card
+        //     }
 
-            if (config->HasParameterChanged(CARD_STATE) || config->HasParameterChanged(CARD_SDCARD) || force_update) {
-                // logic for the icons
-                if (mixer->card->XLIVE_CardPresent[config->GetUint(CARD_SDCARD)]) {
-                    if (mixer->card->XLIVE_Playing) {
-                        lv_image_set_offset_x(objects.setup_card_sdcard, (2 + (config->GetUint(CARD_SDCARD) * 3)) * -lv_obj_get_width(objects.setup_card_sdcard));
-                    }else if (mixer->card->XLIVE_Recording) {
-                        lv_image_set_offset_x(objects.setup_card_sdcard, (3 + (config->GetUint(CARD_SDCARD) * 3)) * -lv_obj_get_width(objects.setup_card_sdcard));
-                    }else{
-                        lv_image_set_offset_x(objects.setup_card_sdcard, (1 + (config->GetUint(CARD_SDCARD) * 3)) * -lv_obj_get_width(objects.setup_card_sdcard));
-                    }
-                }else{
-                    // no card on this slot -> show "X"ed card
-                    lv_image_set_offset_x(objects.setup_card_sdcard, 0);
-                }
+        //     if (config->HasParameterChanged(CARD_STATE) || config->HasParameterChanged(CARD_SDCARD) || force_update) {
+        //         // logic for the icons
+        //         if (mixer->card->XLIVE_CardPresent[config->GetUint(CARD_SDCARD)]) {
+        //             if (mixer->card->XLIVE_Playing) {
+        //                 lv_image_set_offset_x(objects.setup_card_sdcard, (2 + (config->GetUint(CARD_SDCARD) * 3)) * -lv_obj_get_width(objects.setup_card_sdcard));
+        //             }else if (mixer->card->XLIVE_Recording) {
+        //                 lv_image_set_offset_x(objects.setup_card_sdcard, (3 + (config->GetUint(CARD_SDCARD) * 3)) * -lv_obj_get_width(objects.setup_card_sdcard));
+        //             }else{
+        //                 lv_image_set_offset_x(objects.setup_card_sdcard, (1 + (config->GetUint(CARD_SDCARD) * 3)) * -lv_obj_get_width(objects.setup_card_sdcard));
+        //             }
+        //         }else{
+        //             // no card on this slot -> show "X"ed card
+        //             lv_image_set_offset_x(objects.setup_card_sdcard, 0);
+        //         }
 
-                // update card-info
-                if (mixer->card->XLIVE_CardPresent[0]) {
-                    lv_label_set_text_fmt(objects.setup_card_sd1info, "%s / %s (%d%% free)", mixer->card->XLIVE_CardUsedSpaceToString(0).c_str(), mixer->card->XLIVE_GetCardNominalSizeString(0).c_str(), (mixer->card->XLIVE_CardRemaingSpaceMB[0] * 100) / mixer->card->XLIVE_CardTotalSpaceMB[0]);
-                }else{
-                    lv_label_set_text(objects.setup_card_sd1info, "No Card");
-                }
-                if (mixer->card->XLIVE_CardPresent[1]) {
-                    lv_label_set_text_fmt(objects.setup_card_sd2info, "%s / %s (%d%% free)", mixer->card->XLIVE_CardUsedSpaceToString(1).c_str(), mixer->card->XLIVE_GetCardNominalSizeString(1).c_str(), (mixer->card->XLIVE_CardRemaingSpaceMB[1] * 100) / mixer->card->XLIVE_CardTotalSpaceMB[1]);
-                }else{
-                    lv_label_set_text(objects.setup_card_sd2info, "No Card");
-                }
-            }
-        }
+        //         // update card-info
+        //         if (mixer->card->XLIVE_CardPresent[0]) {
+        //             lv_label_set_text_fmt(objects.setup_card_sd1info, "%s / %s (%d%% free)", mixer->card->XLIVE_CardUsedSpaceToString(0).c_str(), mixer->card->XLIVE_GetCardNominalSizeString(0).c_str(), (mixer->card->XLIVE_CardRemaingSpaceMB[0] * 100) / mixer->card->XLIVE_CardTotalSpaceMB[0]);
+        //         }else{
+        //             lv_label_set_text(objects.setup_card_sd1info, "No Card");
+        //         }
+        //         if (mixer->card->XLIVE_CardPresent[1]) {
+        //             lv_label_set_text_fmt(objects.setup_card_sd2info, "%s / %s (%d%% free)", mixer->card->XLIVE_CardUsedSpaceToString(1).c_str(), mixer->card->XLIVE_GetCardNominalSizeString(1).c_str(), (mixer->card->XLIVE_CardRemaingSpaceMB[1] * 100) / mixer->card->XLIVE_CardTotalSpaceMB[1]);
+        //         }else{
+        //             lv_label_set_text(objects.setup_card_sd2info, "No Card");
+        //         }
+        //     }
+        // }
 
-        void OnChangeCustomButton(SurfaceElementId surface_element_id) override
-        {
-            if (banking == 0)
-            {
-                switch (surface_element_id)
-                {
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_3: 
-                        // Stop
-                        mixer->card->XLIVE_Stop();
-                        if (mixer->card->XLIVE_Recording) {
-                            lv_delay_ms(100);
-                            mixer->card->FlushRxBuffer(); // purge all commands send by Expansion-Card (several *9N24 and *9N00 commands)
-                            RefreshTOC(); // refresh list as content could have changed
-                        }
-                        break;
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_4: // Play/Pause
-                        mixer->card->XLIVE_PlayPause(); // toggle between play and pause
-                        OnChange(false);
-                        break;
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_5: // Record
-                        mixer->card->XLIVE_RecordNewSession();
-                        OnChange(false);
-                        break;
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6: // Select
-                        mixer->card->XLIVE_SelectSession(helper->split(TOC, ',', gui_selected_item));
-                        break;
-                    default:
-                        break;
-                }
-            }
+        // void OnChangeCustomButton(SurfaceElementId surface_element_id) override
+        // {
+        //     if (banking == 0)
+        //     {
+        //         switch (surface_element_id)
+        //         {
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_3: 
+        //                 // Stop
+        //                 mixer->card->XLIVE_Stop();
+        //                 if (mixer->card->XLIVE_Recording) {
+        //                     lv_delay_ms(100);
+        //                     mixer->card->FlushRxBuffer(); // purge all commands send by Expansion-Card (several *9N24 and *9N00 commands)
+        //                     RefreshTOC(); // refresh list as content could have changed
+        //                 }
+        //                 break;
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_4: // Play/Pause
+        //                 mixer->card->XLIVE_PlayPause(); // toggle between play and pause
+        //                 OnChange(false);
+        //                 break;
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_5: // Record
+        //                 mixer->card->XLIVE_RecordNewSession();
+        //                 OnChange(false);
+        //                 break;
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6: // Select
+        //                 mixer->card->XLIVE_SelectSession(helper->split(TOC, ',', gui_selected_item));
+        //                 break;
+        //             default:
+        //                 break;
+        //         }
+        //     }
 
-            if (banking == 1)
-            {
-                switch (surface_element_id)
-                {
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_1:
-                        // seek 15 seconds to left
-                        {
-                            int newPosition = mixer->card->currentSongPositionSeconds - 15;
-                            if (newPosition < 0) {
-                                newPosition = 0;
-                            }
-                            mixer->card->XLIVE_Seek((uint)newPosition * config->GetUint(SAMPLERATE));
-                        }
-                        break;
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2: 
-                        // seek 15 seconds to right
-                        {
-                            uint newPosition = mixer->card->currentSongPositionSeconds + 15;
-                            if (newPosition < mixer->card->currentSongTotalSeconds) {
-                                mixer->card->XLIVE_Seek(newPosition * config->GetUint(SAMPLERATE));
-                            }
-                        }
-                        break;
-                    case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6:
-                        // format current card
-                        mixer->card->XLIVE_FormatCard(); // TODO: we should ask the user with a nice message if he/she really wants to format the card
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
+        //     if (banking == 1)
+        //     {
+        //         switch (surface_element_id)
+        //         {
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_1:
+        //                 // seek 15 seconds to left
+        //                 {
+        //                     int newPosition = mixer->card->currentSongPositionSeconds - 15;
+        //                     if (newPosition < 0) {
+        //                         newPosition = 0;
+        //                     }
+        //                     mixer->card->XLIVE_Seek((uint)newPosition * config->GetUint(SAMPLERATE));
+        //                 }
+        //                 break;
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2: 
+        //                 // seek 15 seconds to right
+        //                 {
+        //                     uint newPosition = mixer->card->currentSongPositionSeconds + 15;
+        //                     if (newPosition < mixer->card->currentSongTotalSeconds) {
+        //                         mixer->card->XLIVE_Seek(newPosition * config->GetUint(SAMPLERATE));
+        //                     }
+        //                 }
+        //                 break;
+        //             case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6:
+        //                 // format current card
+        //                 mixer->card->XLIVE_FormatCard(); // TODO: we should ask the user with a nice message if he/she really wants to format the card
+        //                 break;
+        //             default:
+        //                 break;
+        //         }
+        //     }
+        // }
 
-        void OnChangeCustomEncoder(SurfaceElementId surface_element_id, int amount) override
-        {
-            if (banking == 0)
-            {
-                switch (surface_element_id)
-                {
-                    case SurfaceElementId::DISPLAY_ENCODER_6: // Select
-                        gui_selected_item += amount;
-                        OnChange(false);
-                        break;
-                    default:
-                        break;
-                }
-            }
+        // void OnChangeCustomEncoder(SurfaceElementId surface_element_id, int amount) override
+        // {
+        //     if (banking == 0)
+        //     {
+        //         switch (surface_element_id)
+        //         {
+        //             case SurfaceElementId::DISPLAY_ENCODER_6: // Select
+        //                 gui_selected_item += amount;
+        //                 OnChange(false);
+        //                 break;
+        //             default:
+        //                 break;
+        //         }
+        //     }
 
-        }
+        // }
         
-        void nextParameterBank()
-        {
-            if (banking < 1)
-            {
-                banking++;
-            }
-        }
+        // void nextParameterBank()
+        // {
+        //     if (banking < 1)
+        //     {
+        //         banking++;
+        //     }
+        // }
 
-        void prevParameterBank()
-        {
-            if (banking > 0)
-            {
-                banking--;
-            }
-        }
+        // void prevParameterBank()
+        // {
+        //     if (banking > 0)
+        //     {
+        //         banking--;
+        //     }
+        // }
 };

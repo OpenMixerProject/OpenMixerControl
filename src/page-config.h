@@ -130,15 +130,17 @@ class PageConfig : public Page
 
         void OnUpdateMeters() override
         {
-            float dbValue = helper->sample2Dbfs(mixer->dsp->rChannel[config->GetUint(MP_ID::SELECTED_CHANNEL)].meterDecay);
-            uint imageOffset = helper->rescale(dbValue, -100.0f, 10.0f, 0.0f, 31.0f);
-            uint newImageOffset = imageOffset * -lv_obj_get_width(objects.config_vumeter);
+            // TODO: Metering
+            // float dbValue = helper->sample2Dbfs(mixer->dsp->rChannel[config->GetUint(MP_ID::SELECTED_CHANNEL)].meterDecay);
+            
+            // uint imageOffset = helper->rescale(dbValue, -100.0f, 10.0f, 0.0f, 31.0f);
+            // uint newImageOffset = imageOffset * -lv_obj_get_width(objects.config_vumeter);
 
-            // only set new offset if it has changed
-            if (newImageOffset != lastImageOffset)
-            {
-                lv_image_set_offset_x(objects.config_vumeter, newImageOffset);
-                lastImageOffset = newImageOffset;
-            }
+            // // only set new offset if it has changed
+            // if (newImageOffset != lastImageOffset)
+            // {
+            //     lv_image_set_offset_x(objects.config_vumeter, newImageOffset);
+            //     lastImageOffset = newImageOffset;
+            // }
         }
 };

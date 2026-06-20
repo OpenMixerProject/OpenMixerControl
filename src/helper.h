@@ -141,4 +141,5 @@ class Helper
         float math_log(float number, float base);
 
         uint8_t CalculateWingChecksum(const uint8_t *payload, size_t len);
+        String RoutingGetOutputNameByIndex(uint8_t index);
 };

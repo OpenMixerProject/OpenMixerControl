@@ -78,90 +78,90 @@ class PageMeters : public Page
         void OnUpdateMeters() override
         {
 
-            for(int m = 0; m < 9; m++) {
-                lv_obj_t* parent = meterBlocks[m];
-                for(int i = 0; i < lv_obj_get_child_count(parent); i++) {
+            // for(int m = 0; m < 9; m++) {
+            //     lv_obj_t* parent = meterBlocks[m];
+            //     for(int i = 0; i < lv_obj_get_child_count(parent); i++) {
 
-                    uint8_t index = i+(m*8);
+            //         uint8_t index = i+(m*8);
 
-                    lv_obj_t * strip = lv_obj_get_child(parent, i);
-                    lv_obj_t * panel_clip = lv_obj_get_child(strip, 0); 
-                    lv_obj_t * panel_4 = lv_obj_get_child(strip, 1); 
-                    lv_obj_t * panel_3 = lv_obj_get_child(strip, 2); 
-                    lv_obj_t * panel_2 = lv_obj_get_child(strip, 3); 
-                    lv_obj_t * panel_1 = lv_obj_get_child(strip, 4); 
-                    lv_obj_t * panel_0 = lv_obj_get_child(strip, 5); 
+            //         lv_obj_t * strip = lv_obj_get_child(parent, i);
+            //         lv_obj_t * panel_clip = lv_obj_get_child(strip, 0); 
+            //         lv_obj_t * panel_4 = lv_obj_get_child(strip, 1); 
+            //         lv_obj_t * panel_3 = lv_obj_get_child(strip, 2); 
+            //         lv_obj_t * panel_2 = lv_obj_get_child(strip, 3); 
+            //         lv_obj_t * panel_1 = lv_obj_get_child(strip, 4); 
+            //         lv_obj_t * panel_0 = lv_obj_get_child(strip, 5); 
                              
 
-                    // CH1-32 + AUX
-                    if (m < 5) { 
-                        lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
-                        lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
-                        lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
-                        lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
-                        lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
-                        lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
-                    }  
+            //         // CH1-32 + AUX
+            //         if (m < 5) { 
+            //             lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
+            //             lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
+            //             lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
+            //             lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
+            //             lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
+            //             lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
+            //         }  
 
-                    // FX Ret
-                    if (m == 5) {
-                        lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
-                        lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
-                        lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
-                        lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
-                        lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
-                        lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
-                    } else 
+            //         // FX Ret
+            //         if (m == 5) {
+            //             lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
+            //             lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
+            //             lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
+            //             lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
+            //             lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
+            //             lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
+            //         } else 
                     
-                    // Bus 1-8
-                    if (m == 6) {
-                        lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
-                        lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
-                        lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
-                        lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
-                        lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
-                        lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
-                    } else
+            //         // Bus 1-8
+            //         if (m == 6) {
+            //             lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
+            //             lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
+            //             lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
+            //             lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
+            //             lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
+            //             lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
+            //         } else
                     
-                    // Bus 9-16
-                    if (m == 7)
-                    {
-                        // Todo: Bus 9-16
-                        // lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
-                        // lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
-                        // lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
-                        // lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
-                        // lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
-                        // lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
-                    }
+            //         // Bus 9-16
+            //         if (m == 7)
+            //         {
+            //             // Todo: Bus 9-16
+            //             // lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->rChannel[index].meter6Info & 0b00100000));
+            //             // lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00010000));
+            //             // lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00001000));
+            //             // lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000100));
+            //             // lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000010));
+            //             // lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->rChannel[index].meter6Info & 0b00000001));
+            //         }
 
-                    // Matrix
-                    if (m == 8) {
-                        if (i < 6)
-                        {
-                            // Todo: Matrix 
-                        }
-                        else if (i == 7)
-                        {
-                            lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->MainChannelSub.meter6Info & 0b00100000));
-                            lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00010000));
-                            lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00001000));
-                            lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00000100));
-                            lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00000010));
-                            lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00000001));
-                        }
-                    }
-                }
-            }
+            //         // Matrix
+            //         if (m == 8) {
+            //             if (i < 6)
+            //             {
+            //                 // Todo: Matrix 
+            //             }
+            //             else if (i == 7)
+            //             {
+            //                 lv_obj_set_state(panel_clip, LV_STATE_CHECKED, (mixer->dsp->MainChannelSub.meter6Info & 0b00100000));
+            //                 lv_obj_set_state(panel_4, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00010000));
+            //                 lv_obj_set_state(panel_3, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00001000));
+            //                 lv_obj_set_state(panel_2, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00000100));
+            //                 lv_obj_set_state(panel_1, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00000010));
+            //                 lv_obj_set_state(panel_0, LV_STATE_CHECKED,    (mixer->dsp->MainChannelSub.meter6Info & 0b00000001));
+            //             }
+            //         }
+            //     }
+            // }
 
-            // Main L/R
-            // TODO use both channels!
-            lv_obj_set_state(objects.ms_main_lr__panel_clip, LV_STATE_CHECKED, (mixer->dsp->MainChannelLR.meter6Info & 0b00100000));
-            lv_obj_set_state(objects.ms_main_lr__panel_4, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00010000));
-            lv_obj_set_state(objects.ms_main_lr__panel_3, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00001000));
-            lv_obj_set_state(objects.ms_main_lr__panel_2, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00000100));
-            lv_obj_set_state(objects.ms_main_lr__panel_1, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00000010));
-            lv_obj_set_state(objects.ms_main_lr__panel_0, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00000001));
+            // // Main L/R
+            // // TODO use both channels!
+            // lv_obj_set_state(objects.ms_main_lr__panel_clip, LV_STATE_CHECKED, (mixer->dsp->MainChannelLR.meter6Info & 0b00100000));
+            // lv_obj_set_state(objects.ms_main_lr__panel_4, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00010000));
+            // lv_obj_set_state(objects.ms_main_lr__panel_3, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00001000));
+            // lv_obj_set_state(objects.ms_main_lr__panel_2, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00000100));
+            // lv_obj_set_state(objects.ms_main_lr__panel_1, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00000010));
+            // lv_obj_set_state(objects.ms_main_lr__panel_0, LV_STATE_CHECKED,    (mixer->dsp->MainChannelLR.meter6Info & 0b00000001));
 
         }
 

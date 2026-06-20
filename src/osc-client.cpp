@@ -137,8 +137,7 @@ void OscClient::UdpSendToServer()
 {
     int len = tosc_writeMessage(TxMessage, 450, "/debug", "if", 0, 15.0f);
     SendUdpPacket(TxMessage, len);
-} 
-
+}
 
 ////////////////////////////////////
 // low-level communication functions

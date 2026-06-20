@@ -8,9 +8,10 @@
 
 using namespace std;
 
-class LcdMenu : public X32Base {
+class LcdMenu : public X32Base
+{
     private:
-        Mixer* mixer;
+
         Surface* surface;
         bool initDone = false;
 
@@ -24,7 +25,7 @@ class LcdMenu : public X32Base {
         LcdData* d;
 
     public:
-        LcdMenu(X32BaseParameter* basepar, Mixer* _mixer, Surface* _surface);
+        LcdMenu(X32BaseParameter* basepar, Surface* _surface);
 
         void OnInit();
         void OnShow();

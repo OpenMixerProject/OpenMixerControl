@@ -44,13 +44,11 @@
 
 #pragma once
 
-// includes for timer
-#include <time.h>
-#include <signal.h>
+#include "main.h"
 
 #include "defines.h"
-#include "ctrl.h"
 #include "version.h"
+#include "omc.h"
 
 #define DOCTEST_CONFIG_IMPLEMENT // we start doctest within our own main()
 #include "../lib_ext/doctest/doctest/doctest.h"
@@ -66,45 +64,38 @@
 // #include "eez/vars.h"
 
 
-X32Ctrl* ctrl;
+OMC* omc;
 State* state;
 CLI::App* app;
-
-// LVGL
-static lv_display_t *display;
-#ifdef TARGET_PC_SDL2
-static lv_indev_t *mouse;
-static lv_indev_t *mouse_wheel;
-static lv_indev_t *keyboard;
-#endif
 
 timer_t timerid_10ms;
 struct sigevent sev_10ms;
 struct itimerspec trigger_10ms;
 uint8_t vtimercounter = 0;
 
+
 void timer100msCallbackLvgl(_lv_timer_t* lv_timer) { 
-	ctrl->Tick100ms();
+	omc->Tick100ms();
 }
 
 void timer50msCallbackLvgl(_lv_timer_t* lv_timer) { 
-	ctrl->Tick50ms();
+	omc->Tick50ms();
 }
 
 void timer10msCallbackLvgl(_lv_timer_t* lv_timer) {
-	ui_tick(); ctrl->Tick10ms();
+	ui_tick(); omc->Tick10ms();
 }
 void timer10msCallbackLinux(int timer) {
 	
-	ctrl->Tick10ms();
+	omc->Tick10ms();
 
 	// virtual timer for triggering every 50ms and 100ms
 	vtimercounter++;
 	if (vtimercounter == 5) {
-		ctrl->Tick50ms();
+		omc->Tick50ms();
 	}
 	if (vtimercounter >= 10) {
-		ctrl->Tick100ms();
+		omc->Tick100ms();
 		vtimercounter = 0;
 	}
 }
@@ -146,136 +137,10 @@ const char * getenv_default(const char * name, const char * default_val)
     return value ? value : default_val;
 }
 
-
-void guiInit(X32Config* config)
-{
-	lv_init();
-
-	#ifdef TARGET_PC_SDL2
-
-		printf("bodyless mode (Development Simulator) startet\n");
-		state->bodyless = true;
-		
-		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
-		lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
-		keyboard = lv_sdl_keyboard_create();
-		//mouse = lv_sdl_mouse_create();
-		//mouse_wheel = lv_sdl_mousewheel_create();
-
-		// call this before "ui_init()"
-		ui_create_groups();
-
-		// set group for your input device
-		lv_group_set_default(groups.grp_KEY);
-		lv_indev_set_group(keyboard, groups.grp_KEY);
-	
-	#else
-		
-		const char * device = getenv_default("LV_LINUX_FBDEV_DEVICE", "/dev/fb0");
-		display = lv_linux_fbdev_create();
-
-		if(display == NULL) {
-			printf("could not create display!");
-			return;
-		}
-
-		lv_linux_fbdev_set_file(display, device);	
-
-	#endif
-
-	#ifdef BUILD_DEBUG
-	printf("lv_timer_create(timer10msCallbackLvgl, 10, NULL)\n");
-	#endif
-	lv_timer_create(timer10msCallbackLvgl, 10, NULL);
-
-	#ifdef BUILD_DEBUG
-	printf("lv_timer_create(timer50msCallbackLvgl, 50, NULL)\n");
-	#endif
-	lv_timer_create(timer50msCallbackLvgl, 50, NULL);
-
-	#ifdef BUILD_DEBUG
-	printf("lv_timer_create(timer100msCallbackLvgl, 100, NULL)\n");
-	#endif
-	lv_timer_create(timer100msCallbackLvgl, 100, NULL);
-
-	// initialize GUI created by EEZ
-	#ifdef BUILD_DEBUG
-	printf("ui_init()\n");
-	#endif
-	ui_init();
-
-	// InitPagesAndGUI() has to be called after ui_init()!
-	#ifdef BUILD_DEBUG
-	printf("ctrl->InitPagesAndGUI()\n");
-	#endif
-	ctrl->InitPagesAndGUI();
-
-	// trigger first update of display header
-	#ifdef BUILD_DEBUG
-	printf("config->Refresh(SELECTED_CHANNEL)\n");
-	#endif
-	config->Refresh(SELECTED_CHANNEL);
-
-	// trigger load of banks
-	if (config->IsModelX32FullOrM32())
-	{
-		#ifdef BUILD_DEBUG
-		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)\n");
-		#endif
-		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
-	}
-	else if (config->IsModelX32CompactOrProducerOrM32R())
-	{
-		#ifdef BUILD_DEBUG
-		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)\n");
-		#endif
-		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
-	}
-	else if (config->IsModelWingCompact())
-	{
-		#ifdef BUILD_DEBUG
-		printf("config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12)\n");
-		#endif
-		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
-	}
-	
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
-	{
-		#ifdef BUILD_DEBUG
-		printf("config->Refresh(BANKING_BUS)\n");
-		#endif
-		config->Refresh(BANKING_BUS);
-	}
-
-	// sync the Page
-	#ifdef BUILD_DEBUG
-	printf("config->Refresh(ACTIVE_PAGE)\n");
-	#endif
-	config->Refresh(ACTIVE_PAGE);
-
-	// sync the Surface
-	#ifdef BUILD_DEBUG
-	printf("ctrl->syncSurface(true)\n");
-	#endif
-	ctrl->syncSurface(true);
-
-	// LVGL loop
-	#ifdef BUILD_DEBUG
-	printf("starting LVGL loop\n");
-	#endif
-	uint32_t idle_time;
-	while (1)
-	{
-		idle_time = lv_timer_handler();
-		usleep(idle_time * 1000);
-	}
-}
-
-
 void action_action_key(lv_event_t * e)
 {
 	#ifdef TARGET_PC_SDL2
-	ctrl->SimulatorButton(lv_indev_get_key(keyboard));
+	omc->SimulatorButton(lv_indev_get_key(keyboard));
 	#endif
 }
 
@@ -470,7 +335,6 @@ int main(int argc, char* argv[])
 	}
 
 	X32Config* config = new X32Config(model_str, helper);
-	
 
 	config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 
@@ -507,27 +371,11 @@ int main(int argc, char* argv[])
 	}
 
 	X32BaseParameter* basepar = new X32BaseParameter(app, config, state, helper);
-	ctrl = new X32Ctrl(basepar);
 
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "ctrl->Init()");
-	ctrl->Init();  // initialize the whole thing and load config
+	omc = new OMC(basepar);
 
-	if (config->IsModelX32Core())
-	{
-		// only necessary if LVGL is not used
-		helper->Log("Starting Timers...\n");
-		init10msTimer_NonGUI();
-
-		helper->Log("Press Ctrl+C to terminate program.\n");
-		while (1) {
-			sleep(10); // Basically sleep forever :-) Timers do their job
-		}
-	}
-	else
-	{
-		helper->Log("Initializing GUI...\n");
-		guiInit(config); // initializes LVGL, FBDEV and starts endless loop
-	}
+	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "omc->Init()");
+	omc->Init();  // initialize the whole thing and load config
 
     exit(0);
 }

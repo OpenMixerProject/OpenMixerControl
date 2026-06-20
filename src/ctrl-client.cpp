@@ -1,14 +1,10 @@
-#include "ctrl.h"
+#include "ctrl-client.h"
 
+#include "main.h"
 #include "version.h"
-
-#include "external.h" // all external includes
-
 #include "x32config.h"
 #include "helper.h"
 #include "state.h"
-#include "osc-server.h"
-#include "wsm.h"
 
 #include "page-meters.h"
 #include "page-rta.h"
@@ -38,13 +34,12 @@
 #include "surfacebindingparameter.h"
 #include "surface-controller.h"
 
-X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
+#include "eez/ui.h"
+
+CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
 {
-	mixer = new Mixer(basepar);
-	surface = new Surface(basepar);
-	osc_server = new OscServer(basepar);
-	wsm = new WSM(basepar);
-	lcdmenu = new LcdMenu(basepar, mixer, surface); // only used for X32Core (at the moment, maybe later for assing-section?)
+    surface = new Surface(basepar);
+    lcdmenu = new LcdMenu(basepar, surface); // only used for X32Core
 
 	#if ENABLE_ARTNET
 	artnet = new Artnet(basepar);
@@ -63,102 +58,175 @@ X32Ctrl::X32Ctrl(X32BaseParameter* basepar) : X32Base(basepar)
 // #
 // ###########################################################################
 
-void X32Ctrl::Init()
+void CtrlClient::Init()
 {
-	
-
-	//##################################################################################
-	//#
-	//# 	Initialize system
-	//#
-	//##################################################################################
-
-
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->Init()");
-	mixer->Init();
-
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init(OnSurfaceCallback, this)");
-	surface->Init(OnSurfaceCallback, this);
-
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "xremote->Init()");
-	osc_server->Init();
-
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "wsm->Init()");
-	wsm->Init();
-
-	if (config->IsModelX32Core() || config->IsModelM32C()) {
-		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "lcdmenu->Init()");
-		lcdmenu->OnInit();
-	}
-
-	#if ENABLE_ARTNET
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "artnet->Init()");
-	artnet->Init();
-	#endif
-	
-
-	//############################################################################
-
-	// Just load a default set of FXes
-	// TODO: Save and Load
-	/*
-	// available FX types:
-	========================
-	NONE = -1,
-	REVERB = 0,
-	CHORUS = 1,
-	TRANSIENTSHAPER = 2,
-	OVERDRIVE = 3,
-	DELAY = 4,
-	MULTIBANDCOMPRESOR = 5,
-	DYNAMICEQ = 6
-	*/
-
-	if (config->IsModelAnyXM32())
+    if (config->IsModelX32Core())
 	{
-		mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // this effect takes lot of DSP-ressources
-		mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
-		mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
-		mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
-		mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
-		mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
-		mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
-		mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
+		// only necessary if LVGL is not used
+		helper->Log("Starting Timers...\n");
+		init10msTimer_NonGUI();
+
+		helper->Log("Press Ctrl+C to terminate program.\n");
+		while (1) {
+			sleep(10); // Basically sleep forever :-) Timers do their job
+		}
+	}
+	else
+	{
+		helper->Log("Initializing GUI...\n");
+		guiInit(); // initializes LVGL, FBDEV and starts endless loop
+
+        helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init(OnSurfaceCallback, this)");
+        surface->Init(OnSurfaceCallback, this);
+
+        if (config->IsModelX32Core() || config->IsModelM32C())
+        {
+            helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "lcdmenu->Init()");
+            lcdmenu->OnInit();
+        }
+
+        #if ENABLE_ARTNET
+        helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "artnet->Init()");
+        artnet->Init();
+        #endif
+        
+        if (config->IsModelWingCompact())
+        {
+            config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
+        }
+
+        // set IP-Address in GUI
+		lv_label_set_text_fmt(objects.header_ip, "IP: %s", helper->getIpAddress().c_str());
+    }
+}
+
+void CtrlClient::guiInit()
+{
+	lv_init();
+
+	#ifdef TARGET_PC_SDL2
+
+		printf("bodyless mode (Development Simulator) startet\n");
+		state->bodyless = true;
+		
+		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
+		lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
+		keyboard = lv_sdl_keyboard_create();
+		//mouse = lv_sdl_mouse_create();
+		//mouse_wheel = lv_sdl_mousewheel_create();
+
+		// call this before "ui_init()"
+		ui_create_groups();
+
+		// set group for your input device
+		lv_group_set_default(groups.grp_KEY);
+		lv_indev_set_group(keyboard, groups.grp_KEY);
+	
+	#else
+		
+		const char * device = getenv_default("LV_LINUX_FBDEV_DEVICE", "/dev/fb0");
+		display = lv_linux_fbdev_create();
+
+		if(display == NULL) {
+			printf("could not create display!");
+			return;
+		}
+
+		lv_linux_fbdev_set_file(display, device);	
+
+	#endif
+
+	#ifdef BUILD_DEBUG
+	printf("lv_timer_create(timer10msCallbackLvgl, 10, NULL)\n");
+	#endif
+	lv_timer_create(timer10msCallbackLvgl, 10, NULL);
+
+	#ifdef BUILD_DEBUG
+	printf("lv_timer_create(timer50msCallbackLvgl, 50, NULL)\n");
+	#endif
+	lv_timer_create(timer50msCallbackLvgl, 50, NULL);
+
+	#ifdef BUILD_DEBUG
+	printf("lv_timer_create(timer100msCallbackLvgl, 100, NULL)\n");
+	#endif
+	lv_timer_create(timer100msCallbackLvgl, 100, NULL);
+
+	// initialize GUI created by EEZ
+	#ifdef BUILD_DEBUG
+	printf("ui_init()\n");
+	#endif
+	ui_init();
+
+	// InitPagesAndGUI() has to be called after ui_init()!
+	#ifdef BUILD_DEBUG
+	printf("InitPagesAndGUI()\n");
+	#endif
+	InitPagesAndGUI();
+
+	// trigger first update of display header
+	#ifdef BUILD_DEBUG
+	printf("config->Refresh(SELECTED_CHANNEL)\n");
+	#endif
+	config->Refresh(SELECTED_CHANNEL);
+
+	// trigger load of banks
+	if (config->IsModelX32FullOrM32())
+	{
+		#ifdef BUILD_DEBUG
+		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)\n");
+		#endif
+		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
+	}
+	else if (config->IsModelX32CompactOrProducerOrM32R())
+	{
+		#ifdef BUILD_DEBUG
+		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)\n");
+		#endif
+		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
 	}
 	else if (config->IsModelWingCompact())
 	{
+		#ifdef BUILD_DEBUG
+		printf("config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12)\n");
+		#endif
 		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
 	}
-
-	//############################################################################
-
-	// X32Config
-	if(!config->LoadConfig(0))
+	
+	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
-		// create new ini file
-		helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "no default configfile found, creating one");
-		
-		config->Save(0);
+		#ifdef BUILD_DEBUG
+		printf("config->Refresh(BANKING_BUS)\n");
+		#endif
+		config->Refresh(BANKING_BUS);
+	}
+
+	// sync the Page
+	#ifdef BUILD_DEBUG
+	printf("config->Refresh(ACTIVE_PAGE)\n");
+	#endif
+	config->Refresh(ACTIVE_PAGE);
+
+	// sync the Surface
+	#ifdef BUILD_DEBUG
+	printf("syncSurface(true)\n");
+	#endif
+	syncSurface(true);
+
+	// LVGL loop
+	#ifdef BUILD_DEBUG
+	printf("starting LVGL loop\n");
+	#endif
+	uint32_t idle_time;
+	while (1)
+	{
+		idle_time = lv_timer_handler();
+		usleep(idle_time * 1000);
 	}
 }
 
-//#####################################################################################################################
-//
-// ######## #### ##     ## ######## ########  
-//    ##     ##  ###   ### ##       ##     ## 
-//    ##     ##  #### #### ##       ##     ## 
-//    ##     ##  ## ### ## ######   ########  
-//    ##     ##  ##     ## ##       ##   ##   
-//    ##     ##  ##     ## ##       ##    ##  
-//    ##    #### ##     ## ######## ##     ## 
-//
-//#####################################################################################################################
-
-void X32Ctrl::Tick10ms(void)
+void CtrlClient::Tick10ms(void)
 {
-	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "10ms");
-
-	//#####################################
+    //#####################################
 	//
 	//   Freeze changed parameter list
 	//
@@ -172,51 +240,28 @@ void X32Ctrl::Tick10ms(void)
 		surface->Touchcontrol();	
 	}
 
-	// this stateMachine handles the read and write to and from the two DSPs
-	mixer->dsp->CallbackStateMachine();
-
-	// read incoming data from surface and handle it
+    // read incoming data from surface and handle it
 	surface->ProcessUartDataSurface();
 	surface->Tick10ms();
 
-	// read incoming data from adda-boards and expansion-card
-	ProcessUartDataAdda();
-
-	// read incoming data from AES50 devices
-	ProcessUartDataAES50();
-
-	// communication with XRemote-clients via UDP (X32-Edit, MixingStation, etc.)
-	osc_server->UdpHandleCommunication();
-
-	// communication with Sennheiser Media Control Protocol
-	UdpHandleCommunication_WSM();
-
-
-	// sync if any Mixerparameter has changed
+    // sync if any Mixerparameter has changed
 	if (config->HasAnyParameterChanged())
 	{
-		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->Sync()");
-		mixer->Sync();
-
-		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->card->Sync()");
-		mixer->card->Sync();
-
-		#if ENABLE_ARTNET
+        #if ENABLE_ARTNET
 		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "artnet->Sync()");
 		artnet->Sync();
 		#endif
 
 		syncGuiOrLcd();
-		//syncXRemote(false);
-	}
+    }
 
-	if (config->HasAnyParameterChanged() || config->HasAnySurfaceBindingChanged())
+    if (config->HasAnyParameterChanged() || config->HasAnySurfaceBindingChanged())
 	{
 		// sync GUI(s) last, to get visual response after the hardware is synced!
 		syncSurface(false);
 	}
 
-	//#####################################
+    //#####################################
 	//
 	//   Unfreeze changed parameter list
 	//
@@ -226,7 +271,7 @@ void X32Ctrl::Tick10ms(void)
 	//#####################################
 }
 
-void X32Ctrl::Tick50ms(void)
+void CtrlClient::Tick50ms(void)
 {
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "50ms");
 
@@ -239,215 +284,12 @@ void X32Ctrl::Tick50ms(void)
 #endif
 }
 
-void X32Ctrl::Tick100ms(void)
+void CtrlClient::Tick100ms(void)
 {
-	static float dspLoadHistory[2][20];
-	static uint8_t dspLoadHistoryPointer = 0;
-	static uint8_t startupCounter = 0;
+    surface->Tick100ms();
 
-	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "100ms");
 
-	surface->Tick100ms();
-
-	// request data from all known clients
-	wsm->RequestDataFromClients();
-
-	// DSP-Activity Light
-    if (!(state->dsp_disable_activity_light)) {
-   	    // toggle the LED on DSP1 and DSP2 to show some activity
-        uint32_t value = 2;
-		mixer->dsp->spi->QueueDspData(0, 'a', 42, 0, 1, (float*)&value);
-        mixer->dsp->spi->QueueDspData(1, 'a', 42, 0, 1, (float*)&value);
-    }
-
-	// DEBUG Row in GUI-Header
-	if (config->GetBool(DEBUG_HEADER) && config->HasDisplay())
-	{
-		// calculate mean-value and show the current DSP-load
-		dspLoadHistory[0][dspLoadHistoryPointer] = state->dspLoad[0];
-		dspLoadHistory[1][dspLoadHistoryPointer] = state->dspLoad[1];
-		dspLoadHistoryPointer++;
-		if (dspLoadHistoryPointer >= 20) {
-			dspLoadHistoryPointer = 0;
-		}
-
-		float dspLoadMean[2] = {0, 0};
-		for (uint8_t i = 0; i < 20; i++) {
-			dspLoadMean[0] += dspLoadHistory[0][i];
-			dspLoadMean[1] += dspLoadHistory[1][i];
-		}
-		dspLoadMean[0] /= 20.0f;
-		dspLoadMean[1] /= 20.0f;
-
-		// show DSP debug infos
-		lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.1f %% V: v%.2f G: %.0f TxQ: %d DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free TxQ: %d", 
-			(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], mixer->dsp->spi->GetDspTxQueueLength(0),
-			(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1], mixer->dsp->spi->GetDspTxQueueLength(1)
-		);
-	}
-
-	// send AES50-data to FPGA
-	// DeviceTypeAndProperty every 2 seconds, Headamp-Message every 2 seconds (Names every 10 seconds)
-	mixer->fpga->AES50Tick();
-
-	if (startupCounter < 100)
-	{
-		startupCounter++;
-
-		if (startupCounter == 1)
-		{
-			// set IP-Address in GUI
-			lv_label_set_text_fmt(objects.header_ip, "IP: %s", helper->getIpAddress().c_str());
-		}
-
-		if (startupCounter == 10)
-		{
-			// the gate, the dynamics and the EQ-settings are not loaded correctly on first load, so load it again after a short time
-			config->LoadConfig(0);
-
-			// in the following lines the default configuration is set so that the users of the beta-version
-			// can start with a working system
-
-			// route channel 1-4 to effects using post-fader tapping
-			for (uint8_t i = 0; i < 8; i++)
-			{
-				config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_DSPCHANNEL + (i / 2), 40 + i);
-				config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
-			}
-
-			// set AUX7/8 to MONITOR L/R
-			config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
-			config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONRIGHT, 39);
-			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 38);
-			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
-
-			// set volume of FX-return to 0dBfs
-			for (int i = 0; i < 8; i++)
-			{
-				config->Set(CHANNEL_VOLUME, 0, 40 + i);
-			}
-
-			// set default FXes in FX slots
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // on first load this effect has a bug, so we have to disable it a bit later
-            mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
-            mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
-            mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
-
-			// set FX-settings to wet on slot 1-4
-			config->Set(FX_REVERB_DRY, 0, 0); // fx-slot 1
-			config->Set(FX_REVERB_WET, 1, 0); // fx-slot 1
-			config->Set(FX_CHORUS_MIX, 1, 1); // fx-slot 2		
-		}
-
-		if (startupCounter == 40) {
-			// disable effect as on first start of the effect some parts in
-			// the external memory gets corrupted. This needs more debugging
-			// for now stop-restart is fine
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
-			mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
-		}
-
-		if (startupCounter == 50) {
-			// renable effect
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2);
-			mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
-		}
-
-		if (startupCounter == 60) {
-			// unmute ADDA-boards
-			mixer->adda->SetMuteAll(false);
-		}
-
-		if (startupCounter == 99)
-		{
-			intialized = true;
-		}
-	}
-
-	AutoSave();
 }
-
-void X32Ctrl::AutoSave()
-{
-	if (intialized)
-	{
-		if (autosavewait == 0)
-		{
-			helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Autosave to Scene 0");
-
-			lv_label_set_text_fmt(objects.header_statustext, "Autosave in progress...");
-			lv_refr_now(NULL);
-
-			config->Save(0);
-			autosavewait = 60 * 10; // 60 Seconds -> Autosave every minute
-		}
-
-		autosavewait--;
-	}
-}
-
-void X32Ctrl::ProcessUartDataAdda() {
-	// read incoming data from adda-boards and expansion-card
-	String newCommand = mixer->adda->Receive();
-	
-	if (newCommand.length() > 0) {
-		helper->DEBUG_ADDA(DEBUGLEVEL_TRACE, "Received ADDA command: %s", newCommand.c_str());
-
-		if (newCommand.indexOf("*9") > -1) {
-			// we are receiving an answer from the expansion-card
-
-			// only add to debug-text when not sample-index-update
-			if (newCommand.indexOf("*9N22") == -1) {
-				mixer->debugText += mixer->debugText + "\n" + newCommand;
-				if (mixer->debugText.length() > 1000) {
-					mixer->debugText = "";
-				}
-				lv_label_set_text(objects.setup_debug_label, mixer->debugText.c_str());
-			}
-
-			mixer->card->ProcessCommand(newCommand);
-		}
-	}
-}
-
-void X32Ctrl::ProcessUartDataAES50() {
-	mixer->fpga->AES50Receive();
-}
-
-//#####################################################################################################################
-//#####################################################################################################################
-//
-// 			E V E N T S
-//
-//#####################################################################################################################
-//#####################################################################################################################
-
-
-// receive data from WSM client
-void X32Ctrl::UdpHandleCommunication_WSM()
-{
-    char rxData[500];
-    int bytes_available = 0;
-    struct sockaddr_in ClientAddr;
-    
-    // check for bytes in UDP-buffer
-    // int result = ioctl(wsm->UdpHandle, FIONREAD, &bytes_available);
-    if (bytes_available > 0) {
-        //socklen_t wsmClientAddrLen = sizeof(ClientAddr);
-        //uint8_t len = recvfrom(wsm->UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &ClientAddr, &wsmClientAddrLen);
-
-		String clientIp = inet_ntoa(ClientAddr.sin_addr);
-		String message = String(rxData);
-		message.replace("\r", "\r\n");
-
-		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Sennheiser Media Control Protocoll (%s): %s", clientIp.c_str(), message.c_str());
-	}
-}
-
 
 //#####################################################################################################################
 //
@@ -461,14 +303,12 @@ void X32Ctrl::UdpHandleCommunication_WSM()
 //
 //#####################################################################################################################
 
-void X32Ctrl::InitPagesAndGUI()
+void CtrlClient::InitPagesAndGUI()
 {
-	// Show OMC Version and builddate in GUI Header
+	// Show OMC Version and builddate in GUI Header -> OMC vX.X.X build on 01.01.1999 
 	lv_label_set_text_fmt(objects.header_omc_version, "OMC %s build on %s at %s", GIT_VERSION, __DATE__, __TIME__);
 
-	// OMC vX.X.X build on 01.01.1999 
-
-	PageBaseParameter* pagebasepar = new PageBaseParameter(app, config, state, helper, mixer, surface);
+	PageBaseParameter* pagebasepar = new PageBaseParameter(app, config, state, helper, surface);
 	
 	pages[X32_PAGE::HOME] = new PageHome(pagebasepar);
 	pages[X32_PAGE::CONFIG] = new PageConfig(pagebasepar);
@@ -499,7 +339,7 @@ void X32Ctrl::InitPagesAndGUI()
 	}	
 }
 
-bool X32Ctrl::ShowNextPage()
+bool CtrlClient::ShowNextPage()
 {
 	X32_PAGE activePage = (X32_PAGE)config->GetUint(ACTIVE_PAGE);
 
@@ -513,7 +353,7 @@ bool X32Ctrl::ShowNextPage()
 	return false;
 }
 
-bool X32Ctrl::ShowPrevPage()
+bool CtrlClient::ShowPrevPage()
 {
 	X32_PAGE activePage = (X32_PAGE)config->GetUint(ACTIVE_PAGE);
 
@@ -541,7 +381,7 @@ bool X32Ctrl::ShowPrevPage()
 
 
 // sync mixer state to GUI
-void X32Ctrl::syncGuiOrLcd() {
+void CtrlClient::syncGuiOrLcd() {
 
 	//####################################
 	//#     X32 Core - Sync Lcd
@@ -624,7 +464,7 @@ void X32Ctrl::syncGuiOrLcd() {
 }
 
 // sync mixer state to Surface
-void X32Ctrl::syncSurface(bool fullSync)
+void CtrlClient::syncSurface(bool fullSync)
 {
 	// ######################################
 	//
@@ -634,7 +474,8 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 	if(config->HasParameterChanged(CLEAR_SOLO_COMMAND))
 	{
-		mixer->ClearSolo();
+        // TODO
+		//mixer->ClearSolo();
 	}
 
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
@@ -1182,7 +1023,8 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 				if (binding_parameter->mp_action == MixerparameterAction::CLEAR_SOLO)
 				{
-					ledBlink = mixer->IsSoloActivated();
+                    // TODO
+					//ledBlink = mixer->IsSoloActivated();
 				}
 				if (binding_parameter->mp_action == MixerparameterAction::SET_TO_INDEX)
 				{					
@@ -1335,7 +1177,7 @@ void X32Ctrl::syncSurface(bool fullSync)
 
 #if ENABLE_ARTNET
 
-void X32Ctrl::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t artnetIndex)
+void CtrlClient::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t artnetIndex)
 {
 	using enum MP_ID;
 
@@ -1400,7 +1242,7 @@ void X32Ctrl::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t artn
 
 #endif
 
-void X32Ctrl::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex)
+void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex)
 {
 	using enum MP_ID;
 
@@ -1542,7 +1384,7 @@ void X32Ctrl::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t cha
 	delete data;
 }
 
-void X32Ctrl::SetLcdFromAssign(uint8_t p_boardId, uint8_t lcdIndex, SurfaceElementId element_id)
+void CtrlClient::SetLcdFromAssign(uint8_t p_boardId, uint8_t lcdIndex, SurfaceElementId element_id)
 {
 	helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "SetLcdFromAssign()");
 
@@ -1602,7 +1444,7 @@ void X32Ctrl::SetLcdFromAssign(uint8_t p_boardId, uint8_t lcdIndex, SurfaceEleme
 	delete data;
 }
 
-void X32Ctrl::GetAssignLcdText(LcdData *data, SurfaceElementId encoder, SurfaceElementId upper_button, SurfaceElementId lower_button)
+void CtrlClient::GetAssignLcdText(LcdData *data, SurfaceElementId encoder, SurfaceElementId upper_button, SurfaceElementId lower_button)
 {
 	// Encoder
 
@@ -1655,7 +1497,7 @@ void X32Ctrl::GetAssignLcdText(LcdData *data, SurfaceElementId encoder, SurfaceE
 
 
 
-void X32Ctrl::SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex)
+void CtrlClient::SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex)
 {
 	using enum MP_ID;
 
@@ -1674,109 +1516,117 @@ void X32Ctrl::SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex)
 }
 
 // Update all meters (Gui, Surface, xremote)
-void X32Ctrl::UpdateMeters(void) {
+void CtrlClient::UpdateMeters(void)
+{
+    /*
+    
+    TODO (!!!): send Meterinfo from Server to Client
 
-	if (state->surface_disable_meter_update)
-	{
-		return;
-	}
+    */
 
-	//xremote->UpdateMeter(mixer);
+    return;
 
-	// ########################################
-	//
-	//		GUI Meters
-	//
-	// ########################################
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
-	{
-		pages[(X32_PAGE)config->GetUint(ACTIVE_PAGE)]->UpdateMeters();
-	}
+	// if (state->surface_disable_meter_update)
+	// {
+	// 	return;
+	// }
 
-	// ########################################
-	//
-	//		Surface Meters
-	//
-	// ########################################
+	// // ########################################
+	// //
+	// //		GUI Meters
+	// //
+	// // ########################################
 
-	uint8_t selectedChannel = config->GetUint(SELECTED_CHANNEL);
+	// if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
+	// {
+	// 	pages[(X32_PAGE)config->GetUint(ACTIVE_PAGE)]->UpdateMeters();
+	// }
 
-	if (config->IsModelX32Core())
-	{
-		surface->SetMeterLed(X32_BOARD_MAIN, 0, mixer->dsp->rChannel[selectedChannel].meter8Info);
-	}
+	// // ########################################
+	// //
+	// //		Surface Meters
+	// //
+	// // ########################################
 
-	if (config->IsModelX32Rack())
-	{
-		surface->SetMeterLedMain_Rack(
-			mixer->dsp->rChannel[selectedChannel].meter8Info, 	// selected channel
-			mixer->dsp->MainChannelLR.meterInfo[0],
-		 	mixer->dsp->MainChannelLR.meterInfo[1],
-		 	mixer->dsp->MainChannelSub.meterInfo[0]
-		);
-	}
+	// uint8_t selectedChannel = config->GetUint(SELECTED_CHANNEL);
+    
 
-	if (config->HasSmallDisplay())
-	{
-		surface->SetMeterLedMain_Producer(
-			mixer->dsp->rChannel[selectedChannel].meter8Info, 	// selected channel
-			surfaceCalcDynamicMeter(selectedChannel),			// selected channel
-			mixer->dsp->MainChannelLR.meterInfo[0],
-			mixer->dsp->MainChannelLR.meterInfo[1],
-			mixer->dsp->MainChannelSub.meterInfo[0]
-		);
-	}
+	// if (config->IsModelX32Core())
+	// {
+	// 	//surface->SetMeterLed(X32_BOARD_MAIN, 0, mixer->dsp->rChannel[selectedChannel].meter8Info);
+	// }
 
-	if (config->HasBigDisplay())
-	{
-		surface->SetMeterLedMain_FullOrCompact(
-			mixer->dsp->rChannel[selectedChannel].meter8Info,	// selected channel
-			surfaceCalcDynamicMeter(selectedChannel),			// selected channel
-			mixer->dsp->MainChannelLR.meterInfo[0],
-			mixer->dsp->MainChannelLR.meterInfo[1],
-			mixer->dsp->MainChannelSub.meterInfo[0]
-		);
-	}
+	// if (config->IsModelX32Rack())
+	// {
+	// 	surface->SetMeterLedMain_Rack(
+	// 		mixer->dsp->rChannel[selectedChannel].meter8Info, 	// selected channel
+	// 		mixer->dsp->MainChannelLR.meterInfo[0],
+	// 	 	mixer->dsp->MainChannelLR.meterInfo[1],
+	// 	 	mixer->dsp->MainChannelSub.meterInfo[0]
+	// 	);
+	// }
+
+	// if (config->HasSmallDisplay())
+	// {
+	// 	surface->SetMeterLedMain_Producer(
+	// 		mixer->dsp->rChannel[selectedChannel].meter8Info, 	// selected channel
+	// 		surfaceCalcDynamicMeter(selectedChannel),			// selected channel
+	// 		mixer->dsp->MainChannelLR.meterInfo[0],
+	// 		mixer->dsp->MainChannelLR.meterInfo[1],
+	// 		mixer->dsp->MainChannelSub.meterInfo[0]
+	// 	);
+	// }
+
+	// if (config->HasBigDisplay())
+	// {
+	// 	surface->SetMeterLedMain_FullOrCompact(
+	// 		mixer->dsp->rChannel[selectedChannel].meter8Info,	// selected channel
+	// 		surfaceCalcDynamicMeter(selectedChannel),			// selected channel
+	// 		mixer->dsp->MainChannelLR.meterInfo[0],
+	// 		mixer->dsp->MainChannelLR.meterInfo[1],
+	// 		mixer->dsp->MainChannelSub.meterInfo[0]
+	// 	);
+	// }
 
 	
-	// ########################################
-	//
-	//		Channels
-	//
-	// ########################################
+	// // ########################################
+	// //
+	// //		Channels
+	// //
+	// // ########################################
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
-	{
-		for (uint8_t i = 0; i < 8; i++)
-		{
-			SurfaceBindingParameter* binding_board_l = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i));
-			if (binding_board_l)
-			{
-				surface->SetMeterLed(X32_BOARD_L, i, mixer->dsp->rChannel[binding_board_l->mp_index].meter6Info);
-			}
+	// if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	// {
+	// 	for (uint8_t i = 0; i < 8; i++)
+	// 	{
+	// 		SurfaceBindingParameter* binding_board_l = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i));
+	// 		if (binding_board_l)
+	// 		{
+	// 			surface->SetMeterLed(X32_BOARD_L, i, mixer->dsp->rChannel[binding_board_l->mp_index].meter6Info);
+	// 		}
 
-			if (config->IsModelX32Full())
-			{
-				SurfaceBindingParameter* binding_board_m = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i));
-				if (binding_board_m)
-				{
-					surface->SetMeterLed(X32_BOARD_M, i, mixer->dsp->rChannel[binding_board_m->mp_index].meter6Info);
-				}
-			}
+	// 		if (config->IsModelX32Full())
+	// 		{
+	// 			SurfaceBindingParameter* binding_board_m = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i));
+	// 			if (binding_board_m)
+	// 			{
+	// 				surface->SetMeterLed(X32_BOARD_M, i, mixer->dsp->rChannel[binding_board_m->mp_index].meter6Info);
+	// 			}
+	// 		}
 
-			SurfaceBindingParameter* binding_board_r = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i));
-			if (binding_board_r)
-			{
-				surface->SetMeterLed(X32_BOARD_R, i, mixer->dsp->rChannel[binding_board_r->mp_index].meter6Info);
-			}
-		}
-	}
+	// 		SurfaceBindingParameter* binding_board_r = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i));
+	// 		if (binding_board_r)
+	// 		{
+	// 			surface->SetMeterLed(X32_BOARD_R, i, mixer->dsp->rChannel[binding_board_r->mp_index].meter6Info);
+	// 		}
+	// 	}
+	// }
 }
 
 
 // only X32 Rack
-void X32Ctrl::setLedChannelIndicator_Rack(void)
+void CtrlClient::setLedChannelIndicator_Rack(void)
 {
 	uint chanIdx = config->GetUint(SELECTED_CHANNEL);
 	surface->SetLed(SurfaceElementId::LED_IN, (chanIdx <= 31), false);
@@ -1792,7 +1642,7 @@ void X32Ctrl::setLedChannelIndicator_Rack(void)
 }
 
 // only X32 Core
-void X32Ctrl::setLedChannelIndicator_Core(void){
+void CtrlClient::setLedChannelIndicator_Core(void){
 		// uint8_t chanIdx = config->GetUint(SELECTED_CHANNEL);
 		// surface->SetLedByEnum(X32_LED_IN, (chanIdx <= 31));
 		// surface->SetLedByEnum(X32_LED_AUX, (chanIdx >= 32)&&(chanIdx <= 47));
@@ -1801,7 +1651,7 @@ void X32Ctrl::setLedChannelIndicator_Core(void){
 		// surface->SetLedByEnum(X32_LED_MTX, (chanIdx >= 70)&&(chanIdx <= 79));
 }
 
-uint8_t X32Ctrl::surfaceCalcDynamicMeter(uint8_t channel) {
+uint8_t CtrlClient::surfaceCalcDynamicMeter(uint8_t channel) {
 	// leds = 8-bit bitwise (bit 0=-60dB ... 4=-6dB, 5=Clip, 6=Gate, 7=Comp)
 	if (channel < 40) {
 		uint32_t meterdata = 0;
@@ -1825,66 +1675,6 @@ uint8_t X32Ctrl::surfaceCalcDynamicMeter(uint8_t channel) {
 	}
 }
 
-// sync mixer state to GUI
-void X32Ctrl::syncXRemote(bool syncAll) {
-	// //bool fullSync = false;
-
-	// if (syncAll || config->HasParameterChanged(SELECTED_CHANNEL)){ 
-	// 	// channel selection has changed - do a full sync
-	// 	//fullSync=true; 
-	// }
-	
-	// // DEBUG
-	// xremote->SetCard(10); // X-LIVE
-
-	// for(uint8_t i=0; i<(uint)X32_VCHANNELTYPE::NORMAL; i++) {
-	// 	//uint8_t chanindex = i;
-	// 	//VChannel* chan = mixer->GetVChannel(i);
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_VOLUME)){
-	// 	// 	xremote->SetFader(String("ch"), chanindex, mixer->GetVolumeOscvalue(chanindex));
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_BALANCE)){
-	// 	// 	xremote->SetPan(chanindex, mixer->vchannel[chanindex]->dspChannel->balance);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_MUTE)){
-	// 	// 	xremote->SetMute(chanindex, mixer->vchannel[chanindex]->dspChannel->muted);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_SOLO)){
-	// 	// 	xremote->SetSolo(chanindex, mixer->vchannel[chanindex]->dspChannel->solo);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_COLOR)){
-	// 	// 	xremote->SetColor(chanindex, mixer->vchannel[chanindex]->color);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_NAME)){
-	// 	// 	xremote->SetName(chanindex, mixer->vchannel[chanindex]->name);
-	// 	// }
-	// }
-
-	// for(uint8_t i=(uint)X32_VCHANNEL_BLOCK::AUX; i<(uint)X32_VCHANNELTYPE::AUX; i++) {
-	// 	//uint8_t chanindex = i;
-	// 	//VChannel* chan = mixer->GetVChannel(i);
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_VOLUME)){
-	// 	// 	xremote->SetFader(String("auxin"), chanindex, mixer->GetVolumeOscvalue(chanindex));
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_BALANCE)){
-	// 	// 	xremote->SetPan(chanindex, mixer->vchannel[chanindex]->dspChannel->balance);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_MUTE)){
-	// 	// 	xremote->SetMute(chanindex, mixer->vchannel[chanindex]->dspChannel->muted);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_SOLO)){
-	// 	// 	xremote->SetSolo(chanindex, mixer->vchannel[chanindex]->dspChannel->solo);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_COLOR)){
-	// 	// 	xremote->SetColor(chanindex, mixer->vchannel[chanindex]->color);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_NAME)){
-	// 	// 	xremote->SetName(chanindex, mixer->vchannel[chanindex]->name);
-	// 	// }
-	// }
-}
-
-
 //#####################################################################################################################
 //
 //  ######  ##     ## ########  ########    ###     ######  ########      #### ##    ## ########  ##     ## ######## 
@@ -1898,13 +1688,13 @@ void X32Ctrl::syncXRemote(bool syncAll) {
 //#####################################################################################################################
 
 
-void X32Ctrl::OnSurfaceCallback(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value)
+void CtrlClient::OnSurfaceCallback(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value)
 {
-	X32Ctrl* ctrl = static_cast<X32Ctrl*>(arg);
+	CtrlClient* ctrl = static_cast<CtrlClient*>(arg);
     ctrl->ProcessSurface(board, command, index, value);
 }
 
-void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint16_t value)
+void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint16_t value)
 {
 	if (config->HasDisplay())
 	{
@@ -2302,7 +2092,7 @@ void X32Ctrl::ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint1
 
 
 // Key was pressed in the bodyless mode
-void X32Ctrl::SimulatorButton(uint32_t key)
+void CtrlClient::SimulatorButton(uint32_t key)
 {
 	printf("Simulatorbutton: %d\n", key);
 
