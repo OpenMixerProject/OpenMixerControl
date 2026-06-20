@@ -334,7 +334,8 @@ void DSP1::SendGate(uint chanIndex)
     
     using enum MP_ID;
 
-	float samplerate = (float)config->GetUint(SAMPLERATE)/(float)DSP_SAMPLES_IN_BUFFER;
+	float samplerate = (float)config->GetUint(SAMPLERATE);
+	float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
     float values[5];
 
     // threshold
@@ -344,16 +345,18 @@ void DSP1::SendGate(uint chanIndex)
     // range of 60dB means that we will reduce the signal on active gate by 60dB. We have to convert logarithmic dB-value into linear value for gain
     values[1] = 1.0f / pow(10.0f, config->GetFloat(CHANNEL_GATE_RANGE, chanIndex)/20.0f);
 
-    // coeff_attack
+    // coeff_attack (envelope is recalculated every sample)
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
     // ln(10%) - ln(90%) = -2.197224577
-    values[2] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
+	// we are using -0.219722 for a good gate-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+    values[2] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
 
-    // hold_ticks 
-    values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * samplerate / 1000.0f;
+    // hold_ticks (recalculated every 16 samples, hence 333 microseconds)
+    values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * bufferrate / 1000.0f;
 
-    // coeff_release 
-    values[4] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
+    // coeff_release (envelope is recalculated every sample)
+	// we are using -0.219722 for a good gate-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+    values[4] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
 
     spi->QueueDspData(0, 'g', chanIndex, 0, 5, &values[0]);
 }
@@ -444,26 +447,29 @@ void DSP1::SendCompressor(uint8_t chanIndex)
 
     float values[6];
 
-	float samplerate = (float)config->GetUint(SAMPLERATE)/(float)DSP_SAMPLES_IN_BUFFER;
+	float samplerate = (float)config->GetUint(SAMPLERATE);
+	float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
 
     // threshold
 	//values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
     values[0] = config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex); // send threshold as dB value, DSP will convert it to linear value for 32-bit fixed point representation
 
-    // ratio
-    values[1] = config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex);
+    // pre-calculated ratio
+    values[1] = (1.0f - 1.0f / config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex));
 
     // makeup
 	values[2] = pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
 
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
     // ln(10%) - ln(90%) = -2.197224577
-    // attack
-	values[3] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
-    // hold
-	values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * samplerate / 1000.0f;
-    // release
-	values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
+    // attack (envelope is recalculated every sample)
+	// we are using -0.219722 for a good compression-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+	values[3] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
+    // hold (hold-timer is calculated every 16 samples, hence every 333 microseconds)
+	values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * bufferrate / 1000.0f;
+    // release (envelope is recalculated every sample)
+	// we are using -0.219722 for a good compression-feeling instead of -2.19722, an additional factor of 1000.0f converts ms -> seconds)
+	values[5] = 1.0f - exp(-219.722457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
 
     spi->QueueDspData(0, 'c', chanIndex, 0, 6, &values[0]);
 }
