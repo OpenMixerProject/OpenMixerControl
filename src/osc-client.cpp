@@ -45,8 +45,10 @@ namespace OMC
             return -1;
         }
 
+        string server_ip = app->get_option("--client")->as<string>();
+
         ServerAddr.sin_family = AF_INET;
-        ServerAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        ServerAddr.sin_addr.s_addr = inet_addr(server_ip.c_str());
         ServerAddr.sin_port = htons(10032);
         
         MyAddr.sin_family = AF_INET;
@@ -131,7 +133,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC()).c_str(), "if", index, floatValue);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", floatValue);
         SendUdpPacket(TxMessage, len);
     }
 
@@ -139,7 +141,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, (String("/change/") + parameter->GetOSC()).c_str(), "ii", index, amount);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/change/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", (float)amount);
         SendUdpPacket(TxMessage, len);
     }
 
@@ -147,7 +149,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, (String("/toogle/") + parameter->GetOSC()).c_str(), "i", index);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/toggle/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "");
         SendUdpPacket(TxMessage, len);
     }
 
@@ -155,7 +157,7 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, (String("/reset/") + parameter->GetOSC()).c_str(), "i", index);
+        int len = tosc_writeMessage(TxMessage, 450, (String("/reset/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "");
         SendUdpPacket(TxMessage, len);
     }
 

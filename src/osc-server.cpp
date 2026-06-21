@@ -105,9 +105,9 @@ namespace OMC
                     if (address[0] == "set")
                     {
                         // Set
-                        if (osc_format == "is")
+                        if (osc_format == "s")
                         {
-                            int index = tosc_getNextInt32(&osc);
+                            int index = stoi(address[2].c_str()) - 1;
                             const char* str = tosc_getNextString(&osc);
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Value: %s", index, str);
@@ -115,9 +115,9 @@ namespace OMC
                             parameter->Set(str, index);
                             config->SetParameterChanged(parameter->GetId(), index);
                         }
-                        else if (osc_format == "if")
+                        else if (osc_format == "f")
                         {
-                            int index = tosc_getNextInt32(&osc);
+                            int index = stoi(address[2].c_str()) - 1;
                             float value = tosc_getNextFloat(&osc);
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Value: %f", index, value);
@@ -133,10 +133,10 @@ namespace OMC
                     else if (address[0] == "change")
                     {
                         // Change
-                        if (osc_format == "ii")
+                        if (osc_format == "f")
                         {
-                            int index = tosc_getNextInt32(&osc);
-                            int amount = tosc_getNextInt32(&osc);
+                            int index = stoi(address[2].c_str()) - 1;
+                            int amount = tosc_getNextFloat(&osc);
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Amount: %d", index, amount);
 
@@ -148,39 +148,25 @@ namespace OMC
                             helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "ERROR: unsupported format %s", osc_format.c_str());
                         }
                     }
-                    else if (address[0] == "toogle")
+                    else if (address[0] == "toggle")
                     {
-                        // Change
-                        if (osc_format == "i")
-                        {
-                            int index = tosc_getNextInt32(&osc);
+                        // Toggle (format is ignored)
+                        int index = stoi(address[2].c_str()) - 1;
 
-                            helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
+                        helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
 
-                            parameter->Toggle(index);
-                            config->SetParameterChanged(parameter->GetId(), index);
-                        }
-                        else
-                        {
-                            helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "ERROR: unsupported format %s", osc_format.c_str());
-                        }
+                        parameter->Toggle(index);
+                        config->SetParameterChanged(parameter->GetId(), index);
                     }
                     else if (address[0] == "reset")
                     {
-                        // Change
-                        if (osc_format == "i")
-                        {
-                            int index = tosc_getNextInt32(&osc);
+                        // Change (format is ignored)
+                        int index = stoi(address[2].c_str()) - 1;
 
-                            helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
+                        helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
 
-                            parameter->Reset(index);
-                            config->SetParameterChanged(parameter->GetId(), index);
-                        }
-                        else
-                        {
-                            helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "ERROR: unsupported format %s", osc_format.c_str());
-                        }
+                        parameter->Reset(index);
+                        config->SetParameterChanged(parameter->GetId(), index);
                     }
                 }
                 else if (found > 1) 

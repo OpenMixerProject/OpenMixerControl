@@ -166,8 +166,8 @@ int startup(int argc, char* argv[])
 	argv = app->ensure_utf8(argv);
 
 	// Command line options
-	app->add_flag("--client", "Run as Client")
-		->configurable(false);
+	app->add_option("--client", "Run as Client and connect to IP")
+		->option_text("127.0.0.1");
 	app->add_flag("--osc-doc", "Print OSC-Documentation")
 		->configurable(false);
 	app->add_flag("--version", "Get the version number, builddate and a nice logo")
