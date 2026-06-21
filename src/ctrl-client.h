@@ -1,9 +1,14 @@
 #pragma once
 
+#include "artnet.h"
+
 #include "surface.h"
+
 #include "page.h"
 #include "lcd-menu.h"
 #include "osc-client.h"
+
+
 
 // LVGL
 static lv_display_t *display;
@@ -51,11 +56,14 @@ class CtrlClient : public X32Base
         static void OnOscSendToServerCallbackToogle(void* arg, MP_ID parameterId, uint index);
         static void OnOscSendToServerCallbackReset(void* arg, MP_ID parameterId, uint index);
 
+        const char * getenv_default(const char * name, const char * default_val);
+
     public:
 
         CtrlClient(X32BaseParameter* basepar);
         void Init();
         void guiInit();
+        
         void Tick10ms(void);
         void Tick50ms(void);
         void Tick100ms(void);

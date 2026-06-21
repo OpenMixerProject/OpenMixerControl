@@ -243,7 +243,7 @@ void SurfaceControllerXM32::ProcessUartData()
             if (valid)
             {
                 helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Callback: BoardId 0x%02X, Class 0x%02X, Index 0x%02X, Value 0x%04X", receivedBoardId, receivedClass, receivedIndex, receivedValue);
-                surfaceCallback(callbackArg, (OMC_BOARD)receivedBoardId, receivedClass, receivedIndex, receivedValue);
+                surfaceCallback(callbackArg, (OMC_BOARD)receivedBoardId, (char)receivedClass, receivedIndex, receivedValue);
             } 
         }
     }

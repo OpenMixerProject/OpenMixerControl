@@ -36,6 +36,8 @@
 
 #include "eez/ui.h"
 
+#include "artnet.h"
+
 namespace OMC
 {
 
@@ -64,6 +66,7 @@ CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
 
 void CtrlClient::Init()
 {
+	helper->Log("CtrlClient::Init()");
 	if (config->IsClientMode())
 	{
 		osc_client->Init();
@@ -87,30 +90,28 @@ void CtrlClient::Init()
 	}
 	else
 	{
-		helper->Log("Initializing GUI...\n");
-		guiInit(); // initializes LVGL, FBDEV and starts endless loop
-
-        helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "surface->Init(OnSurfaceCallback, this)");
+        helper->Log("surface->Init(OnSurfaceCallback, this)\n");
         surface->Init(OnSurfaceCallback, this);
 
         if (config->IsModelX32Core() || config->IsModelM32C())
         {
-            helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "lcdmenu->Init()");
+            helper->Log("lcdmenu->Init()\n");
             lcdmenu->OnInit();
         }
 
         #if ENABLE_ARTNET
-        helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "artnet->Init()");
+        helper->Log("artnet->Init()");
         artnet->Init();
         #endif
         
         if (config->IsModelWingCompact())
         {
+			helper->Log("Set Wing Banking Input\n");
             config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
         }
 
-        // set IP-Address in GUI
-		lv_label_set_text_fmt(objects.header_ip, "IP: %s", helper->getIpAddress().c_str());
+		helper->Log("Initializing GUI and starting endless loop!\n");
+		guiInit(); // initializes LVGL, FBDEV and starts endless loop
     }
 }
 
@@ -120,7 +121,7 @@ void CtrlClient::guiInit()
 
 	#ifdef TARGET_PC_SDL2
 
-		printf("bodyless mode (Development Simulator) startet\n");
+		helper->Log("bodyless mode (Development Simulator) startet");
 		state->bodyless = true;
 		
 		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
@@ -142,7 +143,7 @@ void CtrlClient::guiInit()
 		display = lv_linux_fbdev_create();
 
 		if(display == NULL) {
-			printf("could not create display!");
+			helper->Log("could not create display!");
 			return;
 		}
 
@@ -151,35 +152,35 @@ void CtrlClient::guiInit()
 	#endif
 
 	#ifdef BUILD_DEBUG
-	printf("lv_timer_create(timer10msCallbackLvgl, 10, NULL)\n");
+	helper->Log("lv_timer_create(timer10msCallbackLvgl, 10, NULL)");
 	#endif
 	lv_timer_create(timer10msCallbackLvgl, 10, NULL);
 
 	#ifdef BUILD_DEBUG
-	printf("lv_timer_create(timer50msCallbackLvgl, 50, NULL)\n");
+	helper->Log("lv_timer_create(timer50msCallbackLvgl, 50, NULL)");
 	#endif
 	lv_timer_create(timer50msCallbackLvgl, 50, NULL);
 
 	#ifdef BUILD_DEBUG
-	printf("lv_timer_create(timer100msCallbackLvgl, 100, NULL)\n");
+	helper->Log("lv_timer_create(timer100msCallbackLvgl, 100, NULL)");
 	#endif
 	lv_timer_create(timer100msCallbackLvgl, 100, NULL);
 
 	// initialize GUI created by EEZ
 	#ifdef BUILD_DEBUG
-	printf("ui_init()\n");
+	helper->Log("ui_init()");
 	#endif
 	ui_init();
 
 	// InitPagesAndGUI() has to be called after ui_init()!
 	#ifdef BUILD_DEBUG
-	printf("InitPagesAndGUI()\n");
+	helper->Log("InitPagesAndGUI()");
 	#endif
 	InitPagesAndGUI();
 
 	// trigger first update of display header
 	#ifdef BUILD_DEBUG
-	printf("config->Refresh(SELECTED_CHANNEL)\n");
+	helper->Log("config->Refresh(SELECTED_CHANNEL)");
 	#endif
 	config->Refresh(SELECTED_CHANNEL);
 
@@ -187,21 +188,21 @@ void CtrlClient::guiInit()
 	if (config->IsModelX32FullOrM32())
 	{
 		#ifdef BUILD_DEBUG
-		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)\n");
+		helper->Log("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)");
 		#endif
 		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
 	}
 	else if (config->IsModelX32CompactOrProducerOrM32R())
 	{
 		#ifdef BUILD_DEBUG
-		printf("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)\n");
+		helper->Log("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)");
 		#endif
 		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
 	}
 	else if (config->IsModelWingCompact())
 	{
 		#ifdef BUILD_DEBUG
-		printf("config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12)\n");
+		helper->Log("config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12)\n");
 		#endif
 		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
 	}
@@ -209,26 +210,30 @@ void CtrlClient::guiInit()
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
 		#ifdef BUILD_DEBUG
-		printf("config->Refresh(BANKING_BUS)\n");
+		helper->Log("config->Refresh(BANKING_BUS)\n");
 		#endif
 		config->Refresh(BANKING_BUS);
 	}
 
+	// set IP-Address in GUI
+	String ip = helper->getIpAddress();
+	lv_label_set_text_fmt(objects.header_ip, "IP: %s", ip.c_str());
+
 	// sync the Page
 	#ifdef BUILD_DEBUG
-	printf("config->Refresh(ACTIVE_PAGE)\n");
+	helper->Log("config->Refresh(ACTIVE_PAGE)\n");
 	#endif
 	config->Refresh(ACTIVE_PAGE);
 
 	// sync the Surface
 	#ifdef BUILD_DEBUG
-	printf("syncSurface(true)\n");
+	helper->Log("syncSurface(true)\n");
 	#endif
 	syncSurface(true);
 
 	// LVGL loop
 	#ifdef BUILD_DEBUG
-	printf("starting LVGL loop\n");
+	helper->Log("starting LVGL loop\n");
 	#endif
 	uint32_t idle_time;
 	while (1)
@@ -236,6 +241,12 @@ void CtrlClient::guiInit()
 		idle_time = lv_timer_handler();
 		usleep(idle_time * 1000);
 	}
+}
+
+const char * CtrlClient::getenv_default(const char * name, const char * default_val)
+{
+    const char * value = getenv(name);
+    return value ? value : default_val;
 }
 
 void CtrlClient::Tick10ms(void)
@@ -2153,9 +2164,10 @@ void CtrlClient::OnOscSendToServerCallbackReset(void* arg, MP_ID parameterId, ui
 // Key was pressed in the bodyless mode
 void CtrlClient::SimulatorButton()
 {
+	#ifdef TARGET_PC_SDL2
 	uint32_t key = lv_indev_get_key(keyboard);
 
-	printf("Simulatorbutton: %d\n", key);
+	helper->Log("Simulatorbutton: %d\n", key);
 
 	switch (key)
 	{
@@ -2279,6 +2291,7 @@ void CtrlClient::SimulatorButton()
 			ProcessSurface(X32_BOARD_L, 'f', 0, 0x000C);
 			break;
 	}
+	#endif
 }
 
 }

@@ -136,11 +136,7 @@ void init10msTimer_NonGUI(void) {
 	}
 }
 
-const char * getenv_default(const char * name, const char * default_val)
-{
-    const char * value = getenv(name);
-    return value ? value : default_val;
-}
+
 
 
 
