@@ -7,48 +7,48 @@ DEPFLAGS = -MMD -MP
 
 ifeq "$(BUILD_TARGET)" "TARGET_XM32"
 
-	DEBUG			= 0
-	COPTS           = -mcpu=arm926ej-s -Os -fno-caller-saves -pipe -funit-at-a-time -msoft-float -fno-plt -fno-unwind-tables -fno-asynchronous-unwind-tables
+	DEBUG           = 0
+	COPTS           ?= -mcpu=arm926ej-s -Os -fno-caller-saves -pipe -funit-at-a-time -msoft-float -fno-plt -fno-unwind-tables -fno-asynchronous-unwind-tables
 	CC              = arm-linux-gnueabi-gcc
 	CXX             = arm-linux-gnueabi-g++
 	AR              = arm-linux-gnueabi-ar
 	LD  	        = arm-linux-gnueabi-ld
 	BUILD_DIR       = $(ROOT_DIR)/build/xm32
-	DEPFLAGS		+= -D=TARGET_XM32 -D_GNU_SOURCE
-	FLTO			= -flto=auto
-	C_STD			= -std=c11
-	LVGL_CONF		= files/lv_conf.h
+	DEPFLAGS        += -D=TARGET_XM32 -D_GNU_SOURCE
+	FLTO            = -flto=auto
+	C_STD           = -std=c11
+	LVGL_CONF       = files/lv_conf.h
 	LDFLAGS_EXTRA	= 
 
 endif
 
 ifeq "$(BUILD_TARGET)" "TARGET_WING"
 
-	DEBUG			= 0
-	COPTS           =
+	DEBUG           = 0
+	COPTS           = 
 	CC              = arm-linux-gnueabihf-gcc
 	CXX             = arm-linux-gnueabihf-g++
 	AR              = arm-linux-gnueabihf-ar
 	LD              = arm-linux-gnueabihf-ld
 	BUILD_DIR       = $(ROOT_DIR)/build/wing
-	DEPFLAGS		+= -D=TARGET_WING -D_GNU_SOURCE
-	FLTO			=
-	C_STD			= -std=c11
-	LVGL_CONF		= files/lv_conf.h
+	DEPFLAGS        += -D=TARGET_WING -D_GNU_SOURCE
+	FLTO            = 
+	C_STD           = -std=c11
+	LVGL_CONF       = files/lv_conf.h
 	LDFLAGS_EXTRA	= 
 
 endif
 
 ifeq "$(BUILD_TARGET)" "TARGET_PC_SDL2"
 
-	DEBUG			= 1
-	COPTS           =
+	DEBUG           = 1
+	COPTS           = 
 	BUILD_DIR       = $(ROOT_DIR)/build/pc_sdl2
-	DEPFLAGS		+= -D=TARGET_PC_SDL2
-	FLTO			=
-	C_STD			= 
-	LVGL_CONF		= files/lv_conf_SDL2.h
-	LDFLAGS_EXTRA	= -lSDL2
+	DEPFLAGS        += -D=TARGET_PC_SDL2
+	FLTO            =
+	C_STD           = 
+	LVGL_CONF       = files/lv_conf_SDL2.h
+	LDFLAGS_EXTRA   = -lSDL2
 
 endif
 
@@ -157,6 +157,7 @@ default: $(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
 	rm src/version.h
 
 versionfile:
