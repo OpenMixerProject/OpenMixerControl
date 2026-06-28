@@ -746,6 +746,21 @@ namespace OMC
         }
 
         // ###########
+        // # Meter
+        // ###########
+        cat = MP_CAT::CHANNEL_METER;
+
+        // DefParameter(CHANNEL_METER_POST_GAIN, cat, String("Meter"), MAX_VCHANNELS)
+        // ->DefUOM(MP_UOM::DB)
+        // ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
+        // ->DefSilent();
+
+        DefParameter(CHANNEL_METER_DECAYED_POST_GAIN, cat, String("Meter Decayed"), MAX_VCHANNELS)
+        ->DefUOM(MP_UOM::DB)
+        ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
+        ->DefSilent();
+
+        // ###########
         // # FX
         // ###########
         cat = MP_CAT::FX;
@@ -1702,6 +1717,12 @@ namespace OMC
 
     void Config::SetParameterChanged(MP_ID mp, uint index)
     {
+        // Mixerparameter is silent, so no change notification
+        if (GetParameter(mp)->IsSilent())
+        {
+            return;
+        }
+
         // Mixerparameter changelist is frozen, write changes to temporary list
         if (MixerParameterChangelistFreeze)
         {

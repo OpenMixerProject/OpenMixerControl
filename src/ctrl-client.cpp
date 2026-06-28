@@ -1552,30 +1552,21 @@ void CtrlClient::SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex)
 // Update all meters (Gui, Surface, xremote)
 void CtrlClient::UpdateMeters(void)
 {
-    /*
-    
-    TODO (!!!): send Meterinfo from Server to Client
+	if (state->surface_disable_meter_update)
+	{
+		return;
+	}
 
-    */
+	// ########################################
+	//
+	//		GUI Meters
+	//
+	// ########################################
 
-    return;
-
-
-	// if (state->surface_disable_meter_update)
-	// {
-	// 	return;
-	// }
-
-	// // ########################################
-	// //
-	// //		GUI Meters
-	// //
-	// // ########################################
-
-	// if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
-	// {
-	// 	pages[(X32_PAGE)config->GetUint(ACTIVE_PAGE)]->UpdateMeters();
-	// }
+	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
+	{
+		pages[(X32_PAGE)config->GetUint(ACTIVE_PAGE)]->UpdateMeters();
+	}
 
 	// // ########################################
 	// //

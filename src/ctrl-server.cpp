@@ -69,9 +69,12 @@ void CtrlServer::Init()
 
 	if (config->IsModelAnyXM32())
 	{
-		mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // this effect takes lot of DSP-ressources
-		mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
-		mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+		// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // this effect takes lot of DSP-ressources
+		// mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
+		// mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+		mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
+		mixer->dsp->DSP2_SetFx(1, FX_TYPE::NONE, 2);
+		mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
 		mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
 		mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
 		mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
@@ -231,15 +234,19 @@ void CtrlServer::Tick100ms(void)
 			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
 
 			// set volume of FX-return to 0dBfs
+			// set volume of FX-return to -120dBfs
 			for (int i = 0; i < 8; i++)
 			{
-				config->Set(CHANNEL_VOLUME, 0, 40 + i);
+				config->Set(CHANNEL_VOLUME, VOLUME_MIN, 40 + i);
 			}
 
 			// set default FXes in FX slots
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // on first load this effect has a bug, so we have to disable it a bit later
-            mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
-            mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+			// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // on first load this effect has a bug, so we have to disable it a bit later
+            // mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
+            // mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+			mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
+			mixer->dsp->DSP2_SetFx(1, FX_TYPE::NONE, 2);
+			mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
             mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
             mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
             mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
@@ -262,8 +269,8 @@ void CtrlServer::Tick100ms(void)
 
 		if (startupCounter == 50) {
 			// renable effect
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2);
-			mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+			// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2);
+			// mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
 		}
 
 		if (startupCounter == 60) {

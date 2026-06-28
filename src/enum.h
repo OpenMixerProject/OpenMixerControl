@@ -140,6 +140,7 @@ enum class MP_CAT {
     CHANNEL_EQ,
     CHANNEL_DYNAMICS,
     CHANNEL_SENDS,
+    CHANNEL_METER,
     FX,
     DISPLAY,
     DMX,
@@ -328,6 +329,9 @@ enum class MP_ID {
 
     CHANNEL_SEND_LR,
     CHANNEL_SEND_SUB,
+
+    //CHANNEL_METER_POST_GAIN,
+    CHANNEL_METER_DECAYED_POST_GAIN,
 
     // FX
 

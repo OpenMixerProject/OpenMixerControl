@@ -96,9 +96,7 @@ typedef struct
 {
 	sPEQ peq[MAX_CHAN_EQS];
 
-	float meterPu; // meter information in p.u.
 	uint32_t meter;
-
 	uint32_t meterDecay; // meter information with decay
 
 	uint8_t meterPeak6Index;
