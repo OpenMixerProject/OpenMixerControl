@@ -84,6 +84,9 @@ class Mixerparameter
 
         String osc_path = "";
 
+        bool silent = false;
+
+
         /// @brief Checks if the index is within the specified size of the Mixerparameter.
         /// @param index The index to check. 
         /// @throws std::out_of_range
@@ -330,6 +333,14 @@ class Mixerparameter
         Mixerparameter* DefClientParameter()
         {
             clientParameter = true;
+
+            return this;
+        }
+
+        // No change triggering on Set, Change, Toggle or Reset
+        Mixerparameter* DefSilent()
+        {
+            silent = true;
 
             return this;
         }
@@ -816,6 +827,11 @@ class Mixerparameter
         bool IsClientParameter()
         {
             return clientParameter;
+        }
+
+        bool IsSilent()
+        {
+            return silent;
         }
 };
 
