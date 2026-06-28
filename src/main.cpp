@@ -192,7 +192,7 @@ int startup(int argc, char* argv[])
 		->configurable(false);
 	app->add_option("--samplerate", "Set Samplerate to 44100 or 48000 kHz")
 		->default_val<uint32_t>(48000)
-		->check(CLI::IsMember(new set<uint32_t>{41000, 48000}));
+		->check(CLI::IsMember(new set<uint32_t>{44100, 48000}));
 
 	// debugging commandline option	
 	app->add_flag("-b,--bodyless", state->bodyless, "Enables a special mode to run omc in a different enviroment than a X32 mixer.")
@@ -387,18 +387,4 @@ int startup(int argc, char* argv[])
 	omc->Init();  // initialize the whole thing and load config
 
     exit(0);
-}
-
-}
-
-void action_action_key(lv_event_t * e)
-{
-	#ifdef TARGET_PC_SDL2
-	OMC::omc->SimulatorButton();
-	#endif
-}
-
-int main(int argc, char* argv[])
-{
-	return OMC::startup(argc, argv);
 }
