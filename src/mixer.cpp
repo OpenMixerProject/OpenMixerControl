@@ -656,7 +656,7 @@ void Mixer::halSendGain(uint8_t dspChannel) {
 }
 
 
-// enable or disable phatom-power of local XLR-inputs
+// enable or disable phantom power of local XLR-inputs
 void Mixer::halSendPhantomPower(uint8_t dspChannel) {
     // get the channel-number of the internal DSP-routing
     uint8_t internalDspSourceIndex = config->GetUint(ROUTING_DSP_INPUT, dspChannel);
