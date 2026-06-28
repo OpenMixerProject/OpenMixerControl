@@ -107,18 +107,21 @@ void DSP1::SendChannelVolume(uint chanIndex)
     float volumeSub_pu;
 
     // check if current channel has an adjustable gain. If not, apply GAIN as TRIM
-    if (!ChannelHasAdjustableGain(chanIndex))
+    if (ChannelHasAdjustableGain(chanIndex))
     {
-        float trim = config->GetFloat(CHANNEL_GAIN, chanIndex);
-        float trim_pu = pow(10.0f, trim/20.0f);
-        volumeLR_pu = pow(10.0f, volumeLR/20.0f) * trim_pu;
-        volumeSub_pu = pow(10.0f, volumeSub/20.0f) * trim_pu;
-    }else{
         // apply digital gain to increase gain-resolution as hardware supports 2.5dB-steps "only"
         float volumeLR_new = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeLR);
         float volumeSub_new = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeSub);
         volumeLR_pu = pow(10.0f, volumeLR_new/20.0f);
         volumeSub_pu = pow(10.0f, volumeSub_new/20.0f);
+    }
+    else
+    {
+        // GAIN as TRIM
+        float trim = config->GetFloat(CHANNEL_GAIN, chanIndex);
+        float trim_pu = pow(10.0f, trim/20.0f);
+        volumeLR_pu = pow(10.0f, volumeLR/20.0f) * trim_pu;
+        volumeSub_pu = pow(10.0f, volumeSub/20.0f) * trim_pu;
     }
 
     // apply DCAs if enabled
