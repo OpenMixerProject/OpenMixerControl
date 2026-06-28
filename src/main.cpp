@@ -153,7 +153,7 @@ void guiInit(X32Config* config)
 
 	#ifdef TARGET_PC_SDL2
 
-		printf("bodyless mode (Development Simulator) startet\n");
+		printf("bodyless mode (Development Simulator) started\n");
 		state->bodyless = true;
 		
 		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
