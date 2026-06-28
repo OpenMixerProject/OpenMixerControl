@@ -168,7 +168,7 @@ float Helper::Fadervalue2DMX(uint16_t fadervalue)
 }
 
 uint16_t Helper::Oscvalue2Fadervalue(float oscValue){
-	return (uint16_t)oscValue * 0x0FFF;
+	return (uint16_t)(oscValue * 0x0FFF);
 }
 
 float Helper::Fadervalue2Oscvalue(uint16_t faderValue){
