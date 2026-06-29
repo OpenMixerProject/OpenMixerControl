@@ -39,6 +39,12 @@ Linux and Custom Firmware for the Behringer WING Audio-Mixing-Consoles
 
 # Development Stuff
 
+## Branches
+
+- develop - Development of all the new stuff, unstable, sometimes it does not compile. Default branch of the repository.
+- stable - Stable version of OMC and used for regular releases.
+- dev-XXX - Development of a feature or fix, only created if needed.
+
 ## Folder Structure
 
 - **build:** build artifacts
