@@ -2,15 +2,14 @@
 [![Build for WING](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-wing-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-wing-docker.yml)
 [![Build for PC (SDL2)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-pc_sdl2-docker.yml/badge.svg)](https://github.com/OpenMixerProject/OpenMixerControl/actions/workflows/compile-pc_sdl2-docker.yml)
 
-# Service Anouncement
-
-We are currently (June 2026) in a repo transition phase 👷‍♂️, so more content will follow soon(TM) and dead links will become alive 🚀
-
 # General
 
-OpenMixerControl is the main software of OpenX32 and OpenWING.
+OpenMixerControl is the main software to run on a digital Audio-Mixing-Console. It is used in:
 
-## [OpenX32](https://github.com/OpenMixerProject/OpenX32)
+- [OpenX32](https://github.com/OpenMixerProject/OpenX32)
+- [OpenWING](https://github.com/OpenMixerProject/OpenWING)
+
+## OpenX32
 Linux and Custom Firmware for the Behringer X32 and Midas M32 Audio-Mixing-Consoles
 
 <img width="4000" height="3000" alt="IMG_20260520_211131" src="https://github.com/user-attachments/assets/3de539e1-a078-476b-a97a-3dda304b144d" />
@@ -19,7 +18,7 @@ Linux and Custom Firmware for the Behringer X32 and Midas M32 Audio-Mixing-Conso
 
 <img width="1920" height="2560" alt="IMG_2001" src="https://github.com/user-attachments/assets/526c40a5-20a3-4d98-9bcb-a256bbed57de" />
 
-## [OpenWING](https://github.com/OpenMixerProject/OpenWING)
+## OpenWING
 Linux and Custom Firmware for the Behringer WING Audio-Mixing-Consoles
 
 <img width="3000" height="4000" alt="IMG_20260604_020730" src="https://github.com/user-attachments/assets/189e2af7-1664-4385-b29f-81b094274c69" />
