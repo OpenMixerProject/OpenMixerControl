@@ -402,7 +402,7 @@ void X32Ctrl::ProcessUartDataAdda() {
 
 			// only add to debug-text when not sample-index-update
 			if (newCommand.indexOf("*9N22") == -1) {
-				mixer->debugText += mixer->debugText + "\n" + newCommand;
+				mixer->debugText += "\n" + newCommand;
 				if (mixer->debugText.length() > 1000) {
 					mixer->debugText = "";
 				}
