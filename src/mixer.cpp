@@ -531,15 +531,6 @@ void Mixer::Sync(void)
         }
     }
 
-    if (config->HasParametersChanged(MP_CAT::CHANNEL_SENDS))
-    { 
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_SENDS);
-        for (auto const& changedIndex : changedIndexes)
-        {
-            dsp->SendChannelSend(changedIndex);
-        }
-    }
-
     if (config->HasParametersChanged(MP_CAT::CHANNEL_GATE))
     {        
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_GATE);
