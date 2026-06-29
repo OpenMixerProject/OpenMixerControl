@@ -16,7 +16,7 @@
         {
             "label": "omc-wing",
             "type": "shell",
-            "command": "./compile-docker.sh TARGET_WING && cp ./build/wing/omc /var/www/html/x32/ &&  ssh root@192.168.188.103 \" wget http://192.168.188.123/x32/omc -O /usr/bin/wing-omc && chmod +x /usr/bin/omc\"",
+            "command": "./compile-docker.sh TARGET_WING && cp ./build/wing/omc /var/www/html/x32/ &&  ssh root@mixer-wing \" wget http://devhost/x32/omc -O /usr/bin/wing-omc && chmod +x /usr/bin/omc\"",
             "problemMatcher": [
                 "$gcc"
             ],
@@ -28,7 +28,7 @@
         {
             "label": "omc-xm32",
             "type": "shell",
-            "command": "./compile-docker.sh TARGET_XM32 && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@192.168.188.104 \" wget http://192.168.188.123/x32/omc -O /usr/bin/omc && chmod +x /usr/bin/omc\"",
+            "command": "./compile-docker.sh TARGET_XM32 && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@mixer-x32 \" wget http://devhost/x32/omc -O /openx32/omc && chmod +x /usr/bin/omc\"",
             "problemMatcher": [
                 "$gcc"
             ],
