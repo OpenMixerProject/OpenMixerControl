@@ -538,6 +538,18 @@ uint8_t DSP1::GetPeak(int i, uint8_t steps)
     return 0;
 }
 
+//#########################################################################################################################
+//
+// ########   ######  ########     ###        ######     ###    ##       ##       ########     ###     ######  ##     ## 
+// ##     ## ##    ## ##     ##  ## ##       ##    ##   ## ##   ##       ##       ##     ##   ## ##   ##    ## ##    ##  
+// ##     ## ##       ##     ##     ##       ##        ##   ##  ##       ##       ##     ##  ##   ##  ##       ##   ##   
+// ##     ##  ######  ########      ##       ##       ##     ## ##       ##       ########  ##     ## ##       #####     
+// ##     ##       ## ##            ##       ##       ######### ##       ##       ##     ## ######### ##       ##   ##   
+// ##     ## ##    ## ##            ##       ##    ## ##     ## ##       ##       ##     ## ##     ## ##    ## ##    ##  
+// ########   ######  ##           ####       ######  ##     ## ######## ######## ########  ##     ##  ######  ##     ## 
+//
+//#########################################################################################################################
+
 void DSP1::CallbackStateMachine() {
     if (state->dsp_disable_readout) {
         return;
@@ -697,22 +709,20 @@ void DSP1::UpdateVuMeter(uint8_t intervalMs)
 	// Now calculate the VU Meter LEDs for each channel
 	for (int i = 0; i < (40 + 8 + 16); i++)
     {
-        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->sample2Dbfs(rChannel[i].meter), i);
+		// Calculate decayed value
+        if (rChannel[i].meter > rChannel[i].meterDecay)
+        {
+            // current value is above stored decay-value -> copy value immediatly
+            rChannel[i].meterDecay = rChannel[i].meter;
+        }
+        else
+        {
+            // current value is below -> afterglow
+            // this function is called every 10ms. A Decay-Rate of 6dB/second would be ideal, but we do a rought estimation here
+            rChannel[i].meterDecay -= (rChannel[i].meterDecay / coefficientDecay);
+        }
 
-		// // Calculate decayed value
-        // if (rChannel[i].meter > rChannel[i].meterDecay)
-        // {
-        //     // current value is above stored decay-value -> copy value immediatly
-        //     rChannel[i].meterDecay = rChannel[i].meter;
-        // }
-        // else
-        // {
-        //     // current value is below -> afterglow
-        //     // this function is called every 10ms. A Decay-Rate of 6dB/second would be ideal, but we do a rought estimation here
-        //     rChannel[i].meterDecay -= (rChannel[i].meterDecay / coefficientDecay);
-        // }
-
-        // config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->sample2Dbfs(rChannel[i].meterDecay), i);
+        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->sample2Dbfs(rChannel[i].meterDecay), i);
     }
 
     // // only the first 32 full-featured channels have dynamic-information for compressor and gate
