@@ -345,7 +345,7 @@ namespace OMC
         DefParameter(SAMPLERATE, cat, "Samplerate")
         ->DefMinMaxStandard_Uint(44100, 48000, 48000);
 
-    DefParameter(CHANNEL_LCD_MODE, cat, "LCD Mode")
+        DefParameter(CHANNEL_LCD_MODE, cat, "LCD Mode")
         ->DefUOM(MP_UOM::CHANNEL_LCD_MODE)
         ->DefHideEncoderReset()
         ->DefMinMaxStandard_Uint(0, 1, 0)
