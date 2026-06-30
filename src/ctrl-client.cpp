@@ -330,8 +330,14 @@ void CtrlClient::Tick100ms(void)
     if (ipRefreshCounter >= 50)
     {
         ipRefreshCounter = 0;
-        String ip = helper->getIpAddress();
-        lv_label_set_text_fmt(objects.header_ip, "IP: %s", ip.c_str());
+        String currentIpAddress = helper->getIpAddress();
+
+		// only set ip address if it has changed
+		if (ipAddress != currentIpAddress)
+		{
+			ipAddress = currentIpAddress;
+        	lv_label_set_text_fmt(objects.header_ip, "IP: %s", ipAddress.c_str());
+		}
     }
 }
 

@@ -31,6 +31,8 @@ class CtrlClient : public X32Base
         Surface* surface;
         OscClient* osc_client;
 
+        String ipAddress;
+
         OMCBankId preSpillLoadedBank = OMCBankId::None;
 
         map<X32_PAGE, Page*> pages;
