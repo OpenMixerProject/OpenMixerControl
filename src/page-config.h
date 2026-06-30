@@ -15,6 +15,88 @@ class PageConfig : public Page
         lv_obj_t* config_mute_group[MUTE_GROUPS];
         lv_obj_t* config_dca_group[8];
 
+        int get_vu_pixels_non_linear(int dbfs)
+        {                
+            // 2. Auf den GUI-Bereich begrenzen
+            if (dbfs > 0)  dbfs = 0;
+            if (dbfs < -60) dbfs = -60;
+            
+            // 3. Versatz einrechnen, sodass -60 dBFS -> Index 0 wird
+            int lut_index = dbfs + 60;
+            
+            // 4. Skalierten Pixelwert aus der Tabelle holen
+            int scaled_pixels = dbfs_to_pixel_lut[lut_index];
+            
+            // 5. Zurückskalieren (Division durch 2) mittels schnellem Bit-Shift nach rechts.
+            // Falls deine GUI-Engine Fließkommazahlen für Pixel erlaubt (z.B. Qt/QML oder Cairo),
+            // könntest du hier auch: return (float)scaled_pixels / 2.0f; nutzen.
+            return scaled_pixels >> 1; 
+        }
+
+        const uint8_t dbfs_to_pixel_lut[61] = {
+            0,  /* -60 dBFS (0.0 px) */
+            0,  /* -59 dBFS */
+            1,  /* -58 dBFS */
+            1,  /* -57 dBFS */
+            1,  /* -56 dBFS */
+            2,  /* -55 dBFS */
+            2,  /* -54 dBFS */
+            3,  /* -53 dBFS */
+            3,  /* -52 dBFS */
+            3,  /* -51 dBFS */
+            4,  /* -50 dBFS */
+            4,  /* -49 dBFS */
+            5,  /* -48 dBFS */
+            5,  /* -47 dBFS */
+            5,  /* -46 dBFS */
+            6,  /* -45 dBFS */
+            6,  /* -44 dBFS */
+            7,  /* -43 dBFS */
+            7,  /* -42 dBFS */
+            7,  /* -41 dBFS */
+            8,  /* -40 dBFS */
+            8,  /* -39 dBFS */
+            9,  /* -38 dBFS */
+            9,  /* -37 dBFS */
+            9,  /* -36 dBFS */
+            10, /* -35 dBFS */
+            10, /* -34 dBFS */
+            10, /* -33 dBFS */
+            10, /* -32 dBFS */
+            10, /* -31 dBFS */
+            10, /* -30 dBFS (5.0 px) */ // Dein Stützpunkt
+            11, /* -29 dBFS */
+            12, /* -28 dBFS */
+            13, /* -27 dBFS */
+            14, /* -26 dBFS */
+            15, /* -25 dBFS */
+            16, /* -24 dBFS */
+            17, /* -23 dBFS */
+            17, /* -22 dBFS */
+            18, /* -21 dBFS */
+            19, /* -20 dBFS */
+            20, /* -119 dBFS */
+            21, /* -18 dBFS (10.5 px) */ // Dein Stützpunkt
+            23, /* -17 dBFS */
+            24, /* -16 dBFS */
+            26, /* -15 dBFS */
+            28, /* -14 dBFS */
+            29, /* -13 dBFS */
+            31, /* -12 dBFS (15.5 px) */ // Dein Stützpunkt
+            33, /* -11 dBFS */
+            35, /* -10 dBFS */
+            37, /* -9 dBFS */
+            38, /* -8 dBFS */
+            40, /* -7 dBFS */
+            42, /* -6 dBFS (21.0 px) */  // Dein Stützpunkt
+            45, /* -5 dBFS */
+            49, /* -4 dBFS */
+            52, /* -3 dBFS (26.0 px) */  // Dein Stützpunkt
+            55, /* -2 dBFS */
+            57, /* -1 dBFS */
+            60  /* 0 dBFS (30.0 px) */  // Dein Stützpunkt
+        };
+
     public:
 
         PageConfig(PageBaseParameter* pagebasepar) : Page(pagebasepar)
@@ -129,14 +211,11 @@ class PageConfig : public Page
 
         }
 
-        
-
         void OnUpdateMeters() override
         {
-            // TODO: Metering
-            float dbValue = config->GetFloat(CHANNEL_METER_DECAYED_POST_GAIN, config->GetUint(MP_ID::SELECTED_CHANNEL));
+            int dbValue = config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, config->GetUint(MP_ID::SELECTED_CHANNEL));
             
-            uint imageOffset = helper->rescale(dbValue, -120.0f, 0.0f, 0.0f, 31.0f);
+            uint imageOffset = get_vu_pixels_non_linear(dbValue);
             uint newImageOffset = imageOffset * -lv_obj_get_width(objects.config_vumeter);
 
             // only set new offset if it has changed

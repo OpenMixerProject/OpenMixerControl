@@ -160,8 +160,6 @@ void CtrlServer::Tick10ms(void)
 
 void CtrlServer::Tick100ms(void)
 {
-	static float dspLoadHistory[2][20];
-	static uint8_t dspLoadHistoryPointer = 0;
 	static uint8_t startupCounter = 0;
 
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "100ms");
@@ -176,33 +174,6 @@ void CtrlServer::Tick100ms(void)
 		mixer->dsp->spi->QueueDspData(0, 'a', 42, 0, 1, (float*)&value);
         mixer->dsp->spi->QueueDspData(1, 'a', 42, 0, 1, (float*)&value);
     }
-
-	// TODO: send DSP-Load to client
-	// // DEBUG Row in GUI-Header
-	// if (config->GetBool(DEBUG_HEADER) && config->HasDisplay())
-	// {
-	// 	// calculate mean-value and show the current DSP-load
-	// 	dspLoadHistory[0][dspLoadHistoryPointer] = state->dspLoad[0];
-	// 	dspLoadHistory[1][dspLoadHistoryPointer] = state->dspLoad[1];
-	// 	dspLoadHistoryPointer++;
-	// 	if (dspLoadHistoryPointer >= 20) {
-	// 		dspLoadHistoryPointer = 0;
-	// 	}
-
-	// 	float dspLoadMean[2] = {0, 0};
-	// 	for (uint8_t i = 0; i < 20; i++) {
-	// 		dspLoadMean[0] += dspLoadHistory[0][i];
-	// 		dspLoadMean[1] += dspLoadHistory[1][i];
-	// 	}
-	// 	dspLoadMean[0] /= 20.0f;
-	// 	dspLoadMean[1] /= 20.0f;
-
-	// 	// show DSP debug infos
-	// 	lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.1f %% V: v%.2f G: %.0f TxQ: %d DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free TxQ: %d", 
-	// 		(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], mixer->dsp->spi->GetDspTxQueueLength(0),
-	// 		(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1], mixer->dsp->spi->GetDspTxQueueLength(1)
-	// 	);
-	// }
 
 	// send AES50-data to FPGA
 	// DeviceTypeAndProperty every 2 seconds, Headamp-Message every 2 seconds (Names every 10 seconds)

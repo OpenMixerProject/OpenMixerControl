@@ -23,6 +23,7 @@
 */
 
 #include <math.h>
+#include <stdint.h>
 
 // includes for reading IP-Address
 #include <sys/stat.h>
@@ -197,6 +198,128 @@ float Helper::sample2Dbfs(uint32_t sample) {
 
     return (20.0f * log10f((float)sample/2147483648.0f));
 }
+
+/*
+
+30.60.2026 - Generated using Google Gemini and modified by https://github.com/schulz-alexander:
+
+Hier ist die hochoptimierte, sprungfreie Variante in C, die vom Compiler (wie arm-none-eabi-gcc mit -O2 oder -O3)
+perfekt in hocheffizienten ARM-Assembler übersetzt werden kann:
+
+*/
+int Helper::get_dbfs_from_peak_arm_opt(uint32_t raw_sample)
+{
+    // 1. Vorzeichen maskieren ohne echten Branch
+    int32_t signed_sample = (int32_t)raw_sample;
+    // ARM-Trick für abs(): Verfahre über Bit-Arithmetik statt Verzweigung
+    int32_t mask = signed_sample >> 31;
+    uint32_t peak = (signed_sample + mask) ^ mask;
+
+    // Randbereiche direkt abfangen
+    if (peak >= dbfs_lut[0])  return 6;
+    if (peak <= dbfs_lut[66]) return -120;
+
+    // 2. Branchless Binary Search über festen Index-Versatz
+    // Wir starten in der Mitte (Index 32)
+    int idx = 32;
+
+    // Schritt 1: Bereich um 16 einschränken
+    // Wenn peak >= dbfs_lut[idx], liegt der gesuchte Wert weiter vorne (kleinerer Index)
+    idx += (peak >= dbfs_lut[idx]) ? -16 : 16;
+
+    // Schritt 2: Bereich um 8 einschränken
+    idx += (peak >= dbfs_lut[idx]) ? -8 : 8;
+
+    // Schritt 3: Bereich um 4 einschränken
+    idx += (peak >= dbfs_lut[idx]) ? -4 : 4;
+
+    // Schritt 4: Bereich um 2 einschränken
+    idx += (peak >= dbfs_lut[idx]) ? -2 : 2;
+
+    // Schritt 5: Bereich um 1 einschränken
+    idx += (peak >= dbfs_lut[idx]) ? -1 : 1;
+
+    // Letzte Feinjustierung auf den exakten Nachbarindex
+    if (peak > dbfs_lut[idx]) {
+        idx--;
+    }
+
+    // Index-Validierung absichern (0 bis 66)
+    if (idx < 0) idx = 0;
+    if (idx > 66) idx = 66;
+
+    // 3. Rückgabe gemappt auf dBFS (6 - Index)
+    return 6 - idx;
+}
+
+// komplett sprungfreier (branchless) und ungerollter C-Code
+uint8_t Helper::GetMeter6Info(int dbfs)
+{
+    uint8_t bitfield = 0;
+
+    // Jedes 'if' wird vom ARM-Compiler in einen einzigen, bedingten Befehl (ORRGE) übersetzt.
+    if (dbfs >= -60) bitfield |= 0b00000001; // Bit 0
+    if (dbfs >= -30) bitfield |= 0b00000010; // Bit 1
+    if (dbfs >= -18) bitfield |= 0b00000100; // Bit 2
+    if (dbfs >= -12) bitfield |= 0b00001000; // Bit 3
+    if (dbfs >= -6)  bitfield |= 0b00010000; // Bit 4
+    if (dbfs >= 0)   bitfield |= 0b00100000; // Bit 5
+
+    return bitfield;
+}
+
+// komplett sprungfreier (branchless) und ungerollter C-Code
+uint8_t Helper::GetMeter8Info(int dbfs)
+{
+    uint8_t bitfield = 0;
+
+	// Jedes 'if' wird vom ARM-Compiler in einen einzigen, bedingten Befehl (ORRGE) übersetzt.
+    if (dbfs >= -60) bitfield |= 0x01; // Bit 0
+    if (dbfs >= -30) bitfield |= 0x02; // Bit 1
+    if (dbfs >= -18) bitfield |= 0x04; // Bit 2
+    if (dbfs >= -12) bitfield |= 0x08; // Bit 3
+    if (dbfs >= -9)  bitfield |= 0x10; // Bit 4
+    if (dbfs >= -6)  bitfield |= 0x20; // Bit 5
+    if (dbfs >= -3)  bitfield |= 0x40; // Bit 6
+    if (dbfs >= 0)   bitfield |= 0x80; // Bit 7
+
+    return bitfield;
+}
+
+// komplett sprungfreier (branchless) und ungerollter C-Code
+uint32_t Helper::GetMeter24Info(int dbfs)
+{
+    uint32_t bitfield = 0;
+
+    // Jedes 'if' wird vom ARM-Compiler in einen einzigen, bedingten Befehl (ORRGE) übersetzt.
+    if (dbfs >= main_led_lut[0])  bitfield |= (1UL << 0);  // -57 dBFS
+    if (dbfs >= main_led_lut[1])  bitfield |= (1UL << 1);  // -54 dBFS
+    if (dbfs >= main_led_lut[2])  bitfield |= (1UL << 2);  // -51 dBFS
+    if (dbfs >= main_led_lut[3])  bitfield |= (1UL << 3);  // -48 dBFS
+    if (dbfs >= main_led_lut[4])  bitfield |= (1UL << 4);  // -45 dBFS
+    if (dbfs >= main_led_lut[5])  bitfield |= (1UL << 5);  // -42 dBFS
+    if (dbfs >= main_led_lut[6])  bitfield |= (1UL << 6);  // -39 dBFS
+    if (dbfs >= main_led_lut[7])  bitfield |= (1UL << 7);  // -36 dBFS
+    if (dbfs >= main_led_lut[8])  bitfield |= (1UL << 8);  // -33 dBFS
+    if (dbfs >= main_led_lut[9])  bitfield |= (1UL << 9);  // -30 dBFS
+    if (dbfs >= main_led_lut[10]) bitfield |= (1UL << 10); // -27 dBFS
+    if (dbfs >= main_led_lut[11]) bitfield |= (1UL << 11); // -24 dBFS
+    if (dbfs >= main_led_lut[12]) bitfield |= (1UL << 12); // -21 dBFS
+    if (dbfs >= main_led_lut[13]) bitfield |= (1UL << 13); // -18 dBFS
+    if (dbfs >= main_led_lut[14]) bitfield |= (1UL << 14); // -15 dBFS
+    if (dbfs >= main_led_lut[15]) bitfield |= (1UL << 15); // -12 dBFS
+    if (dbfs >= main_led_lut[16]) bitfield |= (1UL << 16); // -10 dBFS
+    if (dbfs >= main_led_lut[17]) bitfield |= (1UL << 17); 
+    if (dbfs >= main_led_lut[18]) bitfield |= (1UL << 18);
+    if (dbfs >= main_led_lut[19]) bitfield |= (1UL << 19);
+    if (dbfs >= main_led_lut[20]) bitfield |= (1UL << 20);
+    if (dbfs >= main_led_lut[21]) bitfield |= (1UL << 21);
+    if (dbfs >= main_led_lut[22]) bitfield |= (1UL << 22);
+    if (dbfs >= main_led_lut[23]) bitfield |= (1UL << 23);
+
+    return bitfield;
+}
+
 
 uint16_t Helper::Dbfs2Fader(float dbfsValue) {
   const uint16_t FADER_MAX = 4095;
@@ -647,14 +770,31 @@ String Helper::intToHexString(int value)
   return result;
 }
 
-float Helper::rescale(float input, float inputMin, float inputMax, float outputMin, float outputMax) {
+float Helper::rescale(float input, float inputMin, float inputMax, float outputMin, float outputMax)
+{
     // Verhindert Division durch Null, falls der Eingangsbereich ungültig ist
-    if (inputMax == inputMin) {
+    if (inputMax == inputMin)
+	{
         return outputMin; 
     }
 
     // Die eigentliche Skalierungsformel
     return (input - inputMin) * (outputMax - outputMin) / (inputMax - inputMin) + outputMin;
+}
+
+int32_t Helper::rescale(int32_t input, int32_t inputMin, int32_t inputMax, int32_t outputMin, int32_t outputMax)
+{
+    if (inputMax == inputMin) 
+	{
+		return outputMin;
+	}
+
+    int32_t inputRange  = inputMax - inputMin;
+    int32_t outputRange = outputMax - outputMin;
+    int32_t inputDiff   = input - inputMin;
+    
+    // Direktes Abschneiden ohne Rundung für maximale CPU-Zyklen-Ersparnis
+    return (inputDiff * outputRange) / inputRange + outputMin;
 }
 
 int Helper::CheckBoundaries(int value, int amount, int lowerbound, int upperbound)

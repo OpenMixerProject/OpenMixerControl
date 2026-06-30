@@ -28,7 +28,7 @@
         {
             "label": "omc-xm32",
             "type": "shell",
-            "command": "./compile-docker.sh TARGET_XM32 && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@192.168.188.104 \" wget http://192.168.188.123/x32/omc -O /openx32/omc && chmod +x /openx32/omc\"",
+            "command": "./compile-docker.sh TARGET_XM32 && cp ./build/xm32/omc /var/www/html/x32/ &&  ssh root@mixer-x32 \" wget http://192.168.188.123/x32/omc -O /openx32/omc && chmod +x /openx32/omc\"",
             "problemMatcher": [
                 "$gcc"
             ],

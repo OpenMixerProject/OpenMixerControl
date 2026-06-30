@@ -339,6 +339,34 @@ void CtrlClient::Tick100ms(void)
         	lv_label_set_text_fmt(objects.header_ip, "IP: %s", ipAddress.c_str());
 		}
     }
+
+	// DEBUG Row in GUI-Header
+	static float dspLoadHistory[2][20];
+	static uint8_t dspLoadHistoryPointer = 0;
+	if (config->GetBool(DEBUG_HEADER) && config->HasDisplay())
+	{
+		// calculate mean-value and show the current DSP-load
+		dspLoadHistory[0][dspLoadHistoryPointer] = state->dspLoad[0];
+		dspLoadHistory[1][dspLoadHistoryPointer] = state->dspLoad[1];
+		dspLoadHistoryPointer++;
+		if (dspLoadHistoryPointer >= 20) {
+			dspLoadHistoryPointer = 0;
+		}
+
+		float dspLoadMean[2] = {0, 0};
+		for (uint8_t i = 0; i < 20; i++) {
+			dspLoadMean[0] += dspLoadHistory[0][i];
+			dspLoadMean[1] += dspLoadHistory[1][i];
+		}
+		dspLoadMean[0] /= 20.0f;
+		dspLoadMean[1] /= 20.0f;
+
+		// show DSP debug infos
+		lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.1f %% V: v%.2f G: %.0f DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free", 
+			(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], /*mixer->dsp->spi->GetDspTxQueueLength(0),*/
+			(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
+		);
+	}
 }
 
 //#####################################################################################################################
@@ -1584,13 +1612,13 @@ void CtrlClient::UpdateMeters(void)
 		pages[(X32_PAGE)config->GetUint(ACTIVE_PAGE)]->UpdateMeters();
 	}
 
-	// // ########################################
-	// //
-	// //		Surface Meters
-	// //
-	// // ########################################
+	// ########################################
+	//
+	//		Surface Meters
+	//
+	// ########################################
 
-	// uint8_t selectedChannel = config->GetUint(SELECTED_CHANNEL);
+	uint8_t selectedChannel = config->GetUint(SELECTED_CHANNEL);
     
 
 	// if (config->IsModelX32Core())
@@ -1619,50 +1647,53 @@ void CtrlClient::UpdateMeters(void)
 	// 	);
 	// }
 
-	// if (config->HasBigDisplay())
-	// {
-	// 	surface->SetMeterLedMain_FullOrCompact(
-	// 		mixer->dsp->rChannel[selectedChannel].meter8Info,	// selected channel
-	// 		surfaceCalcDynamicMeter(selectedChannel),			// selected channel
-	// 		mixer->dsp->MainChannelLR.meterInfo[0],
-	// 		mixer->dsp->MainChannelLR.meterInfo[1],
-	// 		mixer->dsp->MainChannelSub.meterInfo[0]
-	// 	);
-	// }
+	if (config->HasBigDisplay())
+	{
+		surface->SetMeterLedMain_FullOrCompact(
+			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),	// selected channel
+			surfaceCalcDynamicMeter(selectedChannel),			// selected channel
+			helper->GetMeter24Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
+			helper->GetMeter24Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
+			helper->GetMeter24Info(config->GetInt(SUB_METER_DECAYED_POST_GAIN))
+		);
+	}
 
 	
-	// // ########################################
-	// //
-	// //		Channels
-	// //
-	// // ########################################
+	// ########################################
+	//
+	//		Channels
+	//
+	// ########################################
 
-	// if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
-	// {
-	// 	for (uint8_t i = 0; i < 8; i++)
-	// 	{
-	// 		SurfaceBindingParameter* binding_board_l = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i));
-	// 		if (binding_board_l)
-	// 		{
-	// 			surface->SetMeterLed(X32_BOARD_L, i, mixer->dsp->rChannel[binding_board_l->mp_index].meter6Info);
-	// 		}
+	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	{
+		for (uint8_t i = 0; i < 8; i++)
+		{
+			SurfaceBindingParameter* binding_board_l = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i));
+			if (binding_board_l)
+			{
+				uint8_t meter6info = helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding_board_l->mp_index));
+				surface->SetMeterLed(X32_BOARD_L, i, meter6info);
+			}
 
-	// 		if (config->IsModelX32Full())
-	// 		{
-	// 			SurfaceBindingParameter* binding_board_m = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i));
-	// 			if (binding_board_m)
-	// 			{
-	// 				surface->SetMeterLed(X32_BOARD_M, i, mixer->dsp->rChannel[binding_board_m->mp_index].meter6Info);
-	// 			}
-	// 		}
+			if (config->IsModelX32Full())
+			{
+				SurfaceBindingParameter* binding_board_m = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i));
+				if (binding_board_m)
+				{
+					uint8_t meter6info = helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding_board_m->mp_index));
+					surface->SetMeterLed(X32_BOARD_M, i, meter6info);
+				}
+			}
 
-	// 		SurfaceBindingParameter* binding_board_r = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i));
-	// 		if (binding_board_r)
-	// 		{
-	// 			surface->SetMeterLed(X32_BOARD_R, i, mixer->dsp->rChannel[binding_board_r->mp_index].meter6Info);
-	// 		}
-	// 	}
-	// }
+			SurfaceBindingParameter* binding_board_r = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i));
+			if (binding_board_r)
+			{
+				uint8_t meter6info = helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding_board_r->mp_index));
+				surface->SetMeterLed(X32_BOARD_R, i, meter6info);
+			}
+		}
+	}
 }
 
 

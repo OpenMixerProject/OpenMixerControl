@@ -750,14 +750,24 @@ namespace OMC
         // ###########
         cat = MP_CAT::CHANNEL_METER;
 
-        // DefParameter(CHANNEL_METER_POST_GAIN, cat, String("Meter"), MAX_VCHANNELS)
-        // ->DefUOM(MP_UOM::DB)
-        // ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
-        // ->DefSilent();
-
         DefParameter(CHANNEL_METER_DECAYED_POST_GAIN, cat, String("Meter Decayed"), MAX_VCHANNELS)
-        ->DefUOM(MP_UOM::DB)
-        ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
+        ->DefUOM(MP_UOM::DBFS)
+        ->DefMinMaxStandard_Int(-120, 0, -120)
+        ->DefSilent();
+
+        DefParameter(MAIN_L_METER_DECAYED_POST_GAIN, cat, String("Meter Main L"))
+        ->DefUOM(MP_UOM::DBFS)
+        ->DefMinMaxStandard_Int(-120, 0, -120)
+        ->DefSilent();
+
+        DefParameter(MAIN_R_METER_DECAYED_POST_GAIN, cat, String("Meter Main R"))
+        ->DefUOM(MP_UOM::DBFS)
+        ->DefMinMaxStandard_Int(-120, 0, -120)
+        ->DefSilent();
+
+        DefParameter(SUB_METER_DECAYED_POST_GAIN, cat, String("Meter Sub"))
+        ->DefUOM(MP_UOM::DBFS)
+        ->DefMinMaxStandard_Int(-120, 0, -120)
         ->DefSilent();
 
         // ###########

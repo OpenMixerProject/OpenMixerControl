@@ -618,13 +618,14 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
     float* floatValues = (float*)values;
     uint32_t* intValues = (uint32_t*)values;
 
-    //helper->DEBUG_DSP1(DEBUGLEVEL_TRACE, "Callback - classid=%c channel=%c, index=%d, valueCount=%d", classId, channel, index, valueCount);
-
-    switch (classId) {
+    switch (classId)
+    {
         case 's': // status-feedback
-            switch (channel) {
+            switch (channel)
+            {
                 case 'u': // Update pack
-                    if (valueCount == (3 + 40 + 8 + 0 + 3)) {
+                    if (valueCount == (3 + 40 + 8 + 0 + 3))
+                    {
                         // idx  0     = dspVersion
                         // idx  1     = CPU-cycles
                         // idx  2     = Audio Glitch Counter
@@ -679,33 +680,44 @@ void DSP1::UpdateVuMeter(uint8_t intervalMs)
 	// Calculate decayed value
 
 	// MainLeft
-	if (MainChannelLR.meter[0] > MainChannelLR.meterDecay[0]) {
+	if (MainChannelLR.meter[0] > MainChannelLR.meterDecay[0])
+    {
 		// current value is above stored decay-value -> copy value immediatly
 		MainChannelLR.meterDecay[0] = MainChannelLR.meter[0];
-	}else{
+	}
+    else
+    {
 		// current value is below -> afterglow
 		MainChannelLR.meterDecay[0] -= (MainChannelLR.meterDecay[0] / coefficientDecay);
 	}
+    config->Set(MAIN_L_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(MainChannelLR.meterDecay[0]));
 
 	// MainRight
-	if (MainChannelLR.meter[1] > MainChannelLR.meterDecay[1]) {
+	if (MainChannelLR.meter[1] > MainChannelLR.meterDecay[1])
+    {
 		// current value is above stored decay-value -> copy value immediatly
 		MainChannelLR.meterDecay[1] = MainChannelLR.meter[1];
-	}else{
+	}
+    else
+    {
 		// current value is below -> afterglow
 		MainChannelLR.meterDecay[1] -= (MainChannelLR.meterDecay[1] / coefficientDecay);
 	}
+    config->Set(MAIN_R_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(MainChannelLR.meterDecay[1]));
 
 	// MainSub
-	if (MainChannelSub.meter[0] > MainChannelSub.meterDecay[0]) {
+	if (MainChannelSub.meter[0] > MainChannelSub.meterDecay[0])
+    {
 		// current value is above stored decay-value -> copy value immediatly
 		MainChannelSub.meterDecay[0] = MainChannelSub.meter[0];
-	}else{
+	}
+    else
+    {
 		// current value is below -> afterglow
 		MainChannelSub.meterDecay[0] -= (MainChannelSub.meterDecay[0] / coefficientDecay);
 	}
+    config->Set(SUB_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(MainChannelSub.meterDecay[0]));
 
-    
 	// Now calculate the VU Meter LEDs for each channel
 	for (int i = 0; i < (40 + 8 + 16); i++)
     {
@@ -721,9 +733,10 @@ void DSP1::UpdateVuMeter(uint8_t intervalMs)
             // this function is called every 10ms. A Decay-Rate of 6dB/second would be ideal, but we do a rought estimation here
             rChannel[i].meterDecay -= (rChannel[i].meterDecay / coefficientDecay);
         }
-
-        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->sample2Dbfs(rChannel[i].meterDecay), i);
+        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(rChannel[i].meterDecay), i);
     }
+
+    
 
     // // only the first 32 full-featured channels have dynamic-information for compressor and gate
     // for (int i = 0; i < 32; i++)
