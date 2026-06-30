@@ -322,7 +322,17 @@ void CtrlClient::Tick100ms(void)
 {
     surface->Tick100ms();
 
-
+    // Refresh IP address display periodically (every 5s @ 100ms tick = 50 ticks)
+	// Might be worth updating upon a Linux Networking hook but this was simplest.
+	// Combine with the GUI Init and extract into separate function?
+    static uint_fast8_t ipRefreshCounter = 0; //only counting to 50 so 16bit not needed, let compiler pick
+    ipRefreshCounter++;
+    if (ipRefreshCounter >= 50)
+    {
+        ipRefreshCounter = 0;
+        String ip = helper->getIpAddress();
+        lv_label_set_text_fmt(objects.header_ip, "IP: %s", ip.c_str());
+    }
 }
 
 //#####################################################################################################################
