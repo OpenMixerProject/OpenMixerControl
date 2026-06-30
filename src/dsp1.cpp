@@ -656,7 +656,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
 
                             if (helper->DEBUG_DSP1(DEBUGLEVEL_TRACE) && (i == (config->GetUint(SELECTED_CHANNEL))))
                             {
-                                printf("Ch%02d Sample: %"PRIu32"   dBFS: %f\n", i+1, rChannel[i].meter, helper->sample2Dbfs(rChannel[i].meter));
+                                printf("Ch%02d Sample: %"PRIu32"   dBFS: %f\n", i+1, rChannel[i].meter, helper->get_dbfs_from_peak_arm_opt(rChannel[i].meter));
                             }
                         }
 

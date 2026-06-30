@@ -127,8 +127,6 @@ class Helper
         uint16_t Dbfs2Fader(float dbfsValue);
         uint16_t DMX2Fadervalue(float DMXValue);
         float Dbfs2Oscvalue(float dbfsValue);
-        float samplePu2Dbfs(float samplePu);
-        float sample2Dbfs(uint32_t sample);
         int get_dbfs_from_peak_arm_opt(uint32_t raw_sample);
         uint8_t GetMeter6Info(int dbfs);
         uint8_t GetMeter8Info(int dbfs);

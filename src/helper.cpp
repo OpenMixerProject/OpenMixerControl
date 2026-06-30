@@ -183,21 +183,6 @@ float Helper::Dbfs2Oscvalue(float dbfsValue) {
 	return Fadervalue2Oscvalue(Dbfs2Fader(dbfsValue));
 }
 
-float Helper::samplePu2Dbfs(float samplePu) {
-    if (samplePu < (1.0f / 2147483648.0f)) {
-        return -120.0f;
-    }
-
-    return (20.0f * log10f(samplePu));
-}
-
-float Helper::sample2Dbfs(uint32_t sample) {
-    if (sample < 1) {
-        return -120;
-    }
-
-    return (20.0f * log10f((float)sample/2147483648.0f));
-}
 
 /*
 
