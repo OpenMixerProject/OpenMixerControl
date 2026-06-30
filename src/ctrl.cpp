@@ -684,6 +684,8 @@ void X32Ctrl::syncSurface(bool fullSync)
 						bank2 = OMCBankId::FLEX2;
 						break;
 					default:
+						bank1 = OMCBankId::CH1_8;
+						bank2 = OMCBankId::CH9_16;
 						break;
 				}
 
