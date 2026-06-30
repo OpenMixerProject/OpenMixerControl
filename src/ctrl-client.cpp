@@ -1621,15 +1621,15 @@ void CtrlClient::UpdateMeters(void)
 	uint8_t selectedChannel = config->GetUint(SELECTED_CHANNEL);
     
 
-	// if (config->IsModelX32Core())
-	// {
-	// 	//surface->SetMeterLed(X32_BOARD_MAIN, 0, mixer->dsp->rChannel[selectedChannel].meter8Info);
-	// }
+	if (config->IsModelX32Core())
+	{
+		surface->SetMeterLed(X32_BOARD_MAIN, 0, helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)));
+	}
 
 	// if (config->IsModelX32Rack())
 	// {
 	// 	surface->SetMeterLedMain_Rack(
-	// 		mixer->dsp->rChannel[selectedChannel].meter8Info, 	// selected channel
+	// 		helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),	// selected channel
 	// 		mixer->dsp->MainChannelLR.meterInfo[0],
 	// 	 	mixer->dsp->MainChannelLR.meterInfo[1],
 	// 	 	mixer->dsp->MainChannelSub.meterInfo[0]
@@ -1639,7 +1639,7 @@ void CtrlClient::UpdateMeters(void)
 	// if (config->HasSmallDisplay())
 	// {
 	// 	surface->SetMeterLedMain_Producer(
-	// 		mixer->dsp->rChannel[selectedChannel].meter8Info, 	// selected channel
+	// 		helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),	// selected channel
 	// 		surfaceCalcDynamicMeter(selectedChannel),			// selected channel
 	// 		mixer->dsp->MainChannelLR.meterInfo[0],
 	// 		mixer->dsp->MainChannelLR.meterInfo[1],
