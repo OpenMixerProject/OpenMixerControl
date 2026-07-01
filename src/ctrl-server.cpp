@@ -40,13 +40,17 @@ void CtrlServer::Init()
 	//#
 	//##################################################################################
 
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->Init()");
+	helper->Log("##############\n");
+	helper->Log("### Server ###\n");
+	helper->Log("##############\n");
+
+	helper->Log("Init Mixer\n");
 	mixer->Init();
 
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "ocs_server->Init()");
+	helper->Log("Init OSC Server\n");
 	osc_server->Init();
 
-	helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "wsm->Init()");
+	helper->Log("Init WSM\n");
 	wsm->Init();
 
 
@@ -81,18 +85,11 @@ void CtrlServer::Init()
 		mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
 		mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
 	}
-	else 
 
 	//############################################################################
 
-	// Config
-	if(!config->LoadConfig(0))
-	{
-		// create new ini file
-		helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "no default configfile found, creating one");
-		
-		config->Save(0);
-	}
+	helper->Log("Unmute ADDA-Boards\n");
+	mixer->adda->SetMuteAll(false);
 }
 
 //#####################################################################################################################

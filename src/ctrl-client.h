@@ -64,7 +64,6 @@ class CtrlClient : public X32Base
 
         CtrlClient(X32BaseParameter* basepar);
         void Init();
-        void guiInit();
         
         void Tick10ms(void);
         void Tick50ms(void);

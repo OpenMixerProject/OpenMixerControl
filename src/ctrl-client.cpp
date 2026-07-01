@@ -66,9 +66,13 @@ CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
 
 void CtrlClient::Init()
 {
-	helper->Log("CtrlClient::Init()");
+	helper->Log("##############\n");
+	helper->Log("### Client ###\n");
+	helper->Log("##############\n");
+
 	if (config->IsClientMode())
 	{
+		helper->Log("Init OSC Client\n");
 		osc_client->Init();
 
 		config->SetCallbackSet(OnOscSendToServerCallbackSet, this);
@@ -90,156 +94,138 @@ void CtrlClient::Init()
 	}
 	else
 	{
-        helper->Log("surface->Init(OnSurfaceCallback, this)\n");
+        helper->Log("Init Surface\n");
         surface->Init(OnSurfaceCallback, this);
 
         if (config->IsModelX32Core() || config->IsModelM32C())
         {
-            helper->Log("lcdmenu->Init()\n");
+            helper->Log("Init LCD Menu\n");
             lcdmenu->OnInit();
         }
 
         #if ENABLE_ARTNET
-        helper->Log("artnet->Init()");
+        helper->Log("Init Artnet\n");
         artnet->Init();
         #endif
         
-        if (config->IsModelWingCompact())
-        {
-			helper->Log("Set Wing Banking Input\n");
-            config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
-        }
+		helper->Log("Load Banks\n");
 
-		helper->Log("Initializing GUI and starting endless loop!\n");
-		guiInit(); // initializes LVGL, FBDEV and starts endless loop
-    }
-}
-
-void CtrlClient::guiInit()
-{
-	lv_init();
-
-	#ifdef TARGET_PC_SDL2
-
-		helper->Log("bodyless mode (Development Simulator) startet");
-		state->bodyless = true;
+		// Input
+		if (config->IsModelX32FullOrM32())
+		{
+			config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
+		}
+		else if (config->IsModelX32CompactOrProducerOrM32R())
+		{
+			config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
+		}
+		else if (config->IsModelWingCompact())
+		{
+			config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
+		}
 		
-		display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
-		lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
-		keyboard = lv_sdl_keyboard_create();
-		//mouse = lv_sdl_mouse_create();
-		//mouse_wheel = lv_sdl_mousewheel_create();
-
-		// call this before "ui_init()"
-		ui_create_groups();
-
-		// set group for your input device
-		lv_group_set_default(groups.grp_KEY);
-		lv_indev_set_group(keyboard, groups.grp_KEY);
-	
-	#else
-		
-		const char * device = getenv_default("LV_LINUX_FBDEV_DEVICE", "/dev/fb0");
-		display = lv_linux_fbdev_create();
-
-		if(display == NULL) {
-			helper->Log("could not create display!");
-			return;
+		// Buses
+		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+		{
+			config->Set(BANKING_BUS, (uint)OMCBankId::DCA);
 		}
 
-		lv_linux_fbdev_set_file(display, device);	
+		helper->Log("Init LVGL\n");
+		lv_init();
 
-	#endif
+		#ifdef TARGET_PC_SDL2
 
-	#ifdef BUILD_DEBUG
-	helper->Log("lv_timer_create(timer10msCallbackLvgl, 10, NULL)");
-	#endif
-	lv_timer_create(timer10msCallbackLvgl, 10, NULL);
+			helper->Log("bodyless mode (Development Simulator) startet");
+			state->bodyless = true;
+			
+			display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
+			lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
+			keyboard = lv_sdl_keyboard_create();
+			//mouse = lv_sdl_mouse_create();
+			//mouse_wheel = lv_sdl_mousewheel_create();
 
-	#ifdef BUILD_DEBUG
-	helper->Log("lv_timer_create(timer50msCallbackLvgl, 50, NULL)");
-	#endif
-	lv_timer_create(timer50msCallbackLvgl, 50, NULL);
+			// call this before "ui_init()"
+			ui_create_groups();
 
-	#ifdef BUILD_DEBUG
-	helper->Log("lv_timer_create(timer100msCallbackLvgl, 100, NULL)");
-	#endif
-	lv_timer_create(timer100msCallbackLvgl, 100, NULL);
+			// set group for your input device
+			lv_group_set_default(groups.grp_KEY);
+			lv_indev_set_group(keyboard, groups.grp_KEY);
+		
+		#else
+			
+			helper->Log("Init FBDEV\n");
+			const char * device = getenv_default("LV_LINUX_FBDEV_DEVICE", "/dev/fb0");
+			display = lv_linux_fbdev_create();
 
-	// initialize GUI created by EEZ
-	#ifdef BUILD_DEBUG
-	helper->Log("ui_init()");
-	#endif
-	ui_init();
+			if(display == NULL) {
+				helper->Log("could not create display!");
+				return;
+			}
 
-	// InitPagesAndGUI() has to be called after ui_init()!
-	#ifdef BUILD_DEBUG
-	helper->Log("InitPagesAndGUI()");
-	#endif
-	InitPagesAndGUI();
+			lv_linux_fbdev_set_file(display, device);	
 
-	// trigger first update of display header
-	#ifdef BUILD_DEBUG
-	helper->Log("config->Refresh(SELECTED_CHANNEL)");
-	#endif
-	config->Refresh(SELECTED_CHANNEL);
-
-	// trigger load of banks
-	if (config->IsModelX32FullOrM32())
-	{
-		#ifdef BUILD_DEBUG
-		helper->Log("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_16)");
 		#endif
-		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
-	}
-	else if (config->IsModelX32CompactOrProducerOrM32R())
-	{
+
 		#ifdef BUILD_DEBUG
-		helper->Log("config->Set(BANKING_INPUT, (uint)X32BankId::CH1_8)");
+		helper->Log("Init Timer 10ms\n");
 		#endif
-		config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
-	}
-	else if (config->IsModelWingCompact())
-	{
+		lv_timer_create(timer10msCallbackLvgl, 10, NULL);
+
 		#ifdef BUILD_DEBUG
-		helper->Log("config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12)\n");
+		helper->Log("Init Timer 50ms\n");
 		#endif
-		config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
-	}
-	
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
-	{
+		lv_timer_create(timer50msCallbackLvgl, 50, NULL);
+
 		#ifdef BUILD_DEBUG
-		helper->Log("config->Refresh(BANKING_BUS)\n");
+		helper->Log("Init Timer 100ms\n");
 		#endif
-		config->Refresh(BANKING_BUS);
-	}
+		lv_timer_create(timer100msCallbackLvgl, 100, NULL);
 
-	// set IP-Address in GUI
-	String ip = helper->getIpAddress();
-	lv_label_set_text_fmt(objects.header_ip, "IP: %s", ip.c_str());
+		// initialize GUI created by EEZ
+		#ifdef BUILD_DEBUG
+		helper->Log("Init EEZ GUI\n");
+		#endif
+		ui_init();
 
-	// sync the Page
-	#ifdef BUILD_DEBUG
-	helper->Log("config->Refresh(ACTIVE_PAGE)\n");
-	#endif
-	config->Refresh(ACTIVE_PAGE);
+		// InitPagesAndGUI() has to be called after ui_init()!
+		#ifdef BUILD_DEBUG
+		helper->Log("InitPagesAndGUI()\n");
+		#endif
+		InitPagesAndGUI();
 
-	// sync the Surface
-	#ifdef BUILD_DEBUG
-	helper->Log("syncSurface(true)\n");
-	#endif
-	syncSurface(true);
+		// trigger first update of display header
+		#ifdef BUILD_DEBUG
+		helper->Log("Refresh Selected Channel\n");
+		#endif
+		config->Refresh(SELECTED_CHANNEL);
 
-	// LVGL loop
-	#ifdef BUILD_DEBUG
-	helper->Log("starting LVGL loop\n");
-	#endif
-	uint32_t idle_time;
-	while (1)
-	{
-		idle_time = lv_timer_handler();
-		usleep(idle_time * 1000);
+		// // set IP-Address in GUI
+		// helper->Log("Show IP\n");
+		// String ip = helper->getIpAddress();
+		// lv_label_set_text_fmt(objects.header_ip, "IP: %s", ip.c_str());
+
+		// sync the Page
+		#ifdef BUILD_DEBUG
+		helper->Log("Sync Active Page\n");
+		#endif
+		config->Refresh(ACTIVE_PAGE);
+
+		// sync the Surface
+		#ifdef BUILD_DEBUG
+		helper->Log("Sync Surface\n");
+		#endif
+		syncSurface(true);
+
+		// LVGL loop
+		#ifdef BUILD_DEBUG
+		helper->Log("Start LVGL Loop\n");
+		#endif
+		uint32_t idle_time;
+		while (1)
+		{
+			idle_time = lv_timer_handler();
+			usleep(idle_time * 1000);
+		}
 	}
 }
 

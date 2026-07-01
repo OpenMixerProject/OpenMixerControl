@@ -29,8 +29,11 @@
 namespace OMC
 {
 
-Adda::Adda(X32BaseParameter* basepar): X32Base(basepar) {
+Adda::Adda(X32BaseParameter* basepar): X32Base(basepar)
+{
+	helper->Log("Mute ADDA-Boards\n");
     SetMuteAll(true);
+
 	uart = new Uart(basepar);
 	addaPacketBufLen = 0;
 }

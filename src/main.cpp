@@ -189,9 +189,6 @@ namespace OMC
 			->option_text("FILE")
 			//->default_str("dsp2.ldr")
 			->configurable(false);
-		app->add_option("--samplerate", "Set Samplerate to 44100 or 48000 kHz")
-			->default_val<uint32_t>(48000)
-			->check(CLI::IsMember(new set<uint32_t>{44100, 48000}));
 
 		// debugging commandline option	
 		app->add_flag("-b,--bodyless", state->bodyless, "Enables a special mode to run omc in a different enviroment than a X32 mixer.")
@@ -334,8 +331,21 @@ namespace OMC
 			model_str = "X32RACK";
 		}
 
+		// #### CONFIG ############################################################################
+		//
 		bool runAsClient = app->count("--client") > 0;
 		Config* config = new Config(model_str, helper, runAsClient);
+
+		if(!config->LoadConfig(0))
+		{
+			// create new ini file
+			helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "no default configfile found, creating one");
+
+			config->Save(0);
+		}
+		helper->Log("Config loaded.\n");
+		//
+		// #### CONFIG #############################################################################
 
 		// Print OSC-Doku
 		if (app->count("--osc-doc") > 0)
@@ -343,8 +353,6 @@ namespace OMC
 			config->PrintOscDoc();
 			exit(0);
 		}
-
-		config->Set(MP_ID::SAMPLERATE, app->get_option("--samplerate")->as<uint32_t>());
 
 		if (debug_parameters.size() > 0) {
 			for(uint8_t i=0; i<debug_parameters.size(); i++) {
@@ -383,7 +391,7 @@ namespace OMC
 		omc = new OpenMixerControl(basepar);
 
 		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "omc->Init()");
-		omc->Init();  // initialize the whole thing and load config
+		omc->Init();  // initialize the whole thing
 
 		exit(0);
 	}
