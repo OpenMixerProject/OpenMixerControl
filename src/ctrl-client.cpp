@@ -1626,32 +1626,32 @@ void CtrlClient::UpdateMeters(void)
 		surface->SetMeterLed(X32_BOARD_MAIN, 0, helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)));
 	}
 
-	// if (config->IsModelX32Rack())
-	// {
-	// 	surface->SetMeterLedMain_Rack(
-	// 		helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),	// selected channel
-	// 		mixer->dsp->MainChannelLR.meterInfo[0],
-	// 	 	mixer->dsp->MainChannelLR.meterInfo[1],
-	// 	 	mixer->dsp->MainChannelSub.meterInfo[0]
-	// 	);
-	// }
+	if (config->IsModelX32Rack())
+	{
+		surface->SetMeterLedMain_Rack(
+			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),
+			helper->GetMeter18Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
+			helper->GetMeter18Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
+			helper->GetMeter18Info(config->GetInt(SUB_METER_DECAYED_POST_GAIN))
+		);
+	}
 
-	// if (config->HasSmallDisplay())
-	// {
-	// 	surface->SetMeterLedMain_Producer(
-	// 		helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),	// selected channel
-	// 		surfaceCalcDynamicMeter(selectedChannel),			// selected channel
-	// 		mixer->dsp->MainChannelLR.meterInfo[0],
-	// 		mixer->dsp->MainChannelLR.meterInfo[1],
-	// 		mixer->dsp->MainChannelSub.meterInfo[0]
-	// 	);
-	// }
+	if (config->HasSmallDisplay())
+	{
+		surface->SetMeterLedMain_Producer(
+			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),
+			surfaceCalcDynamicMeter(selectedChannel),
+			helper->GetMeter18Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
+			helper->GetMeter18Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
+			helper->GetMeter18Info(config->GetInt(SUB_METER_DECAYED_POST_GAIN))
+		);
+	}
 
 	if (config->HasBigDisplay())
 	{
 		surface->SetMeterLedMain_FullOrCompact(
-			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),	// selected channel
-			surfaceCalcDynamicMeter(selectedChannel),			// selected channel
+			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),
+			surfaceCalcDynamicMeter(selectedChannel),		
 			helper->GetMeter24Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
 			helper->GetMeter24Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
 			helper->GetMeter24Info(config->GetInt(SUB_METER_DECAYED_POST_GAIN))
@@ -1714,13 +1714,14 @@ void CtrlClient::setLedChannelIndicator_Rack(void)
 }
 
 // only X32 Core
-void CtrlClient::setLedChannelIndicator_Core(void){
-		// uint8_t chanIdx = config->GetUint(SELECTED_CHANNEL);
-		// surface->SetLedByEnum(X32_LED_IN, (chanIdx <= 31));
-		// surface->SetLedByEnum(X32_LED_AUX, (chanIdx >= 32)&&(chanIdx <= 47));
-		// surface->SetLedByEnum(X32_LED_BUS, (chanIdx >= 48)&&(chanIdx <= 63));
-		// surface->SetLedByEnum(X32_LED_DCA, (chanIdx >= 64)&&(chanIdx <= 69));
-		// surface->SetLedByEnum(X32_LED_MTX, (chanIdx >= 70)&&(chanIdx <= 79));
+void CtrlClient::setLedChannelIndicator_Core(void)
+{
+	uint8_t chanIdx = config->GetUint(SELECTED_CHANNEL);
+	surface->SetLed(SurfaceElementId::LED_IN, (chanIdx <= 31), false);
+	surface->SetLed(SurfaceElementId::LED_AUX_FX, (chanIdx >= 32)&&(chanIdx <= 47), false);		
+	surface->SetLed(SurfaceElementId::LED_BUS, (chanIdx >= 48)&&(chanIdx <= 63), false);
+	surface->SetLed(SurfaceElementId::LED_DCA, (chanIdx >= 64)&&(chanIdx <= 69), false);
+	surface->SetLed(SurfaceElementId::LED_MATRIX, (chanIdx >= 70)&&(chanIdx <= 79), false);
 }
 
 uint8_t CtrlClient::surfaceCalcDynamicMeter(uint8_t channel) {

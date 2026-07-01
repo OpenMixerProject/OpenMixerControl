@@ -272,35 +272,63 @@ uint8_t Helper::GetMeter8Info(int dbfs)
 }
 
 // komplett sprungfreier (branchless) und ungerollter C-Code
+uint32_t Helper::GetMeter18Info(int dbfs)
+{    
+    uint32_t bitfield = 0;
+
+    // Jedes 'if' wird vom ARM-Compiler in einen einzigen, bedingten Befehl (ORRGE) übersetzt.
+    if (dbfs >= main_led_lut_18[0])  bitfield |= (1UL << 0);  // -45 dBFS
+    if (dbfs >= main_led_lut_18[1])  bitfield |= (1UL << 1);  // -42 dBFS
+    if (dbfs >= main_led_lut_18[2])  bitfield |= (1UL << 2);  // -39 dBFS
+    if (dbfs >= main_led_lut_18[3])  bitfield |= (1UL << 3);  // -36 dBFS
+    if (dbfs >= main_led_lut_18[4])  bitfield |= (1UL << 4);  // -33 dBFS
+    if (dbfs >= main_led_lut_18[5])  bitfield |= (1UL << 5);  // -30 dBFS
+    if (dbfs >= main_led_lut_18[6])  bitfield |= (1UL << 6);  // -27 dBFS
+    if (dbfs >= main_led_lut_18[7])  bitfield |= (1UL << 7);  // -24 dBFS
+    if (dbfs >= main_led_lut_18[8])  bitfield |= (1UL << 21); // -21 dBFS
+    if (dbfs >= main_led_lut_18[9])  bitfield |= (1UL << 9);  // -18 dBFS
+    if (dbfs >= main_led_lut_18[10]) bitfield |= (1UL << 10); // -15 dBFS
+    if (dbfs >= main_led_lut_18[11]) bitfield |= (1UL << 11); // -12 dBFS
+    if (dbfs >= main_led_lut_18[12]) bitfield |= (1UL << 12); // -10 dBFS
+    if (dbfs >= main_led_lut_18[13]) bitfield |= (1UL << 13); // -8 dBFS
+    if (dbfs >= main_led_lut_18[14]) bitfield |= (1UL << 14); // -6 dBFS
+    if (dbfs >= main_led_lut_18[15]) bitfield |= (1UL << 15); // -4 dBFS
+    if (dbfs >= main_led_lut_18[16]) bitfield |= (1UL << 16); // -2 dBFS
+    if (dbfs >= main_led_lut_18[17]) bitfield |= (1UL << 17); //  0 dBFS
+
+    return bitfield;
+}
+
+// komplett sprungfreier (branchless) und ungerollter C-Code
 uint32_t Helper::GetMeter24Info(int dbfs)
 {
     uint32_t bitfield = 0;
 
     // Jedes 'if' wird vom ARM-Compiler in einen einzigen, bedingten Befehl (ORRGE) übersetzt.
-    if (dbfs >= main_led_lut[0])  bitfield |= (1UL << 0);  // -57 dBFS
-    if (dbfs >= main_led_lut[1])  bitfield |= (1UL << 1);  // -54 dBFS
-    if (dbfs >= main_led_lut[2])  bitfield |= (1UL << 2);  // -51 dBFS
-    if (dbfs >= main_led_lut[3])  bitfield |= (1UL << 3);  // -48 dBFS
-    if (dbfs >= main_led_lut[4])  bitfield |= (1UL << 4);  // -45 dBFS
-    if (dbfs >= main_led_lut[5])  bitfield |= (1UL << 5);  // -42 dBFS
-    if (dbfs >= main_led_lut[6])  bitfield |= (1UL << 6);  // -39 dBFS
-    if (dbfs >= main_led_lut[7])  bitfield |= (1UL << 7);  // -36 dBFS
-    if (dbfs >= main_led_lut[8])  bitfield |= (1UL << 8);  // -33 dBFS
-    if (dbfs >= main_led_lut[9])  bitfield |= (1UL << 9);  // -30 dBFS
-    if (dbfs >= main_led_lut[10]) bitfield |= (1UL << 10); // -27 dBFS
-    if (dbfs >= main_led_lut[11]) bitfield |= (1UL << 11); // -24 dBFS
-    if (dbfs >= main_led_lut[12]) bitfield |= (1UL << 12); // -21 dBFS
-    if (dbfs >= main_led_lut[13]) bitfield |= (1UL << 13); // -18 dBFS
-    if (dbfs >= main_led_lut[14]) bitfield |= (1UL << 14); // -15 dBFS
-    if (dbfs >= main_led_lut[15]) bitfield |= (1UL << 15); // -12 dBFS
-    if (dbfs >= main_led_lut[16]) bitfield |= (1UL << 16); // -10 dBFS
-    if (dbfs >= main_led_lut[17]) bitfield |= (1UL << 17); 
-    if (dbfs >= main_led_lut[18]) bitfield |= (1UL << 18);
-    if (dbfs >= main_led_lut[19]) bitfield |= (1UL << 19);
-    if (dbfs >= main_led_lut[20]) bitfield |= (1UL << 20);
-    if (dbfs >= main_led_lut[21]) bitfield |= (1UL << 21);
-    if (dbfs >= main_led_lut[22]) bitfield |= (1UL << 22);
-    if (dbfs >= main_led_lut[23]) bitfield |= (1UL << 23);
+    if (dbfs >= main_led_lut_24[0])  bitfield |= (1UL << 0);  // -57 dBFS
+    if (dbfs >= main_led_lut_24[1])  bitfield |= (1UL << 1);  // -54 dBFS
+    if (dbfs >= main_led_lut_24[2])  bitfield |= (1UL << 2);  // -51 dBFS
+    if (dbfs >= main_led_lut_24[3])  bitfield |= (1UL << 3);  // -48 dBFS
+    if (dbfs >= main_led_lut_24[4])  bitfield |= (1UL << 4);  // -45 dBFS
+    if (dbfs >= main_led_lut_24[5])  bitfield |= (1UL << 5);  // -42 dBFS
+    if (dbfs >= main_led_lut_24[6])  bitfield |= (1UL << 6);  // -39 dBFS
+    if (dbfs >= main_led_lut_24[7])  bitfield |= (1UL << 7);  // -36 dBFS
+    if (dbfs >= main_led_lut_24[8])  bitfield |= (1UL << 8);  // -33 dBFS
+    if (dbfs >= main_led_lut_24[9])  bitfield |= (1UL << 9);  // -30 dBFS
+    if (dbfs >= main_led_lut_24[10]) bitfield |= (1UL << 10); // -27 dBFS
+    if (dbfs >= main_led_lut_24[11]) bitfield |= (1UL << 11); // -24 dBFS
+    if (dbfs >= main_led_lut_24[12]) bitfield |= (1UL << 12); // -21 dBFS
+    if (dbfs >= main_led_lut_24[13]) bitfield |= (1UL << 13); // -18 dBFS
+    if (dbfs >= main_led_lut_24[14]) bitfield |= (1UL << 14); // -15 dBFS
+    if (dbfs >= main_led_lut_24[15]) bitfield |= (1UL << 15); // -12 dBFS
+    if (dbfs >= main_led_lut_24[16]) bitfield |= (1UL << 16); // -10 dBFS
+    if (dbfs >= main_led_lut_24[17]) bitfield |= (1UL << 17); 
+    if (dbfs >= main_led_lut_24[18]) bitfield |= (1UL << 18);
+    if (dbfs >= main_led_lut_24[19]) bitfield |= (1UL << 19);
+    if (dbfs >= main_led_lut_24[20]) bitfield |= (1UL << 20);
+    if (dbfs >= main_led_lut_24[21]) bitfield |= (1UL << 21);
+    if (dbfs >= main_led_lut_24[22]) bitfield |= (1UL << 22);
+    if (dbfs >= main_led_lut_24[23]) bitfield |= (1UL << 23);
 
     return bitfield;
 }

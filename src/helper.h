@@ -102,7 +102,7 @@ class Helper
             2095383    /* -60 dBFS (Index 66) */
         };
 
-        const int8_t main_led_lut[24] = {
+        const int8_t main_led_lut_24[24] = {
             -57, -54, -51, // LED 1 bis 3
             -48, -45, -42, // LED 4 bis 6
             -39, -36, -33, // LED 7 bis 9
@@ -111,6 +111,15 @@ class Helper
             -12, -10,  -8, // LED 16 bis 18
             -6,   -4,  -3, // LED 19 bis 21 
             -2,   -1,   0  // LED 22 bis 24
+        };
+
+        const int8_t main_led_lut_18[18] = {
+            -45, -42, -39, // LED 1 bis 3
+            -36, -33, -30, // LED 4 bis 6
+            -27, -24, -21, // LED 7 bis 9
+            -18, -15, -12, // LED 10 bis 12
+            -10, -8,  -6,  // LED 13 bis 15 
+            -4,  -2,   0   // LED 16 bis 18 
         };
 
     public:
@@ -130,6 +139,7 @@ class Helper
         int get_dbfs_from_peak_arm_opt(uint32_t raw_sample);
         uint8_t GetMeter6Info(int dbfs);
         uint8_t GetMeter8Info(int dbfs);
+        uint32_t GetMeter18Info(int dbfs);
         uint32_t GetMeter24Info(int dbfs);
 
         uint8_t value2percent(float value, float value_min, float value_max);
