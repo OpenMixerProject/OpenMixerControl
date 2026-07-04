@@ -40,9 +40,7 @@ class CtrlClient : public X32Base
 
         sTouchControl touchcontrol;
 
-        #if ENABLE_ARTNET
         Artnet* artnet;
-        #endif
 
         // currently pressed button
         SurfaceElement* buttonPressed = 0;
@@ -86,9 +84,7 @@ class CtrlClient : public X32Base
         void SetLcdFromAssign(uint8_t p_boardId, uint8_t lcdIndex, SurfaceElementId element_id);
         void GetAssignLcdText(LcdData *data, SurfaceElementId encoder, SurfaceElementId upper_button, SurfaceElementId lower_button);
 
-        #if ENABLE_ARTNET
         void SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t artnetIndex);
-        #endif
 
         void SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex);
         void UpdateMeters();

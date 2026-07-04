@@ -1,11 +1,5 @@
 #pragma once
 
-// ##############
-// #  Features  #
-// ##############
-
-#define ENABLE_ARTNET 1
-
 // ###########
 // #  DEBUG  #
 // ###########
@@ -13,15 +7,6 @@
 #define BUILD_DEBUG 1 // build with or without debug functions
 
 //#################################################################################
-
-// bodyless mode does not compile with artnet, so disable it
-#ifdef TARGET_PC_SDL2
-    #define ENABLE_ARTNET 0
-#endif
-
-#ifdef TARGET_WING
-    #define ENABLE_ARTNET 0
-#endif
 
 typedef unsigned int uint;
 

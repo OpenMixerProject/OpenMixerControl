@@ -46,10 +46,7 @@ CtrlClient::CtrlClient(X32BaseParameter* basepar) : X32Base(basepar)
     surface = new Surface(basepar);
     lcdmenu = new LcdMenu(basepar, surface); // only used for X32Core
 	osc_client = new OscClient(basepar);
-
-	#if ENABLE_ARTNET
 	artnet = new Artnet(basepar);
-	#endif
 }
 
 // ###########################################################################
@@ -103,10 +100,8 @@ void CtrlClient::Init()
         helper->Log("Init Surface\n");
         surface->Init(OnSurfaceCallback, this);
 
-        #if ENABLE_ARTNET
         helper->Log("Init Artnet\n");
         artnet->Init();
-        #endif
 
 		helper->Log("Init LVGL\n");
 		lv_init();
@@ -241,10 +236,8 @@ void CtrlClient::Tick10ms()
     // sync if any Mixerparameter has changed
 	if (config->HasAnyParameterChanged())
 	{
-        #if ENABLE_ARTNET
 		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "artnet->Sync()");
 		artnet->Sync();
-		#endif
 
 		syncGuiOrLcd();
     }
@@ -281,10 +274,8 @@ void CtrlClient::Tick50ms()
 	// Update VU-Meters
 	UpdateMeters();
 
-#if ENABLE_ARTNET
 	// update Dimmerkernel
 	artnet->Tick();
-#endif
 }
 
 void CtrlClient::Tick100ms()
@@ -1182,16 +1173,13 @@ void CtrlClient::syncSurface(bool fullSync)
 					{
 						SetLcdFromAssign(element->GetBoard(), element->GetIndex(), element_id);
 					}
-					#if ENABLE_ARTNET
 					else if (binding_parameter->mp_action == MixerparameterAction::LCD_Artnet)
 					{
 						SetLcdFromArtnet(element->GetBoard(), element->GetIndex(), parameter_index);
 					}
-					#endif
-
-					// empty
 					else
 					{
+						// empty
 						SetLcdDark(element->GetBoard(), element->GetIndex());
 					}
 				}
@@ -1232,7 +1220,6 @@ void CtrlClient::syncSurface(bool fullSync)
 	// 	}
 	// }
 
-#if ENABLE_ARTNET
 
 void CtrlClient::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t artnetIndex)
 {
@@ -1296,8 +1283,6 @@ void CtrlClient::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t a
 	surface->SetLcd(data, textcount);
 	delete data;
 }
-
-#endif
 
 void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex)
 {

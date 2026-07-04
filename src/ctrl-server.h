@@ -5,10 +5,7 @@
 #include "ctrl-server.h"
 #include "osc-server.h"
 #include "wsm.h"
-
-#if ENABLE_ARTNET
-    #include "artnet.h"
-#endif
+#include "artnet.h"
 
 using namespace std;
 
