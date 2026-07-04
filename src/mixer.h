@@ -33,8 +33,6 @@ class Mixer : public X32Base
 
         void halSendGain(uint8_t dspChannel);
         void halSendPhantomPower(uint8_t dspChannel);
-        void LoadRoutingDefault();
-        void LoadVChannelLayout();
 
     public:
                   
