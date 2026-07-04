@@ -49,8 +49,8 @@ class CtrlClient : public X32Base
         SurfaceElement* secondbuttonPressed = 0;
 
         char time_str[50];
-		time_t timestamp = time(NULL);
-		struct tm datetime = *localtime(&timestamp);
+		time_t timestamp;
+		struct tm datetime;
 
         static void OnSurfaceCallback(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
         void ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint16_t value);

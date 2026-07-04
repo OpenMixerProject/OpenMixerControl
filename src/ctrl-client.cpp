@@ -334,6 +334,8 @@ void CtrlClient::Tick1000ms()
 	if (config->HasDisplay())
 	{
 		// Display Time
+		timestamp = time(NULL);
+		datetime = *localtime(&timestamp);
 		strftime(time_str, 50, "%H:%M:%S", &datetime);
 		lv_label_set_text(objects.header_time, time_str);
 	}
