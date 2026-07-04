@@ -189,24 +189,32 @@ namespace OMC
         }
         
         // Fill Mixerparameter
+        helper->Log("Load %d Mixerparameters...", entries.size());
         for (uint i=0; i < entries.size(); i++)
         {
             MP_ID parameter_id = entries.at(i).MixerparameterId;    
             Mixerparameter* parameter = GetParameter(parameter_id);
 
+            uint entrysize = 0;
             switch(parameter->GetType())
             {
                 case MP_VALUE_TYPE::STRING:
                     parameter->Config_SetValueString(entries.at(i).string_value);
+                    entrysize = entries.at(i).string_value.size();
                     break;
                     
                 default:
                     parameter->Config_SetValue(entries.at(i).value);
+                    entrysize = entries.at(i).value.size();
             }
 
-            Refresh(parameter_id, 0);
+            for (uint j = 0; j < entrysize; j++)
+            {
+                Refresh(parameter_id, j);
+            }
         }
 
+        helper->Log("Config loaded.\n");
         return true;
     }
 
@@ -444,7 +452,6 @@ namespace OMC
         ->DefClientParameter();
 
         DefParameter(BANKING_EQ, cat, "EQ")
-        ->DefNoConfig()
         ->DefUOM(MP_UOM::BANKING_EQ)
         ->DefHideEncoderReset()
         ->DefMinMaxStandard_Uint(0, 3, 0)
@@ -453,17 +460,14 @@ namespace OMC
         DefParameter(BANKING_INPUT, cat, "Banking Input")
         ->DefHideEncoderReset()
         ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None)
-        ->DefNoConfig()
         ->DefClientParameter();
 
         DefParameter(BANKING_BUS, cat, "Banking Bus")
         ->DefHideEncoderReset()
         ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None)
-        ->DefNoConfig()
         ->DefClientParameter();
 
         DefParameter(BANKING_BUS_SENDS, cat, "Banking Bus Sends")
-        ->DefNoConfig()
         ->DefHideEncoderReset()
         ->DefMinMaxStandard_Uint(0, 3, 0)
         ->DefClientParameter();
@@ -1622,7 +1626,7 @@ namespace OMC
         // Reset
         if (mp_changedlist->size() != 0)
         {
-            helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "Reset list of changed Mixerparameters");
+            helper->DEBUG_X32CTRL(DEBUGLEVEL_VERBOSE, "-------------------- Reset list of changed Mixerparameters ---------------------------");
             mp_changedlist->clear();
         }
 
@@ -1770,7 +1774,7 @@ namespace OMC
                 message += String(index) + " ";
             }
             
-            message += "has changed to:" + parameter->GetFormatedValue(index) + "\n";
+            message += "has changed to " + parameter->GetFormatedValue(index) + "\n";
 
             helper->Log(message.c_str());
         }
