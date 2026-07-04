@@ -72,7 +72,7 @@ void Mixer::Init() {
 
 
 
-void Mixer::ClearSolo(void)
+void Mixer::ClearSolo()
 {
     if (IsSoloActivated())
     {
@@ -83,7 +83,7 @@ void Mixer::ClearSolo(void)
     }
 }
 
-bool Mixer::IsSoloActivated(void)
+bool Mixer::IsSoloActivated()
 {
     for (uint8_t i=0; i < MAX_VCHANNELS; i++)
     {
@@ -111,8 +111,10 @@ String Mixer::GetCardModelString(){
 //#
 //#########################################
 
-void Mixer::Sync(void)
+void Mixer::Sync()
 {
+    helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "------------------- mixer->Sync() ----------------");
+
     if (helper->DEBUG_MIXER(DEBUGLEVEL_NORMAL))
     {
         uint changedParameterCount = 0;
@@ -216,6 +218,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Volume
     filter = {CHANNEL_GAIN, CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB};
     if (config->HasParametersChanged(filter))
     {
@@ -274,6 +277,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Solo
     filter = {CHANNEL_SOLO};
     if (config->HasParametersChanged(filter))
     {
@@ -300,6 +304,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Sends
     if (config->HasParametersChanged(MP_CAT::CHANNEL_SENDS))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_SENDS);
@@ -310,6 +315,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Routing FPGA
     if (config->HasParameterChanged(ROUTING_FPGA))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({ROUTING_FPGA});
@@ -319,6 +325,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Output Delay
     if (config->HasParametersChanged({DELAY_DSP_OUTPUT}))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({DELAY_DSP_OUTPUT});
@@ -328,6 +335,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Input Delay
     if (config->HasParametersChanged({DELAY_DSP_INPUT}))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({DELAY_DSP_INPUT});
@@ -337,6 +345,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // DSP Routing
     if (config->HasParametersChanged({ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT}))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT});
@@ -355,15 +364,7 @@ void Mixer::Sync(void)
         }
     }
 
-    if (config->HasParametersChanged(MP_CAT::CHANNEL_SENDS))
-    { 
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_SENDS);
-        for (auto const& changedIndex : changedIndexes)
-        {
-            dsp->SendChannelSend(changedIndex);
-        }
-    }
-
+    // Gate
     if (config->HasParametersChanged(MP_CAT::CHANNEL_GATE))
     {        
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_GATE);
@@ -373,6 +374,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Phantom
     if (config->HasParameterChanged(CHANNEL_PHANTOM))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({CHANNEL_PHANTOM});
@@ -382,6 +384,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Gain
     if (config->HasParameterChanged(CHANNEL_GAIN))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({CHANNEL_GAIN});
@@ -391,6 +394,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // EQ
     if (config->HasParametersChanged(MP_CAT::CHANNEL_EQ))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_EQ);
@@ -417,6 +421,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Dynamics
     if (config->HasParametersChanged(MP_CAT::CHANNEL_DYNAMICS))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_DYNAMICS);
@@ -426,6 +431,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // FX Parameter
     if (config->HasParametersChanged(MP_CAT::FX))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::FX);

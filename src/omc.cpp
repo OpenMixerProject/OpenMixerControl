@@ -42,18 +42,18 @@ void OpenMixerControl::Init()
     client->Init();    
 }
 
-void OpenMixerControl::Tick10ms(void)
+void OpenMixerControl::Tick10ms()
 {
     if (server) server->Tick10ms();
     client->Tick10ms();
 }
 
-void OpenMixerControl::Tick50ms(void)
+void OpenMixerControl::Tick50ms()
 {
     client->Tick50ms();
 }
 
-void OpenMixerControl::Tick100ms(void)
+void OpenMixerControl::Tick100ms()
 {
     if (server) server->Tick100ms();
     client->Tick100ms();

@@ -104,7 +104,7 @@ namespace OMC
 		}
 	}
 
-	void init10msTimer_NonGUI(void) {
+	void init10msTimer_NonGUI() {
 		// Set up the signal handler
 		struct sigaction sa;
 		sa.sa_handler = timer10msCallbackLinux;
@@ -496,10 +496,31 @@ namespace OMC
 			helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Load Default Channel Layout");
 			LoadVChannelLayout(config);
 
+			helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Load Default Banks");
+			// Input
+			if (config->IsModelX32FullOrM32())
+			{
+				config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
+			}
+			else if (config->IsModelX32CompactOrProducerOrM32R())
+			{
+				config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
+			}
+			else if (config->IsModelWingCompact())
+			{
+				config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
+			}
+			
+			// Buses
+			if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+			{
+				config->Set(BANKING_BUS, (uint)OMCBankId::DCA);
+			}
+
 			helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "no default configfile found, creating one");
 			config->Save(0);
 		}
-		helper->Log("Config loaded.\n");
+
 		//
 		// #### CONFIG #############################################################################
 

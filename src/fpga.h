@@ -48,17 +48,17 @@ class Fpga : public X32Base
 
         bool GetConfigBit(uint8_t bitNumber);
         void SetConfigBit(uint8_t bitNumber, bool value);
-        void SendConfig(void);
+        void SendConfig();
     
         void AES50SetPhantomPowerState(uint8_t aes50Port, uint8_t channel, bool state);
         void AES50SetHeadampGain(uint8_t aes50Port, uint8_t channel, float gain);
 
-        void AES50Receive(void);
+        void AES50Receive();
         void AES50Send(char* data, uint len);
 
         void AES50Tick();
-        void AES50SendDeviceTypeAndProperty(void);
-        void AES50SendNames(void);
+        void AES50SendDeviceTypeAndProperty();
+        void AES50SendNames();
         void AES50SendHeadampMessage();
 
     private:

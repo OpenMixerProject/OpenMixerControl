@@ -80,6 +80,9 @@ void Fpga::Init()
 
 	helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "opening %s with %d baud", serial.c_str(), speed);
 	uart->Open(serial.c_str(), speed, true);
+
+	// Send all Routing config to FPGA
+	SendRoutingToFpga(0);
 }
 
 // get the absolute input-source (global channel-number)
@@ -404,7 +407,7 @@ void Fpga::SetConfigBit(uint8_t bitNumber, bool value) {
 	SendConfig();
 }
 
-void Fpga::SendConfig(void) {
+void Fpga::SendConfig() {
 	uint8_t txData[2];
 	uint8_t rxData[2];
 	txData[0] = configData;
@@ -451,7 +454,7 @@ void Fpga::AES50SetHeadampGain(uint8_t aes50Port, uint8_t channel, float gain) {
 }
 
 
-void Fpga::AES50Receive(void)
+void Fpga::AES50Receive()
 {
 	//bool messageHandled = false;
 	uint readBytes = uart->Rx(&fpgaRxBufferUart[0], sizeof(fpgaRxBufferUart));

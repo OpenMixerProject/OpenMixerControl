@@ -19,9 +19,9 @@ class OpenMixerControl
         
         void Init();
         
-        void Tick10ms(void);
-        void Tick50ms(void);
-        void Tick100ms(void);
+        void Tick10ms();
+        void Tick50ms();
+        void Tick100ms();
 
         void SimulatorButton();
 };

@@ -10,7 +10,7 @@
 
 namespace OMC
 {
-    void init10msTimer_NonGUI(void);
+    void init10msTimer_NonGUI();
 
     void timer100msCallbackLvgl(_lv_timer_t* lv_timer);
     void timer50msCallbackLvgl(_lv_timer_t* lv_timer);

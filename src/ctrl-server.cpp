@@ -88,6 +88,8 @@ void CtrlServer::Init()
 
 	//############################################################################
 
+	
+
 	helper->Log("Unmute ADDA-Boards\n");
 	mixer->adda->SetMuteAll(false);
 }
@@ -104,7 +106,7 @@ void CtrlServer::Init()
 //
 //#####################################################################################################################
 
-void CtrlServer::Tick10ms(void)
+void CtrlServer::Tick10ms()
 {
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "10ms");
 
@@ -135,7 +137,7 @@ void CtrlServer::Tick10ms(void)
 	// sync if any Mixerparameter has changed
 	if (config->HasAnyParameterChanged())
 	{
-		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->Sync()");
+		
 		mixer->Sync();
 
 		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->card->Sync()");
@@ -155,7 +157,7 @@ void CtrlServer::Tick10ms(void)
 	//#####################################
 }
 
-void CtrlServer::Tick100ms(void)
+void CtrlServer::Tick100ms()
 {
 	static uint8_t startupCounter = 0;
 

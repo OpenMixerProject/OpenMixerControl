@@ -65,16 +65,16 @@ class CtrlClient : public X32Base
         CtrlClient(X32BaseParameter* basepar);
         void Init();
         
-        void Tick10ms(void);
-        void Tick50ms(void);
-        void Tick100ms(void);
+        void Tick10ms();
+        void Tick50ms();
+        void Tick100ms();
 
         void InitPagesAndGUI();
 
         bool ShowPrevPage();
         bool ShowNextPage();
 
-        void syncGuiOrLcd(void);
+        void syncGuiOrLcd();
         void syncSurface(bool fullSync);
         
         void SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex);
@@ -86,9 +86,9 @@ class CtrlClient : public X32Base
         #endif
 
         void SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex);
-        void UpdateMeters(void);
-        void setLedChannelIndicator_Rack(void);        
-        void setLedChannelIndicator_Core(void);        
+        void UpdateMeters();
+        void setLedChannelIndicator_Rack();        
+        void setLedChannelIndicator_Core();        
         uint8_t CalcPreampMeter_FullOrCompact(uint8_t channel);
         uint8_t surfaceCalcDynamicMeter(uint8_t channel);
 

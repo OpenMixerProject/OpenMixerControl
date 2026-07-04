@@ -127,8 +127,8 @@ class SPI : public X32Base {
     void PushValuesToRxBuffer(uint8_t dsp, uint32_t valueCount, uint32_t values[]);
     void ProcessRxData(uint8_t dsp);
 
-    bool HasNextEvent(void);
-    SpiEvent* GetNextEvent(void);
+    bool HasNextEvent();
+    SpiEvent* GetNextEvent();
 };
 
 

@@ -49,7 +49,7 @@ void Surface::Init(SurfaceCallback callback, void* arg)
 	LoadDefaultSurfaceBinding();
 }
 
-void Surface::Reset(void)
+void Surface::Reset()
 {
      helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Reset surface ...");
 

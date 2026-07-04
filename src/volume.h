@@ -13,8 +13,8 @@ class Volume : public X32Base {
     public:
         void SetDbfs(float volume);
         void SetFadervalue(float volume);
-        float GetDbfs(void);
-        float GetFadervalue(void);
+        float GetDbfs();
+        float GetFadervalue();
 };
 
 }

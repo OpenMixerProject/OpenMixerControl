@@ -35,11 +35,11 @@ void Volume::SetFadervalue(float vol){
     _volumeDbfs = helper->Fadervalue2dBfs(vol);
 }
 
-float Volume::GetDbfs(void){
+float Volume::GetDbfs(){
     return _volumeDbfs;
 }
 
-float Volume::GetFadervalue(void){
+float Volume::GetFadervalue(){
     return helper->Dbfs2Fader(_volumeDbfs);
 }
 

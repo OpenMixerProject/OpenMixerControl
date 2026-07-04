@@ -42,11 +42,11 @@ class CtrlServer : public X32Base
         
         void Init();
         void writeConfigEntry(Mixerparameter *const &parameter, uint index);
-        void Tick10ms(void);
-        //void Tick50ms(void);
-        void Tick100ms(void);
+        void Tick10ms();
+        //void Tick50ms();
+        void Tick100ms();
 
-        void UdpHandleCommunication_WSM(void);
+        void UdpHandleCommunication_WSM();
         
         void syncXRemote(bool syncAll);
 }; 

@@ -33,7 +33,7 @@ class DSP1 : X32Base {
         FxSlot* fx_slot[MAX_FX_SLOTS];
 
         DSP1(X32BaseParameter* basepar);
-        void Init(void);
+        void Init();
 
         bool ChannelHasAdjustableGain(uint chanIndex);
         float CompensateGainAndVolume(float targetGainDb, float targetVolumeDb);

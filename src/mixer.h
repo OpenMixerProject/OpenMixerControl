@@ -49,10 +49,10 @@ class Mixer : public X32Base
         void SetBusSend(uint8_t vChannelIndex, uint8_t index, float value);        
         String GetCardModelString();
 
-        void ClearSolo(void);
-        bool IsSoloActivated(void);
+        void ClearSolo();
+        bool IsSoloActivated();
 
-        void Sync(void);
+        void Sync();
         uint8_t halGetDspInputSource(uint8_t dspChannel);
 };
 

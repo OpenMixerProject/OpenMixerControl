@@ -44,7 +44,7 @@ DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
     }
 };
 
-void DSP1::Init(void)
+void DSP1::Init()
 {
     for (uint8_t chanIndex = 0; chanIndex < 40; chanIndex++)
     {

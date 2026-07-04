@@ -81,11 +81,17 @@ void CtrlClient::Init()
 		config->SetCallbackReset(OnOscSendToServerCallbackReset, this);
 	}
 
-    if (config->IsModelX32Core())
+    if (config->IsModelX32Core() || config->IsModelM32C())
 	{
 		// only necessary if LVGL is not used
 		helper->Log("Starting Timers...\n");
 		init10msTimer_NonGUI();
+
+		if (config->IsModelX32Core() || config->IsModelM32C())
+        {
+            helper->Log("Init LCD Menu\n");
+            lcdmenu->OnInit();
+        }
 
 		helper->Log("Press Ctrl+C to terminate program.\n");
 		while (1) {
@@ -97,38 +103,10 @@ void CtrlClient::Init()
         helper->Log("Init Surface\n");
         surface->Init(OnSurfaceCallback, this);
 
-        if (config->IsModelX32Core() || config->IsModelM32C())
-        {
-            helper->Log("Init LCD Menu\n");
-            lcdmenu->OnInit();
-        }
-
         #if ENABLE_ARTNET
         helper->Log("Init Artnet\n");
         artnet->Init();
         #endif
-        
-		helper->Log("Load Banks\n");
-
-		// Input
-		if (config->IsModelX32FullOrM32())
-		{
-			config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_16);
-		}
-		else if (config->IsModelX32CompactOrProducerOrM32R())
-		{
-			config->Set(BANKING_INPUT, (uint)OMCBankId::CH1_8);
-		}
-		else if (config->IsModelWingCompact())
-		{
-			config->Set(BANKING_INPUT, (uint)OMCBankId::WING_1_12);
-		}
-		
-		// Buses
-		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
-		{
-			config->Set(BANKING_BUS, (uint)OMCBankId::DCA);
-		}
 
 		helper->Log("Init LVGL\n");
 		lv_init();
@@ -235,7 +213,7 @@ const char * CtrlClient::getenv_default(const char * name, const char * default_
     return value ? value : default_val;
 }
 
-void CtrlClient::Tick10ms(void)
+void CtrlClient::Tick10ms()
 {
     //#####################################
 	//
@@ -291,7 +269,7 @@ void CtrlClient::Tick10ms(void)
 	//#####################################
 }
 
-void CtrlClient::Tick50ms(void)
+void CtrlClient::Tick50ms()
 {
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "50ms");
 
@@ -304,7 +282,7 @@ void CtrlClient::Tick50ms(void)
 #endif
 }
 
-void CtrlClient::Tick100ms(void)
+void CtrlClient::Tick100ms()
 {
     surface->Tick100ms();
 
@@ -1580,7 +1558,7 @@ void CtrlClient::SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex)
 }
 
 // Update all meters (Gui, Surface, xremote)
-void CtrlClient::UpdateMeters(void)
+void CtrlClient::UpdateMeters()
 {
 	if (state->surface_disable_meter_update)
 	{
@@ -1684,7 +1662,7 @@ void CtrlClient::UpdateMeters(void)
 
 
 // only X32 Rack
-void CtrlClient::setLedChannelIndicator_Rack(void)
+void CtrlClient::setLedChannelIndicator_Rack()
 {
 	uint chanIdx = config->GetUint(SELECTED_CHANNEL);
 	surface->SetLed(SurfaceElementId::LED_IN, (chanIdx <= 31), false);
@@ -1700,7 +1678,7 @@ void CtrlClient::setLedChannelIndicator_Rack(void)
 }
 
 // only X32 Core
-void CtrlClient::setLedChannelIndicator_Core(void)
+void CtrlClient::setLedChannelIndicator_Core()
 {
 	uint8_t chanIdx = config->GetUint(SELECTED_CHANNEL);
 	surface->SetLed(SurfaceElementId::LED_IN, (chanIdx <= 31), false);

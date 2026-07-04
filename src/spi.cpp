@@ -41,7 +41,7 @@ SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
 // accepts path to bitstream-file
 // returns 0 if sucecssul, -1 on errors
 // Xilinx FPGAs do *not* use ChipSelect during SPI Slave Programming!
-int SPI::UploadBitstreamFpgaXilinx(void) {
+int SPI::UploadBitstreamFpgaXilinx() {
 
     string filename_xilinx = app->get_option("--X")->as<string>();
 
@@ -232,7 +232,7 @@ int SPI::UploadBitstreamFpgaXilinx(void) {
 
 // configures a Lattice ECP5 via SPI
 // returns 0 if successul, -1 on errors
-int SPI::UploadBitstreamFpgaLattice(void) {
+int SPI::UploadBitstreamFpgaLattice() {
 
     string filename_lattice = app->get_option("--L")->as<string>();
 
@@ -1013,9 +1013,11 @@ uint32_t SPI::GetDspTxQueueLength(uint8_t dsp) {
     return spiTxRingBuffer[dsp].level;
 }
 
-void SPI::ProcessDspTxQueue(uint8_t dsp) {
+void SPI::ProcessDspTxQueue(uint8_t dsp)
+{
     // this function is called every 10ms, except once when we are reading from DSP via DMA-Access
-    if (spiTxRingBuffer[dsp].level == 0) {
+    if (spiTxRingBuffer[dsp].level == 0)
+    {
         // nothing to do here
         return;
     }
@@ -1030,7 +1032,8 @@ void SPI::ProcessDspTxQueue(uint8_t dsp) {
     // 1/5ms = 200
     // 8Mhz / 32bit / 50 Words = 5000 Hz -> 0.2ms per message -> max. 25 messages in 5ms
     int maxMessages = (((SPI_DSP_SPEED_HZ / SPI_TX_MAX_WORD_COUNT) / 32) / 200);
-    if (messagesToSend > maxMessages) {
+    if (messagesToSend > maxMessages)
+    {
         messagesToSend = maxMessages;
     }
 
@@ -1273,13 +1276,13 @@ void SPI::ProcessRxData(uint8_t dsp) {
     }
 }
 
-bool SPI::HasNextEvent(void){
+bool SPI::HasNextEvent(){
 //    if (!connected) return false; // this line prevents SPI-communication at the moment
 
     return eventBuffer.size() > 0;
 }
 
-SpiEvent* SPI::GetNextEvent(void){
+SpiEvent* SPI::GetNextEvent(){
     SpiEvent* event = eventBuffer.back();
     eventBuffer.pop_back();
     return event;
