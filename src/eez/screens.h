@@ -1022,6 +1022,7 @@ typedef struct _objects_t {
     lv_obj_t *widget6__slider;
     lv_obj_t *widget6__label_buttonpress;
     lv_obj_t *header_omc_version;
+    lv_obj_t *header_time;
 } objects_t;
 
 extern objects_t objects;

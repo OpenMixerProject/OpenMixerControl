@@ -59,6 +59,12 @@ void OpenMixerControl::Tick100ms()
     client->Tick100ms();
 }
 
+void OpenMixerControl::Tick1000ms()
+{
+    if (server) server->Tick1000ms();
+    client->Tick1000ms();
+}
+
 void OpenMixerControl::SimulatorButton()
 {
     client->SimulatorButton();

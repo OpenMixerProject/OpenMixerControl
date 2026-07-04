@@ -2848,6 +2848,16 @@ void create_screen_main() {
             lv_obj_set_style_text_color(obj, lv_color_hex(0x7d7d7d), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text_static(obj, "OMC vX.X.X build on 01.01.1999 ");
         }
+        {
+            // header_time
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.header_time = obj;
+            lv_obj_set_pos(obj, 701, 46);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &lv_font_montserrat_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text_static(obj, "22:23:54");
+        }
     }
     
     tick_screen_main();

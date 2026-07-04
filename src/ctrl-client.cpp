@@ -159,6 +159,11 @@ void CtrlClient::Init()
 		#endif
 		lv_timer_create(timer100msCallbackLvgl, 100, NULL);
 
+		#ifdef BUILD_DEBUG
+		helper->Log("Init Timer 1000ms\n");
+		#endif
+		lv_timer_create(timer1000msCallbackLvgl, 1000, NULL);
+
 		// initialize GUI created by EEZ
 		#ifdef BUILD_DEBUG
 		helper->Log("Init EEZ GUI\n");
@@ -330,6 +335,16 @@ void CtrlClient::Tick100ms()
 			(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], /*mixer->dsp->spi->GetDspTxQueueLength(0),*/
 			(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
 		);
+	}
+}
+
+void CtrlClient::Tick1000ms()
+{
+	if (config->HasDisplay())
+	{
+		// Display Time
+		strftime(time_str, 50, "%H:%M:%S", &datetime);
+		lv_label_set_text(objects.header_time, time_str);
 	}
 }
 

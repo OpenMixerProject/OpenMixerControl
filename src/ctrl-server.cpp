@@ -253,7 +253,10 @@ void CtrlServer::Tick100ms()
 			intialized = true;
 		}
 	}
+}
 
+void CtrlServer::Tick1000ms()
+{
 	AutoSave();
 }
 
@@ -270,7 +273,7 @@ void CtrlServer::AutoSave()
 			// lv_refr_now(NULL);
 
 			config->Save(0);
-			autosavewait = 60 * 10; // 60 Seconds -> Autosave every minute
+			autosavewait = 60; // 60 Seconds -> Autosave every minute
 		}
 
 		autosavewait--;

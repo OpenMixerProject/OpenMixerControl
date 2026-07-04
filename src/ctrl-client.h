@@ -50,6 +50,10 @@ class CtrlClient : public X32Base
         // second button pressed, while first button is also pressed
         SurfaceElement* secondbuttonPressed = 0;
 
+        char time_str[50];
+		time_t timestamp = time(NULL);
+		struct tm datetime = *localtime(&timestamp);
+
         static void OnSurfaceCallback(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
         void ProcessSurface(OMC_BOARD board, char command, uint8_t index, uint16_t value);
 
@@ -68,6 +72,7 @@ class CtrlClient : public X32Base
         void Tick10ms();
         void Tick50ms();
         void Tick100ms();
+        void Tick1000ms();
 
         void InitPagesAndGUI();
 

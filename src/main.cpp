@@ -77,6 +77,9 @@ namespace OMC
 	struct itimerspec trigger_10ms;
 	uint8_t vtimercounter = 0;
 
+	void timer1000msCallbackLvgl(_lv_timer_t* lv_timer) { 
+		omc->Tick1000ms();
+	}
 
 	void timer100msCallbackLvgl(_lv_timer_t* lv_timer) { 
 		omc->Tick100ms();
@@ -95,11 +98,17 @@ namespace OMC
 
 		// virtual timer for triggering every 50ms and 100ms
 		vtimercounter++;
-		if (vtimercounter == 5) {
+		if (vtimercounter % 5 == 0)
+		{
 			omc->Tick50ms();
 		}
-		if (vtimercounter >= 10) {
+		if (vtimercounter % 10 == 0)
+		{
 			omc->Tick100ms();
+		}
+		if (vtimercounter >= 100)
+		{
+			omc->Tick1000ms();
 			vtimercounter = 0;
 		}
 	}

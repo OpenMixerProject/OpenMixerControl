@@ -45,6 +45,7 @@ class CtrlServer : public X32Base
         void Tick10ms();
         //void Tick50ms();
         void Tick100ms();
+        void Tick1000ms();
 
         void UdpHandleCommunication_WSM();
         
