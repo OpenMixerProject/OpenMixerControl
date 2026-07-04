@@ -23,51 +23,69 @@
 */
 
 #include "omc.h"
+#include "base-parameter.h"
 
 namespace OMC
 {
-
-OpenMixerControl::OpenMixerControl(X32BaseParameter* basepar)
-{
-    if (!basepar->config->IsClientMode())
+    OpenMixerControl::OpenMixerControl(X32BaseParameter* basepar)
     {
-        server = new CtrlServer(basepar);
+        config = basepar->config;
+
+        if (!basepar->config->IsClientMode())
+        {
+            server = new CtrlServer(basepar);
+        }
+        client = new CtrlClient(basepar);
     }
-    client = new CtrlClient(basepar);
-}
 
-void OpenMixerControl::Init()
-{
-    if (server) server->Init();
-    client->Init();    
-}
+    void OpenMixerControl::Init()
+    {
+        if (server) server->Init();
+        client->Init();    
+    }
 
-void OpenMixerControl::Tick10ms()
-{
-    if (server) server->Tick10ms();
-    client->Tick10ms();
-}
+    void OpenMixerControl::Tick10ms()
+    {
+        // Loop: Apply changed Mixerparameters
 
-void OpenMixerControl::Tick50ms()
-{
-    client->Tick50ms();
-}
+        //#####################################
+        //
+        //   Freeze changed parameter list
+        //
+        config->FreezeParameterList();
+        //
+        //
+        //
+        if (server) server->Tick10ms();
+        client->Tick10ms();
+        //
+        //
+        //   Unfreeze changed parameter list
+        //
+        config->SaveResetAndUnfreezeChangedParameterList();
+        //
+        //#####################################
+    }
 
-void OpenMixerControl::Tick100ms()
-{
-    if (server) server->Tick100ms();
-    client->Tick100ms();
-}
+    void OpenMixerControl::Tick50ms()
+    {
+        client->Tick50ms();
+    }
 
-void OpenMixerControl::Tick1000ms()
-{
-    if (server) server->Tick1000ms();
-    client->Tick1000ms();
-}
+    void OpenMixerControl::Tick100ms()
+    {
+        if (server) server->Tick100ms();
+        client->Tick100ms();
+    }
 
-void OpenMixerControl::SimulatorButton()
-{
-    client->SimulatorButton();
-}
+    void OpenMixerControl::Tick1000ms()
+    {
+        if (server) server->Tick1000ms();
+        client->Tick1000ms();
+    }
 
+    void OpenMixerControl::SimulatorButton()
+    {
+        client->SimulatorButton();
+    }
 }

@@ -25,7 +25,11 @@
 
 #include "osc-server.h"
 
-#include <small-osc.h>
+#include "../lib_ext/small-osc/small-osc.h"
+
+#include "enum.h"
+#include "mixerparameter.h"
+#include <cstddef>
 
 namespace OMC
 {
@@ -76,18 +80,30 @@ namespace OMC
         
             size_t len = recvfrom(UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
 
-            // Client has send data
-            if (len > 0)
+            tosc_message osc;
+            if (!tosc_parseMessage(&osc, rxData, len))
             {
+                // Client has send data
+
                 char str[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(ClientAddr.sin_addr), str, INET_ADDRSTRLEN);
 
                 helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Received OSC-Message from Client: %s Port: %d", str, ntohs(ClientAddr.sin_port));
-            }
 
-            tosc_message osc;
-            if (!tosc_parseMessage(&osc, rxData, len))
-            {
+                // if (clients.count(str))
+                // {
+                //     // known client
+                //     // reset timeout counter
+                //     clients.at(str) = 0;
+                //     helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Known OSC-Client: %s", str);
+                // }
+                // else
+                // {
+                //     // new client
+                //     clients.insert({str, 0});
+                //     helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "New OSC-Client: %s", str);
+                // }
+
                 string adrPath = string(tosc_getAddress(&osc));
                 vector<string> address = helper->split(adrPath, "/");
                 address.erase(address.begin()); // delete empty element
@@ -178,6 +194,39 @@ namespace OMC
                     helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "Received unsupported command: >>%s<<", rxData);
                 }
             }
+            else
+            {
+                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Could not parse OSC-Message");
+            }
+        }
+    }
+
+    void OscServer::Sync()
+    {
+        for (auto const& [parameter_id, indexSet] : *(config->GetChangedParameterList()))
+        {
+            // loop parameter_id
+            Mixerparameter* parameter = config->GetParameter(parameter_id);
+
+            // for (indexes)
+            for (uint index : indexSet)
+            {
+                // for (clients)
+                // for (auto const& [client, timeoutvalue] : clients)
+                // {
+                    int len = 0;
+                    if (parameter->GetType() == MP_VALUE_TYPE::STRING)
+                    {
+                        len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "s", parameter->GetString(index).c_str());
+                    }
+                    else
+                    {
+                        len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", parameter->GetFloat(index));
+                    }
+                
+                    SendUdpPacket(TxMessage, len);
+                //}
+            }
         }
     }
 
@@ -188,7 +237,11 @@ namespace OMC
 
     void OscServer::SendUdpPacket(char* buffer, uint16_t size)
     {
-        sendto(
+        helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "OSC-Message (raw, size=%d): %s", size, buffer);
+
+        ClientAddr.sin_port = htons(10033);;
+
+        size_t len_send = sendto(
             UdpHandle,
             buffer,
             size,
@@ -196,30 +249,18 @@ namespace OMC
             (struct sockaddr *) &ClientAddr,
             sizeof(ClientAddr)
         );
-    }
 
-    void OscServer::SendBasicMessage(const char* cmd, char type, char format, char* value)
-    {
-        // char tmp[3];
-        // tmp[0] = ',';
-        // tmp[1] = type;
-        // tmp[2] = 0;
-        
-        // uint16_t len = sprint(TxMessage, 0, 's', cmd);
-        // len = sprint(TxMessage, len, 's', tmp);
-        // len = sprint(TxMessage, len, format, value);
+        if (len_send == 0)
+        {
+            helper->Error("eee");
+        }
 
-        // if (helper->DEBUG_OSC()) {
-        // 	for (uint8_t i=0; i < len;i++){
-        // 		if (TxMessage[i] == 0){
-        // 			printf("~");
-        // 		} else {
-        // 			printf("%c", TxMessage[i]);
-        // 		}
-        //     }
-        // 	printf("\n");
-        // }
+        if (helper->DEBUG_OSC(DEBUGLEVEL_TRACE) && size > 0)
+        {
+            char str[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(ClientAddr.sin_addr), str, INET_ADDRSTRLEN);
 
-        // SendUdpPacket(TxMessage, len);
+            helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Sent OSC-Message to Client: %s Port: %d", str, ntohs(ClientAddr.sin_port));
+        }
     }
 }

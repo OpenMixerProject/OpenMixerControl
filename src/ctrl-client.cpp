@@ -69,7 +69,6 @@ void CtrlClient::Init()
 
 	if (config->IsClientMode())
 	{
-		helper->Log("Init OSC Client\n");
 		osc_client->Init();
 
 		config->SetCallbackSet(OnOscSendToServerCallbackSet, this);
@@ -215,14 +214,6 @@ const char * CtrlClient::getenv_default(const char * name, const char * default_
 
 void CtrlClient::Tick10ms()
 {
-    //#####################################
-	//
-	//   Freeze changed parameter list
-	//
-	config->FreezeParameterList();
-	//
-	//#####################################
-
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R() ||
 		config->IsModelAnyWing()) 
 	{
@@ -248,23 +239,8 @@ void CtrlClient::Tick10ms()
 		syncSurface(false);
 	}
 
-	// // send changed Mixerparameter to Server
-	// if (config->IsClientMode())
-	// {
-	// 	osc_client->Init();
-
-    //     // Test Set Mixerparameter via OSC
-    //     osc_client->UdpSendToServer();
-	// }
-
-    //#####################################
-	//
-	//   Unfreeze changed parameter list
-	//
-	
-	config->SaveResetAndUnfreezeChangedParameterList();
-	//
-	//#####################################
+	// communication with OSC-Servers via UDP
+	osc_client->UdpHandleCommunication();
 }
 
 void CtrlClient::Tick50ms()

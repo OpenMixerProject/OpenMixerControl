@@ -14,8 +14,6 @@
 
 namespace OMC
 {
-    using namespace WString;
-
     class OscServer : public X32Base 
     {
         private:
@@ -23,7 +21,8 @@ namespace OMC
             char TxMessage[450]; // the largest binary blob will take up to 20+(70+1))*4 bytes = 408 bytes
             int counter = 0;
 
-            std::map<String, MP_ID>* oscPaths;
+            std::map<WString::String, MP_ID>* oscPaths;
+            //std::map<WString::String, uint> clients;
 
         public:
             int UdpHandle;
@@ -33,9 +32,9 @@ namespace OMC
 
             int8_t Init();
             void UdpHandleCommunication();
+            void Sync();
 
             void SendUdpPacket(char* buffer, uint16_t size);
-            void SendBasicMessage(const char* cmd, char type, char format, char* value);
     };
 
 }

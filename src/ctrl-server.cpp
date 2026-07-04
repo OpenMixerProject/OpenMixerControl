@@ -110,13 +110,7 @@ void CtrlServer::Tick10ms()
 {
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "10ms");
 
-	//#####################################
-	//
-	//   Freeze changed parameter list
-	//
-	config->FreezeParameterList();
-	//
-	//#####################################
+
 
 	// this stateMachine handles the read and write to and from the two DSPs
 	mixer->dsp->CallbackStateMachine();
@@ -133,28 +127,13 @@ void CtrlServer::Tick10ms()
 	// communication with Sennheiser Media Control Protocol
 	UdpHandleCommunication_WSM();
 
-
 	// sync if any Mixerparameter has changed
 	if (config->HasAnyParameterChanged())
 	{
-		
 		mixer->Sync();
-
-		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "mixer->card->Sync()");
 		mixer->card->Sync();
-
-		//syncXRemote(false);
+		osc_server->Sync();
 	}
-
-
-	//#####################################
-	//
-	//   Unfreeze changed parameter list
-	//
-	
-	//config->SaveResetAndUnfreezeChangedParameterList();
-	//
-	//#####################################
 }
 
 void CtrlServer::Tick100ms()

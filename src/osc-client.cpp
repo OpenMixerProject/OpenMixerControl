@@ -24,8 +24,7 @@
 */
 
 #include "osc-client.h"
-
-#include <small-osc.h>
+#include "../lib_ext/small-osc/small-osc.h"
 #include "mixerparameter.h"
 
 namespace OMC
@@ -62,6 +61,8 @@ namespace OMC
             return -1;
         }
 
+        helper->Log("OSC Client listening on Port %d\n", ntohs(MyAddr.sin_port));
+
         // Build map of osc-paths from Mixerparameters
         oscPaths = config->GetOscPaths();
         
@@ -78,43 +79,99 @@ namespace OMC
         
         if (bytes_available > 0)
         {
-            socklen_t myAddrLen = sizeof(MyAddr);
+            socklen_t serverAddrLen = sizeof(ServerAddr);
         
-            size_t len = recvfrom(UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &MyAddr, &myAddrLen);
-                
+            size_t len = recvfrom(UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &ServerAddr, &serverAddrLen);
+
             tosc_message osc;
             if (!tosc_parseMessage(&osc, rxData, len))
             {
-                String osc_path  = String(tosc_getAddress(&osc));
+                // Server has send data
+
+                char str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(ServerAddr.sin_addr), str, INET_ADDRSTRLEN);
+
+                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Received OSC-Message from Server: %s Port: %d", str, ntohs(ServerAddr.sin_port));
+
+                string adrPath = string(tosc_getAddress(&osc));
+                vector<string> address = helper->split(adrPath, "/");
+                address.erase(address.begin()); // delete empty element
+
                 String osc_format = String(tosc_getFormat(&osc));
 
-                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Received OSC-Message: Path: %s Format: %s", osc_path.c_str(), osc_format.c_str());
+                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Path: %s Format: %s", adrPath.c_str(), osc_format.c_str());
 
                 // Find matching Mixerparameter
-                uint found = oscPaths->count(osc_path);
+                uint found = oscPaths->count(String(address[1].c_str()));
                 if (found == 1) 
                 {
-                    // set the received values
-                    Mixerparameter* parameter = config->GetParameter(oscPaths->at(osc_path));
-                    if (osc_format == "is")
-                    {
-                        int index = tosc_getNextInt32(&osc);
-                        const char* str = tosc_getNextString(&osc);
+                    Mixerparameter* parameter = config->GetParameter(oscPaths->at(String(address[1].c_str())));
 
-                        parameter->Set(str, index);
-                        // TODO setparameterchanges
-                    }
-                    else if (osc_format == "if")
+                    if (address[0] == "set")
                     {
-                        int index = tosc_getNextInt32(&osc);
-                        float value = tosc_getNextFloat(&osc);
+                        // Set
+                        if (osc_format == "s")
+                        {
+                            int index = stoi(address[2].c_str()) - 1;
+                            const char* str = tosc_getNextString(&osc);
 
-                        parameter->Set(value, index);
-                        // TODO setparameterchanges
+                            helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Value: %s", index, str);
+
+                            parameter->Set(str, index);
+                            config->SetParameterChanged(parameter->GetId(), index);
+                        }
+                        else if (osc_format == "f")
+                        {
+                            int index = stoi(address[2].c_str()) - 1;
+                            float value = tosc_getNextFloat(&osc);
+
+                            helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Value: %f", index, value);
+
+                            parameter->Set(value, index);
+                            config->SetParameterChanged(parameter->GetId(), index);
+                        }
+                        else 
+                        {
+                            helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "ERROR: unsupported format %s", osc_format.c_str());
+                        }
                     }
-                    else 
+                    else if (address[0] == "change")
                     {
-                        helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "ERROR: unsupported format %s", osc_format.c_str());
+                        // Change
+                        if (osc_format == "f")
+                        {
+                            int index = stoi(address[2].c_str()) - 1;
+                            int amount = tosc_getNextFloat(&osc);
+
+                            helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Amount: %d", index, amount);
+
+                            parameter->Change(amount, index);
+                            config->SetParameterChanged(parameter->GetId(), index);
+                        }
+                        else
+                        {
+                            helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "ERROR: unsupported format %s", osc_format.c_str());
+                        }
+                    }
+                    else if (address[0] == "toggle")
+                    {
+                        // Toggle (format is ignored)
+                        int index = stoi(address[2].c_str()) - 1;
+
+                        helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
+
+                        parameter->Toggle(index);
+                        config->SetParameterChanged(parameter->GetId(), index);
+                    }
+                    else if (address[0] == "reset")
+                    {
+                        // Change (format is ignored)
+                        int index = stoi(address[2].c_str()) - 1;
+
+                        helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
+
+                        parameter->Reset(index);
+                        config->SetParameterChanged(parameter->GetId(), index);
                     }
                 }
                 else if (found > 1) 
@@ -125,6 +182,10 @@ namespace OMC
                 {
                     helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "Received unsupported command: %s", rxData);
                 }
+            }
+            else
+            {
+                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Could not parse OSC-Message");
             }
         }
     }

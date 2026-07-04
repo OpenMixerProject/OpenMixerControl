@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <vector>
 #include "../lib/WString.h"
-#include "glaze/glaze.hpp"
+#include "../lib_ext/glaze/include/glaze/glaze.hpp"
 #include "math.h"
 
 #include "defines.h"

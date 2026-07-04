@@ -11,6 +11,7 @@ namespace OMC
 
             CtrlServer* server = 0;
             CtrlClient* client = 0;
+            Config* config = 0;
 
         public:
 
