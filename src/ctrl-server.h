@@ -17,8 +17,6 @@ class CtrlServer : public X32Base
     using enum MP_ID;
 
     private:
-        
-        bool intialized = false; // is the whole mixer ready?
 
         Mixer* mixer;
         

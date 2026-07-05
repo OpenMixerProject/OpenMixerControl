@@ -614,7 +614,11 @@ void DSP1::CallbackStateMachine() {
     }
 }
 
-void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values) {
+void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values)
+{
+    uint valuecount_channels = 40 + 8 + 0;
+    uint valuecount_ges = 3 + valuecount_channels + 3;
+
     float* floatValues = (float*)values;
     uint32_t* intValues = (uint32_t*)values;
 
@@ -624,7 +628,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
             switch (channel)
             {
                 case 'u': // Update pack
-                    if (valueCount == (3 + 40 + 8 + 0 + 3))
+                    if (valueCount == valuecount_ges)
                     {
                         // idx  0     = dspVersion
                         // idx  1     = CPU-cycles
@@ -650,7 +654,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         // rChannel 49-64 -> Mixbus 1-16
 
                         // copy meter-info to rChannel-struct
-                        for (int i = 0; i < (40 + 8 + 0); i++)
+                        for (int i = 0; i < valuecount_channels; i++)
                         {
                             rChannel[i].meter = abs(floatValues[3 + i]); // convert 32-bit audio-value
 
@@ -663,6 +667,10 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         MainChannelLR.meter[0] = abs(floatValues[67-16]); // convert 32-bit audio-value
                         MainChannelLR.meter[1] = abs(floatValues[68-16]); // convert 32-bit audio-value
                         MainChannelSub.meter[0] = abs(floatValues[69-16]); // convert 32-bit audio-value
+                    }
+                    else 
+                    {
+                        printf("DSP1 u  valuecount = %d\n", valueCount);
                     }
                     break;
             }

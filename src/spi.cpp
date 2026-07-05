@@ -1031,7 +1031,8 @@ void SPI::ProcessDspTxQueue(uint8_t dsp)
     // calculate how many messages we can transmit in 5ms
     // 1/5ms = 200
     // 8Mhz / 32bit / 50 Words = 5000 Hz -> 0.2ms per message -> max. 25 messages in 5ms
-    int maxMessages = (((SPI_DSP_SPEED_HZ / SPI_TX_MAX_WORD_COUNT) / 32) / 200);
+    //int maxMessages = (((SPI_DSP_SPEED_HZ / SPI_TX_MAX_WORD_COUNT) / 32) / 200);
+    int maxMessages = 1000;
     if (messagesToSend > maxMessages)
     {
         messagesToSend = maxMessages;
@@ -1156,19 +1157,19 @@ bool SPI::ReadDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t ind
     memset(&spiTxData[2], 0, valueCount * sizeof(uint32_t)); // we are sending zeros, so set the buffer to zero
     spiTxData[(valueCount + 3) - 1] = SPI_END_MARKER; // add EndMarker = '#'
     memcpy(&spiTxDataRaw[0], &spiTxData[0], sizeof(spiTxDataRaw));
-    
+
+    int32_t bytesRead = ioctl(spiDspHandle[dsp], SPI_IOC_MESSAGE(1), &tr); // send via SPI
+
     if (helper->DEBUG_SPI(DEBUGLEVEL_TRACE)) {
         printf("ReadDspData: ");
         for(int v = 0; v < ((valueCount + 3) * sizeof(uint32_t)); v++) {
-            printf("0x%.2X ", spiTxDataRaw[v]);
+            printf("0x%.2X ", spiRxDataRaw[v]);
             if (!((v+1) % 4)) {
                 printf("| ");
             }
         }
         printf("\n");
     }
-
-    int32_t bytesRead = ioctl(spiDspHandle[dsp], SPI_IOC_MESSAGE(1), &tr); // send via SPI
 
     //helper->DEBUG_SPI(DEBUGLEVEL_TRACE, "DSP%d, %d Bytes received", dsp+1, bytesRead);
     PushValuesToRxBuffer(dsp, bytesRead/sizeof(uint32_t), (uint32_t*)spiRxDataRaw);
