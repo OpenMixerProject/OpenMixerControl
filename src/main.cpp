@@ -223,6 +223,12 @@ namespace OMC
 		uint indexRTA = (MAX_DSP1_TO_FPGA_CHANNELS + MAX_DSP1_TO_DSP2_CHANNELS) - 1;
 		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINLEFT, indexRTA) ;
 		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), indexRTA);
+
+		// set AUX7/8 to MONITOR L/R
+		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
+		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONRIGHT, 39);
+		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 38);
+		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
 	}
 
 	void LoadVChannelLayout(Config* config)

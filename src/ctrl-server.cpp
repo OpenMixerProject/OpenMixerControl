@@ -87,11 +87,6 @@ void CtrlServer::Init()
 	}
 
 	//############################################################################
-
-	
-
-	helper->Log("Unmute ADDA-Boards\n");
-	mixer->adda->SetMuteAll(false);
 }
 
 //#####################################################################################################################
@@ -121,7 +116,7 @@ void CtrlServer::Tick10ms()
 	// read incoming data from AES50 devices
 	ProcessUartDataAES50();
 
-	// communication with XRemote-clients via UDP (X32-Edit, MixingStation, etc.)
+	// communication with OSC-Clients via UDP
 	osc_server->UdpHandleCommunication();
 
 	// communication with Sennheiser Media Control Protocol
@@ -161,101 +156,102 @@ void CtrlServer::Tick100ms()
 	{
 		startupCounter++;
 
-		if (startupCounter == 10)
-		{
-			// the gate, the dynamics and the EQ-settings are not loaded correctly on first load, so load it again after a short time
-			config->LoadConfig(0);
+		// if (startupCounter == 10)
+		// {
+		// 	// the gate, the dynamics and the EQ-settings are not loaded correctly on first load, so load it again after a short time
+		// 	config->LoadConfig(0);
 
-			// in the following lines the default configuration is set so that the users of the beta-version
-			// can start with a working system
+		// 	// in the following lines the default configuration is set so that the users of the beta-version
+		// 	// can start with a working system
 
-			// route channel 1-4 to effects using post-fader tapping
-			for (uint8_t i = 0; i < 8; i++)
-			{
-				config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_DSPCHANNEL + (i / 2), 40 + i);
-				config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
-			}
+		// 	// route channel 1-4 to effects using post-fader tapping
+		// 	for (uint8_t i = 0; i < 8; i++)
+		// 	{
+		// 		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_DSPCHANNEL + (i / 2), 40 + i);
+		// 		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
+		// 	}
 
-			// set AUX7/8 to MONITOR L/R
-			config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
-			config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONRIGHT, 39);
-			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 38);
-			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
+		// 	// set AUX7/8 to MONITOR L/R
+		// 	config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
+		// 	config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONRIGHT, 39);
+		// 	config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 38);
+		// 	config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
 
-			// set volume of FX-return to 0dBfs
-			// set volume of FX-return to -120dBfs
-			for (int i = 0; i < 8; i++)
-			{
-				config->Set(CHANNEL_VOLUME, VOLUME_MIN, 40 + i);
-			}
+		// 	// set volume of FX-return to 0dBfs
+		// 	// set volume of FX-return to -120dBfs
+		// 	for (int i = 0; i < 8; i++)
+		// 	{
+		// 		config->Set(CHANNEL_VOLUME, VOLUME_MIN, 40 + i);
+		// 	}
 
-			// set default FXes in FX slots
-			// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // on first load this effect has a bug, so we have to disable it a bit later
-            // mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
-            // mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
-			mixer->dsp->DSP2_SetFx(1, FX_TYPE::NONE, 2);
-			mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
-            mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
+		// 	// set default FXes in FX slots
+		// 	// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2); // on first load this effect has a bug, so we have to disable it a bit later
+        //     // mixer->dsp->DSP2_SetFx(1, FX_TYPE::CHORUS, 2);
+        //     // mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+		// 	mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
+		// 	mixer->dsp->DSP2_SetFx(1, FX_TYPE::NONE, 2);
+		// 	mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
+        //     mixer->dsp->DSP2_SetFx(3, FX_TYPE::NONE, 2);
+        //     mixer->dsp->DSP2_SetFx(4, FX_TYPE::NONE, 2);
+        //     mixer->dsp->DSP2_SetFx(5, FX_TYPE::NONE, 2);
+        //     mixer->dsp->DSP2_SetFx(6, FX_TYPE::NONE, 2);
+        //     mixer->dsp->DSP2_SetFx(7, FX_TYPE::NONE, 2);
 
-			// set FX-settings to wet on slot 1-4
-			config->Set(FX_REVERB_DRY, 0, 0); // fx-slot 1
-			config->Set(FX_REVERB_WET, 1, 0); // fx-slot 1
-			config->Set(FX_CHORUS_MIX, 1, 1); // fx-slot 2		
-		}
+		// 	// set FX-settings to wet on slot 1-4
+		// 	config->Set(FX_REVERB_DRY, 0, 0); // fx-slot 1
+		// 	config->Set(FX_REVERB_WET, 1, 0); // fx-slot 1
+		// 	config->Set(FX_CHORUS_MIX, 1, 1); // fx-slot 2		
+		// }
 
-		if (startupCounter == 40) {
-			// disable effect as on first start of the effect some parts in
-			// the external memory gets corrupted. This needs more debugging
-			// for now stop-restart is fine
-			mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
-			mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
-		}
+		// if (startupCounter == 40) {
+		// 	// disable effect as on first start of the effect some parts in
+		// 	// the external memory gets corrupted. This needs more debugging
+		// 	// for now stop-restart is fine
+		// 	mixer->dsp->DSP2_SetFx(0, FX_TYPE::NONE, 2);
+		// 	mixer->dsp->DSP2_SetFx(2, FX_TYPE::NONE, 2);
+		// }
 
-		if (startupCounter == 50) {
-			// renable effect
-			// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2);
-			// mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
-		}
+		// if (startupCounter == 50) {
+		// 	// renable effect
+		// 	// mixer->dsp->DSP2_SetFx(0, FX_TYPE::REVERB, 2);
+		// 	// mixer->dsp->DSP2_SetFx(2, FX_TYPE::DELAY, 2);
+		// }
 
-		if (startupCounter == 60) {
-			// unmute ADDA-boards
-			mixer->adda->SetMuteAll(false);
-		}
+		// if (startupCounter == 60) {
+			
+		// }
 
 		if (startupCounter == 99)
 		{
 			intialized = true;
+
+			// unmute ADDA-boards
+			mixer->adda->SetMuteAll(false);
 		}
 	}
 }
 
 void CtrlServer::Tick1000ms()
 {
-	AutoSave();
+	if (autosavewait == 0)
+	{
+		AutoSave();
+		autosavewait = 60; // 60 Seconds -> Autosave every minute
+	}
+	autosavewait--;
 }
 
 void CtrlServer::AutoSave()
 {
 	if (intialized)
 	{
-		if (autosavewait == 0)
-		{
-			helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Autosave to Scene 0");
+		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Autosave to Scene 0");
 
-			// TODO: do we need an Autosave indication?
-			// lv_label_set_text_fmt(objects.header_statustext, "Autosave in progress...");
-			// lv_refr_now(NULL);
+		// TODO: do we need an Autosave indication?
+		// lv_label_set_text_fmt(objects.header_statustext, "Autosave in progress...");
+		// lv_refr_now(NULL);
 
-			config->Save(0);
-			autosavewait = 60; // 60 Seconds -> Autosave every minute
-		}
-
-		autosavewait--;
+		config->Save(0);
 	}
 }
 
@@ -316,68 +312,5 @@ void CtrlServer::UdpHandleCommunication_WSM()
 		helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Sennheiser Media Control Protocoll (%s): %s", clientIp.c_str(), message.c_str());
 	}
 }
-
-
-
-
-// sync mixer state to GUI
-void CtrlServer::syncXRemote(bool syncAll) {
-	// //bool fullSync = false;
-
-	// if (syncAll || config->HasParameterChanged(SELECTED_CHANNEL)){ 
-	// 	// channel selection has changed - do a full sync
-	// 	//fullSync=true; 
-	// }
-	
-	// // DEBUG
-	// xremote->SetCard(10); // X-LIVE
-
-	// for(uint8_t i=0; i<(uint)X32_VCHANNELTYPE::NORMAL; i++) {
-	// 	//uint8_t chanindex = i;
-	// 	//VChannel* chan = mixer->GetVChannel(i);
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_VOLUME)){
-	// 	// 	xremote->SetFader(String("ch"), chanindex, mixer->GetVolumeOscvalue(chanindex));
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_BALANCE)){
-	// 	// 	xremote->SetPan(chanindex, mixer->vchannel[chanindex]->dspChannel->balance);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_MUTE)){
-	// 	// 	xremote->SetMute(chanindex, mixer->vchannel[chanindex]->dspChannel->muted);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_SOLO)){
-	// 	// 	xremote->SetSolo(chanindex, mixer->vchannel[chanindex]->dspChannel->solo);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_COLOR)){
-	// 	// 	xremote->SetColor(chanindex, mixer->vchannel[chanindex]->color);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_NAME)){
-	// 	// 	xremote->SetName(chanindex, mixer->vchannel[chanindex]->name);
-	// 	// }
-	// }
-
-	// for(uint8_t i=(uint)X32_VCHANNEL_BLOCK::AUX; i<(uint)X32_VCHANNELTYPE::AUX; i++) {
-	// 	//uint8_t chanindex = i;
-	// 	//VChannel* chan = mixer->GetVChannel(i);
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_VOLUME)){
-	// 	// 	xremote->SetFader(String("auxin"), chanindex, mixer->GetVolumeOscvalue(chanindex));
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_BALANCE)){
-	// 	// 	xremote->SetPan(chanindex, mixer->vchannel[chanindex]->dspChannel->balance);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_MUTE)){
-	// 	// 	xremote->SetMute(chanindex, mixer->vchannel[chanindex]->dspChannel->muted);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_SOLO)){
-	// 	// 	xremote->SetSolo(chanindex, mixer->vchannel[chanindex]->dspChannel->solo);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_COLOR)){
-	// 	// 	xremote->SetColor(chanindex, mixer->vchannel[chanindex]->color);
-	// 	// }
-	// 	// if (fullSync || chan->HasChanged(X32_VCHANNEL_CHANGED_NAME)){
-	// 	// 	xremote->SetName(chanindex, mixer->vchannel[chanindex]->name);
-	// 	// }
-	// }
-}
-
 
 }
