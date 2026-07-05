@@ -45,8 +45,6 @@ class CtrlServer : public X32Base
         void Tick1000ms();
 
         void UdpHandleCommunication_WSM();
-        
-        void syncXRemote(bool syncAll);
 }; 
 
 }

@@ -584,7 +584,7 @@ namespace OMC
         ->DefNameShort("Vol")
         ->DefUOM(MP_UOM::DB)
         ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
-        ->DefOSC("ch_volume");
+        ->DefOSC("fader");
 
         DefParameter(CHANNEL_VOLUME_SUB, cat, "Volume Sub", MAX_VCHANNELS)
         ->DefNameShort("Sub")

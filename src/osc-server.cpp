@@ -88,7 +88,7 @@ namespace OMC
                 char str[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(ClientAddr.sin_addr), str, INET_ADDRSTRLEN);
 
-                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Received OSC-Message from Client: %s Port: %d", str, ntohs(ClientAddr.sin_port));
+                helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Received OSC-Message %s from Client: %s Port: %d", rxData, str, ntohs(ClientAddr.sin_port));
 
                 // if (clients.count(str))
                 // {
