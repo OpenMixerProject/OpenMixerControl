@@ -34,11 +34,8 @@ namespace OMC
             bool MixerParameterChangelistFreeze = false;
             map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
 
-            
-            
-
             // Surfaceelements
-            SurfaceElement* sem[(uint)SurfaceElementId::__ELEMENT_COUNTER_DO_NOT_MOVE];
+            SurfaceElement* sem[(uint)SurfaceElementId::__ELEMENT_COUNTER_DO_NOT_MOVE] = {0};
 
             // surface binding
             map<SurfaceElementId, SurfaceBindingParameter*>* surface_binding;

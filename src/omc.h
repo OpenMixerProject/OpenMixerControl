@@ -2,6 +2,7 @@
 
 #include "ctrl-server.h"
 #include "ctrl-client.h"
+#include "helper.h"
 
 namespace OMC
 {
@@ -12,6 +13,7 @@ namespace OMC
             CtrlServer* server = 0;
             CtrlClient* client = 0;
             Config* config = 0;
+            Helper* helper = 0;
 
         public:
 

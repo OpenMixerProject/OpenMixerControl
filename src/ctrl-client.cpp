@@ -77,11 +77,23 @@ void CtrlClient::Init()
 		config->SetCallbackReset(OnOscSendToServerCallbackReset, this);
 	}
 
+	helper->Log("Init Artnet\n");
+    artnet->Init();
+
+	helper->Log("Init Surface\n");
+    surface->Init(OnSurfaceCallback, this);
+
     if (config->IsModelX32Core() || config->IsModelM32C())
 	{
 		// only necessary if LVGL is not used
 		helper->Log("Starting Timers...\n");
 		init10msTimer_NonGUI();
+
+		// sync the Surface
+		#ifdef BUILD_DEBUG
+		helper->Log("Sync Surface\n");
+		#endif
+		syncSurface(true);
 
 		if (config->IsModelX32Core() || config->IsModelM32C())
         {
@@ -96,12 +108,6 @@ void CtrlClient::Init()
 	}
 	else
 	{
-        helper->Log("Init Surface\n");
-        surface->Init(OnSurfaceCallback, this);
-
-        helper->Log("Init Artnet\n");
-        artnet->Init();
-
 		helper->Log("Init LVGL\n");
 		lv_init();
 
@@ -272,7 +278,10 @@ void CtrlClient::Tick100ms()
 		if (ipAddress != currentIpAddress)
 		{
 			ipAddress = currentIpAddress;
-        	lv_label_set_text_fmt(objects.header_ip, "IP: %s", ipAddress.c_str());
+
+			if (config->HasDisplay())
+			{
+			}
 		}
     }
 
@@ -795,7 +804,7 @@ void CtrlClient::syncSurface(bool fullSync)
 	// ######################################
 
 
-	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	if (config->IsModelAnyXM32())
 	{
 		if (config->HasParameterChanged(LCD_CONTRAST))
 		{
@@ -1841,7 +1850,7 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 
 						// Master Fader
 						config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN,
-											MixerparameterAction::TOGGLE, parameter->GetAssignMembersTo(), to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+											MixerparameterAction::TOGGLE, parameter->GetAssignMembersTo(), int(X32_VCHANNEL_BLOCK::MAIN));
 
 					}					
 				}

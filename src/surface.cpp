@@ -23,6 +23,7 @@
 */
 
 #include "surface.h"
+#include "enum.h"
 
 namespace OMC
 {
@@ -51,7 +52,7 @@ void Surface::Init(SurfaceCallback callback, void* arg)
 
 void Surface::Reset()
 {
-     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Reset surface ...");
+    helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Reset surface ...");
 
     if (state->bodyless) 
     {
@@ -145,13 +146,16 @@ void Surface::LoadDefaultSurfaceBinding()
 
 	if (config->IsModelAnyXM32())
 	{
-		// Display
-		config->SurfaceBind(SurfaceElementId::MUTE_GRP, MixerparameterAction::TOGGLE, DISPLAY_MUTE_GROUP);
+        if (config->HasDisplay())
+	    {
+            // Display
+            config->SurfaceBind(SurfaceElementId::MUTE_GRP, MixerparameterAction::TOGGLE, DISPLAY_MUTE_GROUP);
 
-		config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
-		config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
-		config->SurfaceBind(SurfaceElementId::UP, MixerparameterAction::TOGGLE, DISPLAY_UP);
-		config->SurfaceBind(SurfaceElementId::DOWN, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+            config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+            config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+            config->SurfaceBind(SurfaceElementId::UP, MixerparameterAction::TOGGLE, DISPLAY_UP);
+            config->SurfaceBind(SurfaceElementId::DOWN, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+        }
 
 		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 		{
@@ -282,9 +286,7 @@ void Surface::LoadDefaultSurfaceBinding()
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_4, MixerparameterAction::TOGGLE, MUTE_GROUP_4_MUTE);
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_5, MixerparameterAction::TOGGLE, MUTE_GROUP_5_MUTE);
 			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_6, MixerparameterAction::TOGGLE, MUTE_GROUP_6_MUTE);
-		}
-
-		
+		}		
 
 		if (config->IsModelX32Rack())
 		{
@@ -295,8 +297,24 @@ void Surface::LoadDefaultSurfaceBinding()
 			config->SurfaceBind(SurfaceElementId::CHANNEL_SOLO, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SOLO);
 			config->SurfaceBind(SurfaceElementId::CHANNEL_MUTE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
 			config->SurfaceBind(SurfaceElementId::CHANNEL_LEVEL, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
-			config->SurfaceBind(SurfaceElementId::MAIN_LEVEL, MixerparameterAction::CHANGE, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+			config->SurfaceBind(SurfaceElementId::MAIN_LEVEL, MixerparameterAction::CHANGE, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
 		}
+
+        if (config->IsModelX32Core())
+		{
+            //config->SurfaceBind(SurfaceElementId::SCENE_SETUP, MixerparameterAction::, SELECTED_CHANNEL);
+
+            config->SurfaceBind(SurfaceElementId::CHANNEL_ENCODER, MixerparameterAction::CHANGE, SELECTED_CHANNEL);
+            config->SurfaceBind(SurfaceElementId::CORE_LCD, MixerparameterAction::LCD_Channel, NONE);
+            config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
+            config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
+
+            // DEBUG
+            config->SurfaceBind(SurfaceElementId::ASSIGN_3, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SOLO);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_4, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_5, MixerparameterAction::CLEAR_SOLO, NONE);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::SET_TO_INDEX, LCD_CONTRAST, 40);
+        }
 	}
 
 	if (config->IsModelAnyWing())
@@ -319,23 +337,23 @@ void Surface::LoadMainFaderSurfaceBinding()
 {
     // Main Fader
 
-    if (config->IsModelAnyXM32())
+    if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
     {
-        config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-        config->SurfaceBind(SurfaceElementId::BOARD_R_SOLO_MAIN, MixerparameterAction::TOGGLE, CHANNEL_SOLO, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-        config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-        config->SurfaceBind(SurfaceElementId::BOARD_R_MUTE_MAIN, MixerparameterAction::TOGGLE, CHANNEL_MUTE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-        config->SurfaceBind(SurfaceElementId::BOARD_R_FADER_MAIN, MixerparameterAction::SET, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_SOLO_MAIN, MixerparameterAction::TOGGLE, CHANNEL_SOLO, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_MUTE_MAIN, MixerparameterAction::TOGGLE, CHANNEL_MUTE, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_FADER_MAIN, MixerparameterAction::SET, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
     } 
     else if (config->IsModelAnyWing())
     {
         if (config->IsModelWingCompact())
         {
-            config->SurfaceBind(SurfaceElementId::WING_LCD_13, MixerparameterAction::LCD_Channel, NONE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-            config->SurfaceBind(SurfaceElementId::WING_SELECT_13, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-            config->SurfaceBind(SurfaceElementId::WING_SOLO_13, MixerparameterAction::TOGGLE, CHANNEL_SOLO, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-            config->SurfaceBind(SurfaceElementId::WING_MUTE_13, MixerparameterAction::TOGGLE, CHANNEL_MUTE, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
-            config->SurfaceBind(SurfaceElementId::WING_FADER_13, MixerparameterAction::SET, CHANNEL_VOLUME, to_underlying(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_LCD_13, MixerparameterAction::LCD_Channel, NONE, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_SELECT_13, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_SOLO_13, MixerparameterAction::TOGGLE, CHANNEL_SOLO, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_MUTE_13, MixerparameterAction::TOGGLE, CHANNEL_MUTE, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_FADER_13, MixerparameterAction::SET, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
         }
     }
 }

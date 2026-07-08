@@ -21,11 +21,14 @@ namespace OMC
             char TxMessage[450]; // the largest binary blob will take up to 20+(70+1))*4 bytes = 408 bytes
             int counter = 0;
 
+            bool hasClients = false;
+
             std::map<WString::String, MP_ID>* oscPaths;
             //std::map<WString::String, uint> clients;
 
         public:
             int UdpHandle;
+            
             struct sockaddr_in ClientAddr;
 
             OscServer(X32BaseParameter* basepar);

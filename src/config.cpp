@@ -1,4 +1,5 @@
 #include "config.h"
+#include "enum.h"
 
 namespace OMC
 {
@@ -1951,6 +1952,13 @@ namespace OMC
 
         // Only X32 Core
         DefSurfaceElements(SCENE_SETUP, "SCENE/SETUP");
+        DefSurfaceElements(SCENE_SETUP_RED, "SCENE_SETUP_RED");
+        DefSurfaceElements(CORE_LCD, "CORE_LCD");
+        DefSurfaceElements(LED_AES_A_GREEN, "LED AES A GREEN");
+        DefSurfaceElements(LED_AES_A_RED, "LED AES A RED");
+        DefSurfaceElements(LED_AES_B_GREEN, "LED AES B GREEN");
+        DefSurfaceElements(LED_AES_B_RED, "LED AES B RED");
+
 
         // Only X32 Rack
         DefSurfaceElements(CHANNEL_SOLO, "SOLO");
@@ -2737,7 +2745,39 @@ namespace OMC
         }
         else if (IsModelX32Core())
         {
+            //  ######   #######  ########  ######## 
+            // ##    ## ##     ## ##     ## ##       
+            // ##       ##     ## ##     ## ##       
+            // ##       ##     ## ########  ######   
+            // ##       ##     ## ##   ##   ##       
+            // ##    ## ##     ## ##    ##  ##       
+            //  ######   #######  ##     ## ######## 
 
+            GetSurfaceElement(CORE_LCD)                     ->DefLcd(X32_BOARD_EXTRA, 0x00);
+
+            GetSurfaceElement(SCENE_SETUP)                  ->DefButton(X32_BOARD_EXTRA, 0x00);
+            GetSurfaceElement(TALK_A)                       ->DefButton(X32_BOARD_EXTRA, 0x01);
+            GetSurfaceElement(ASSIGN_3)                     ->DefButton(X32_BOARD_EXTRA, 0x02);
+            GetSurfaceElement(ASSIGN_4)                     ->DefButton(X32_BOARD_EXTRA, 0x03);
+            GetSurfaceElement(ASSIGN_5)                     ->DefButton(X32_BOARD_EXTRA, 0x04);
+            GetSurfaceElement(ASSIGN_6)                     ->DefButton(X32_BOARD_EXTRA, 0x05);
+            GetSurfaceElement(CHANNEL_ENCODER_BUTTON)       ->DefButton(X32_BOARD_EXTRA, 0x06);
+
+            GetSurfaceElement(ASSIGN_ENCODER_1)             ->DefEncoder(X32_BOARD_EXTRA, 0x00);
+            GetSurfaceElement(ASSIGN_ENCODER_2)             ->DefEncoder(X32_BOARD_EXTRA, 0x01);
+            GetSurfaceElement(CHANNEL_ENCODER)              ->DefEncoder(X32_BOARD_EXTRA, 0x02);
+
+            GetSurfaceElement(SCENE_SETUP_RED)              ->DefLed(X32_BOARD_EXTRA, 0x06);
+            GetSurfaceElement(LED_IN)                       ->DefLed(X32_BOARD_EXTRA, 0x07);
+            GetSurfaceElement(LED_AUX_FX)                   ->DefLed(X32_BOARD_EXTRA, 0x08);
+            GetSurfaceElement(LED_BUS)                      ->DefLed(X32_BOARD_EXTRA, 0x09);
+            GetSurfaceElement(LED_MATRIX)                   ->DefLed(X32_BOARD_EXTRA, 0x0A);
+            GetSurfaceElement(LED_DCA)                      ->DefLed(X32_BOARD_EXTRA, 0x0B);
+
+            GetSurfaceElement(LED_AES_A_GREEN)              ->DefLed(X32_BOARD_EXTRA, 0x0C);
+            GetSurfaceElement(LED_AES_A_RED)                ->DefLed(X32_BOARD_EXTRA, 0x0D);
+            GetSurfaceElement(LED_AES_B_GREEN)              ->DefLed(X32_BOARD_EXTRA, 0x0E);
+            GetSurfaceElement(LED_AES_B_RED)                ->DefLed(X32_BOARD_EXTRA, 0x0F);
         }
         else if (IsModelM32())
         {
@@ -3163,6 +3203,10 @@ namespace OMC
 
     SurfaceElement* Config::GetSurfaceElement(SurfaceElementId id)
     {
+        if (sem[(uint)id] == 0)
+        {
+            helper->Error("SurfaceElement %d is not defined!\n", (uint)id);
+        }
         return sem[(uint)id];
     }
 

@@ -92,8 +92,8 @@ namespace OMC
 	void timer10msCallbackLvgl(_lv_timer_t* lv_timer) {
 		ui_tick(); omc->Tick10ms();
 	}
-	void timer10msCallbackLinux(int timer) {
-		
+	void timer10msCallbackLinux(int timer)
+	{
 		omc->Tick10ms();
 
 		// virtual timer for triggering every 50ms and 100ms
@@ -202,7 +202,7 @@ namespace OMC
 
 			// connect FPGA2DSP-Source 1-40 to all 40 Mixing Channels (1-32 + AUX 1-8)
 			config->Set(ROUTING_DSP_INPUT, DSP_BUF_IDX_DSPCHANNEL + i, i);
-			config->Set(ROUTING_DSP_INPUT_TAPPOINT, to_underlying(DSP_TAP::INPUT), i);
+			config->Set(ROUTING_DSP_INPUT_TAPPOINT, int(DSP_TAP::INPUT), i);
 		}
 
 		// connect MainLeft on even and MainRight on odd channels as PostFader
@@ -210,25 +210,25 @@ namespace OMC
 		{
 			// connect MainLeft on even and MainRight on odd channels as PostFader
 			config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINLEFT + (i % 2), i);
-			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), i);
+			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), i);
 		}
 		// connect mixbus-channels 1-8 to DSP2-FX-Channels 1-8 as PostFader
 		for (uint8_t i = 0; i < 8; i++)
 		{
 			config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MIXBUS + i, 40 + i);
-			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
+			config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 40 + i);
 		}
 
 		// connect MainLeft to RTA
 		uint indexRTA = (MAX_DSP1_TO_FPGA_CHANNELS + MAX_DSP1_TO_DSP2_CHANNELS) - 1;
 		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINLEFT, indexRTA) ;
-		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), indexRTA);
+		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), indexRTA);
 
 		// set AUX7/8 to MONITOR L/R
 		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
 		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONRIGHT, 39);
-		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 38);
-		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
+		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 38);
+		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 39);
 	}
 
 	void LoadVChannelLayout(Config* config)
@@ -490,7 +490,8 @@ namespace OMC
 		String model_str = String(model);
 		if (state->bodyless)
 		{
-			model_str ="X32C";
+			model_str ="X32CORE";
+			//model_str ="X32C";
 			//model_str ="WINGC";
 		}
 		else if (state->raspi)

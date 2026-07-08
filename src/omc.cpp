@@ -24,12 +24,14 @@
 
 #include "omc.h"
 #include "base-parameter.h"
+#include "helper.h"
 
 namespace OMC
 {
     OpenMixerControl::OpenMixerControl(X32BaseParameter* basepar)
     {
         config = basepar->config;
+        helper = basepar->helper;
 
         if (!basepar->config->IsClientMode())
         {
@@ -46,6 +48,8 @@ namespace OMC
 
     void OpenMixerControl::Tick10ms()
     {
+        helper->DEBUG_X32CTRL(DEBUGLEVEL_TRACE, "Tick10ms()");
+
         // Loop: Apply changed Mixerparameters
 
         //#####################################
@@ -69,17 +73,20 @@ namespace OMC
 
     void OpenMixerControl::Tick50ms()
     {
+        helper->DEBUG_X32CTRL(DEBUGLEVEL_TRACE, "Tick50ms()");
         client->Tick50ms();
     }
 
     void OpenMixerControl::Tick100ms()
     {
+        helper->DEBUG_X32CTRL(DEBUGLEVEL_TRACE, "Tick100ms()");
         if (server) server->Tick100ms();
         client->Tick100ms();
     }
 
     void OpenMixerControl::Tick1000ms()
     {
+        helper->DEBUG_X32CTRL(DEBUGLEVEL_TRACE, "Tick1000ms()");
         if (server) server->Tick1000ms();
         client->Tick1000ms();
     }

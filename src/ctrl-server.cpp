@@ -176,14 +176,14 @@ void CtrlServer::Tick100ms()
 		// 	// 	for (uint8_t i = 0; i < 8; i++)
 		// 	// 	{
 		// 	// 		config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_DSPCHANNEL + (i / 2), 40 + i);
-		// 	// 		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
+		// 	// 		config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 40 + i);
 		// 	// 	}
 
 		// 	// 	// set AUX7/8 to MONITOR L/R
 		// 	// 	config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONLEFT, 38);
 		// 	// 	config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MONRIGHT, 39);
-		// 	// 	config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 38);
-		// 	// 	config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 39);
+		// 	// 	config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 38);
+		// 	// 	config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 39);
 
 		// 	// 	// set volume of FX-return to 0dBfs
 		// 	// 	// set volume of FX-return to -120dBfs
@@ -260,7 +260,13 @@ void CtrlServer::AutoSave()
 	config->Save(0);
 }
 
-void CtrlServer::ProcessUartDataAdda() {
+void CtrlServer::ProcessUartDataAdda()
+{
+	if (state->bodyless)
+	{
+		return;
+	}
+
 	// read incoming data from adda-boards and expansion-card
 	String newCommand = mixer->adda->Receive();
 	

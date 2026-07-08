@@ -74,7 +74,7 @@ class PageEq: public Page {
             // uint selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
 
             // // Draw EQ only for normal and aux channels
-            // if (selectedChannelIndex >= to_underlying(X32_VCHANNEL_BLOCK::FXRET)) {
+            // if (selectedChannelIndex >= int(X32_VCHANNEL_BLOCK::FXRET)) {
             //     return;
             // }
 

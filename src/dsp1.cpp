@@ -775,7 +775,7 @@ void DSP1::UpdateVuMeter(uint8_t intervalMs)
 
 void DSP1::DSP2_SetFx(int fxSlot, FX_TYPE fxType, int mode)
 {
-    helper->DEBUG_DSP2(DEBUGLEVEL_NORMAL, "DSP2_SetFx() fxslot %d type %d mode %d", fxSlot, to_underlying(fxType), mode);
+    helper->DEBUG_DSP2(DEBUGLEVEL_NORMAL, "DSP2_SetFx() fxslot %d type %d mode %d", fxSlot, int(fxType), mode);
 
     fx_slot[fxSlot]->LoadFx(fxType);
 

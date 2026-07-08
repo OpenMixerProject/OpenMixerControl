@@ -203,6 +203,11 @@ namespace OMC
 
     void OscServer::Sync()
     {
+        if (!hasClients)
+        {
+            return;
+        }
+
         for (auto const& [parameter_id, indexSet] : *(config->GetChangedParameterList()))
         {
             // loop parameter_id

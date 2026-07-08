@@ -72,7 +72,7 @@ class PageDebug: public Page
                         // for (uint8_t i = 0; i < 8; i++)
                         // {
                         //     config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_DSPCHANNEL + (i / 2), 40 + i);
-                        //     config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
+                        //     config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::POST_FADER), 40 + i);
                         // }
 
                         // // set volume of FX-return to 0dBfs
@@ -109,20 +109,20 @@ class PageDebug: public Page
 
                         // // route FPGA-Channel 1 to DSP-Channel 1
                         // config->Set(ROUTING_DSP_INPUT, DSP_BUF_IDX_DSPCHANNEL, 0);
-                        // config->Set(ROUTING_DSP_INPUT_TAPPOINT, to_underlying(DSP_TAP::INPUT), 0);
+                        // config->Set(ROUTING_DSP_INPUT_TAPPOINT, int(DSP_TAP::INPUT), 0);
                         // mixer->dsp->SetInputRouting(0);
 
                         // // route DSP-Input Channel 1 to DSP2-Send 1-8
                         // for (int i = 0; i < 7; i++) {
                         //     config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_DSPCHANNEL, 40 + i);
-                        //     config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::INPUT), 0);
+                        //     config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::INPUT), 0);
                         //     mixer->dsp->SetOutputRouting(i);
                         // }
                         // // route MainL/R to DSP-Outputs 39 and 40
                         // config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINLEFT, 38);
-                        // config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::INPUT), 0);
+                        // config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::INPUT), 0);
                         // config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINRIGHT, 39);
-                        // config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::INPUT), 0);
+                        // config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, int(DSP_TAP::INPUT), 0);
                         // mixer->dsp->SetOutputRouting(38);
                         // mixer->dsp->SetOutputRouting(39);
                         

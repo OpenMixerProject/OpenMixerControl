@@ -490,12 +490,18 @@ enum class SurfaceElementId
 
     // Only X32 Core
     SCENE_SETUP,
+    SCENE_SETUP_RED,
+    CORE_LCD,
     LED_IN,
     LED_AUX_FX,
     LED_BUS,
     LED_DCA,
     LED_MAIN,
     LED_MATRIX,
+    LED_AES_A_GREEN,
+    LED_AES_A_RED,
+    LED_AES_B_GREEN,
+    LED_AES_B_RED,
 
     // Only X32 Rack
     CHANNEL_SOLO,
@@ -1117,6 +1123,7 @@ enum class MixerparameterAction
     LCD_Channel,
     LCD_Assign,
     LCD_Artnet,
+    LCD_CORE,
 
     VUMETER,
 
