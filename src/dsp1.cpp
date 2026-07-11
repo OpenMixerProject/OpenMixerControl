@@ -25,6 +25,7 @@
 #include "dsp1.h"
 
 #include "const.h"
+#include <cstdint>
 
 namespace OMC
 {
@@ -614,9 +615,21 @@ void DSP1::CallbackStateMachine() {
     }
 }
 
+#define gotoxy(x,y) printf("\033[%d;%dH", (y), (x))
+bool clearer = true;
+
 void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values)
 {
-    uint valuecount_channels = 40 + 8 + 0;
+    if(clearer)
+    {
+        printf("\033[H\033[J");
+        clearer = false;
+    }
+
+    gotoxy(0,0);
+    printf("\n\n--------------DSP1_CALLBACK----------------\n");
+
+    uint valuecount_channels = 40 + 16 + 0;
     uint valuecount_ges = 3 + valuecount_channels + 3;
 
     float* floatValues = (float*)values;
@@ -653,16 +666,29 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         // rChannel 41-48 -> FX-return-channels 1-8
                         // rChannel 49-64 -> Mixbus 1-16
 
-                        // copy meter-info to rChannel-struct
-                        for (int i = 0; i < valuecount_channels; i++)
-                        {
-                            rChannel[i].meter = abs(floatValues[3 + i]); // convert 32-bit audio-value
+                        //printf("DSP-Load: %f\n", floatValues[1]);
 
-                            if (helper->DEBUG_DSP1(DEBUGLEVEL_TRACE) && (i == (config->GetUint(SELECTED_CHANNEL))))
+                        printf("Glitch: %f\n", floatValues[2]);
+
+                        // copy meter-info to rChannel-struct
+                        //for (int i = 0; i < valuecount_channels; i++)
+                        //{
+                            //rChannel[i].meter = abs(floatValues[3 + i]); // convert 32-bit audio-value
+
+                            printf("DataInput: %d\n", intValues[3 + 40]);
+                            printf("InputDelay/Routing: %d\n", intValues[3 + 41]);
+                            printf("Lowcut: %d\n", intValues[3 + 42]);
+                            printf("Noisegate: %d\n", intValues[3 + 43]);
+                            printf("EQ: %d\n", intValues[3 + 44]);
+                            printf("Dynamics: %d\n", intValues[3 + 45]);
+                            printf("audioProcessData(): %d\n", intValues[3 + 46]);
+                            printf("Outside AudioProcessing: %d\n", intValues[3 + 47]);
+                            
+                            for(int c = 0; c < 8; c++)
                             {
-                                printf("Ch%02d Sample: %"PRIu32"   dBFS: %f\n", i+1, rChannel[i].meter, helper->get_dbfs_from_peak_arm_opt(rChannel[i].meter));
+                                 printf("%d\n", intValues[3 + 48 + c]);
                             }
-                        }
+                        //}
 
                         MainChannelLR.meter[0] = abs(floatValues[67-16]); // convert 32-bit audio-value
                         MainChannelLR.meter[1] = abs(floatValues[68-16]); // convert 32-bit audio-value

@@ -1115,7 +1115,7 @@ void SPI::UpdateNumberOfExpectedReadBytes(uint8_t dsp, uint8_t classId, uint8_t 
     switch (channel) {
         case 'u': // update-packet
             if (dsp == 0) {
-                dataToRead[dsp] = (3 + 40 + 8 + 0 + 3); // DSP1: DspVersion, DspLoad, VolumeDspChan, VolumeFxReturn, VolumeMixBus, VolumeMainLRS
+                dataToRead[dsp] = (3 + 40 + 16 + 0 + 3); // DSP1: DspVersion, DspLoad, VolumeDspChan, VolumeFxReturn, VolumeMixBus, VolumeMainLRS
             }else{
                 dataToRead[dsp] = 4 + 64; // DSP2: DspVersion, DspHeapSpace, DspLoad, audioGlitchCounter, RTA-Data
             }
@@ -1161,8 +1161,8 @@ bool SPI::ReadDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t ind
     int32_t bytesRead = ioctl(spiDspHandle[dsp], SPI_IOC_MESSAGE(1), &tr); // send via SPI
 
     if (helper->DEBUG_SPI(DEBUGLEVEL_TRACE)) {
-        printf("ReadDspData: ");
-        for(int v = 0; v < ((valueCount + 3) * sizeof(uint32_t)); v++) {
+        printf("ReadDsp%dData: ", dsp+1);
+        for(int v = 0; v < bytesRead; v++) {
             printf("0x%.2X ", spiRxDataRaw[v]);
             if (!((v+1) % 4)) {
                 printf("| ");
