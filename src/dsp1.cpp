@@ -789,7 +789,7 @@ void DSP1::DSP2_SetFx(int fxSlot, FX_TYPE fxType, int mode)
 
 void DSP1::DSP2_SendFxParameter(int slotIdx)
 {
-    if (!fx_slot[slotIdx]->HasFx()) {
+    if (slotIdx > MAX_FX_SLOTS-1 || !fx_slot[slotIdx]->HasFx()) {
         return;
     }
 
