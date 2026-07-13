@@ -429,11 +429,13 @@ void Mixer::Sync()
         {
             dsp->SendCompressor(changedIndex);
         }
-    }
+    }   
 
     // FX Parameter
     if (config->HasParametersChanged(MP_CAT::FX))
     {
+        // TODO: changedIndexes != fxindex -> rethink all of that
+        // https://github.com/OpenMixerProject/OpenMixerControl/issues/88
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::FX);
         for (auto const& fxSlot : changedIndexes)
         {

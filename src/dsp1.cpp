@@ -25,6 +25,7 @@
 #include "dsp1.h"
 
 #include "const.h"
+#include "defines.h"
 #include <cstdint>
 
 namespace OMC
@@ -629,9 +630,6 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
     gotoxy(0,0);
     printf("\n\n--------------DSP1_CALLBACK----------------\n");
 
-    uint valuecount_channels = 40 + 16 + 0;
-    uint valuecount_ges = 3 + valuecount_channels + 3;
-
     float* floatValues = (float*)values;
     uint32_t* intValues = (uint32_t*)values;
 
@@ -641,7 +639,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
             switch (channel)
             {
                 case 'u': // Update pack
-                    if (valueCount == valuecount_ges)
+                    if (valueCount == (SPI_DMA_COMMDATA_SIZE))
                     {
                         // idx  0     = dspVersion
                         // idx  1     = CPU-cycles
@@ -660,39 +658,46 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         // we are receiving 16 samples with 20.83us each resulting in 16*20.83us = 333us per interrupt
                         // DSP-Load calculation: number of used CPU-cycles for processing divided by the core-clock-frequency based on the 333us timebase
                         state->dspLoad[0] = (((float)intValues[1]/264.0f) / (16.0f/0.048f)) * 100.0f;
-                        state->dspAudioGlitchCounter[0] = floatValues[2]; // audio-glitch-counter
+                        state->dspAudioGlitchCounter[0] = floatValues[1]; // audio-glitch-counter
+
+                        printf("Glitch ISR: %f\n", floatValues[1]);
+                        printf("Glitch Main: %f\n", floatValues[2]);
+                       
+                        uint c  = 3;
+
+                        printf("audioProcessData()    %10d\n", intValues[c++]);
+                        printf("  Data Input          %10d\n", intValues[c++]);
+                        printf("  InputDelay/Routing  %10d\n", intValues[c++]);
+                        printf("  Lowcut              %10d\n", intValues[c++]);
+                        printf("  Noisegate           %10d\n", intValues[c++]);
+                        printf("  EQ                  %10d\n", intValues[c++]);
+                        printf("  Dynamics            %10d\n", intValues[c++]);
+                        printf("  Channel/Fader       %10d\n", intValues[c++]);
+                        printf("  Mixbus              %10d\n", intValues[c++]);
+                        printf("  Main-Out            %10d\n", intValues[c++]);
+                        printf("  EQMain              %10d\n", intValues[c++]);
+                        printf("  Main Volume         %10d\n", intValues[c++]);
+                        printf("  Matrix              %10d\n", intValues[c++]);
+                        printf("  Monitor             %10d\n", intValues[c++]);
+                        printf("  Routing/OutputDelay %10d\n", intValues[c++]);
+                        printf("  Copy VU-Data        %10d\n", intValues[c++]);
+                        printf("NonAudioprocess       %10d\n", intValues[c++]);
+
 
                         // rChannel  1-40 -> DSP-channels 1-40
                         // rChannel 41-48 -> FX-return-channels 1-8
                         // rChannel 49-64 -> Mixbus 1-16
 
-                        //printf("DSP-Load: %f\n", floatValues[1]);
 
-                        printf("Glitch: %f\n", floatValues[2]);
+                        //copy meter-info to rChannel-struct
+                        for (int i = 0; i < (MAX_FPGA_TO_DSP1_CHANNELS + 8 + 16 + 8); i++)
+                        {
+                            rChannel[i].meter = abs(floatValues[c + i]); // convert 32-bit audio-value
+                        }
 
-                        // copy meter-info to rChannel-struct
-                        //for (int i = 0; i < valuecount_channels; i++)
-                        //{
-                            //rChannel[i].meter = abs(floatValues[3 + i]); // convert 32-bit audio-value
-
-                            printf("DataInput: %d\n", intValues[3 + 40]);
-                            printf("InputDelay/Routing: %d\n", intValues[3 + 41]);
-                            printf("Lowcut: %d\n", intValues[3 + 42]);
-                            printf("Noisegate: %d\n", intValues[3 + 43]);
-                            printf("EQ: %d\n", intValues[3 + 44]);
-                            printf("Dynamics: %d\n", intValues[3 + 45]);
-                            printf("audioProcessData(): %d\n", intValues[3 + 46]);
-                            printf("Outside AudioProcessing: %d\n", intValues[3 + 47]);
-                            
-                            for(int c = 0; c < 8; c++)
-                            {
-                                 printf("%d\n", intValues[3 + 48 + c]);
-                            }
-                        //}
-
-                        MainChannelLR.meter[0] = abs(floatValues[67-16]); // convert 32-bit audio-value
-                        MainChannelLR.meter[1] = abs(floatValues[68-16]); // convert 32-bit audio-value
-                        MainChannelSub.meter[0] = abs(floatValues[69-16]); // convert 32-bit audio-value
+                        MainChannelLR.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINLEFT -1]); // convert 32-bit audio-value
+                        MainChannelLR.meter[1] = abs(floatValues[c + DSP_BUF_IDX_MAINRIGHT -1]); // convert 32-bit audio-value
+                        MainChannelSub.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINSUB -1]); // convert 32-bit audio-value
                     }
                     else 
                     {
