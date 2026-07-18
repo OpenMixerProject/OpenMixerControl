@@ -113,8 +113,6 @@ void CtrlServer::Tick10ms()
 {
 	helper->DEBUG_TIMER(DEBUGLEVEL_TRACE, "10ms");
 
-
-
 	// this stateMachine handles the read and write to and from the two DSPs
 	mixer->dsp->CallbackStateMachine();
 

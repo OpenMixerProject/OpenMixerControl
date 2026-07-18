@@ -307,7 +307,7 @@ void CtrlClient::Tick100ms()
 		dspLoadMean[1] /= 20.0f;
 
 		// show DSP debug infos
-		lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.1f %% V: v%.2f G: %.0f DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free", 
+		lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.0f V: v%.2f G: %.0f DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free", 
 			(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], /*mixer->dsp->spi->GetDspTxQueueLength(0),*/
 			(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
 		);
