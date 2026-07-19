@@ -26,6 +26,7 @@
 
 #include "const.h"
 #include "defines.h"
+#include "helper.h"
 #include <cstdint>
 
 namespace OMC
@@ -621,14 +622,17 @@ bool clearer = true;
 
 void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values)
 {
-    if(clearer)
+    if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
     {
-        printf("\033[H\033[J");
-        clearer = false;
-    }
+        if(clearer)
+        {
+            printf("\033[H\033[J");
+            clearer = false;
+        }
 
-    gotoxy(0,0);
-    printf("\n\n--------------DSP1_CALLBACK----------------\n");
+        gotoxy(0,0);
+        printf("\n\n--------------DSP1_CALLBACK----------------\n");
+    }
 
     float* floatValues = (float*)values;
     uint32_t* intValues = (uint32_t*)values;
@@ -660,50 +664,50 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         //state->dspLoad[0] = (((float)intValues[1]/264.0f) / (16.0f/0.048f)) * 100.0f;
                         //state->dspAudioGlitchCounter[0] = floatValues[1]; // audio-glitch-counter
 
-                        printf("Glitch ISR: %f\n", floatValues[1]);
-                        printf("Glitch Main: %f\n", floatValues[2]);
+                        if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
+                        {
+                            printf("Glitch ISR: %f\n", floatValues[1]);
+                            printf("Glitch Main: %f\n", floatValues[2]);
+                        }
                        
                         uint c  = 3;
 
                         state->dspLoad[0] = intValues[c + 0];
+                        state->dspAudioGlitchCounter[0] = intValues[c + 26];
 
-                        printf("audioProcessData()    %10d\n", intValues[c + 0]);
-                        printf("  prepare             %10d\n", intValues[c + 21]);
-                        printf("  audioSmoothVolume   %10d\n", intValues[c + 22]);
-                        printf("  Data Input          %10d\n", intValues[c + 1]);
-                        printf("  InputDelay/Routing  %10d\n", intValues[c + 2]);
-                        printf("  Lowcut              %10d\n", intValues[c + 3]);
-                        printf("  Noisegate           %10d\n", intValues[c + 4]);
-                        printf("  EQ                  %10d\n", intValues[c + 5]);
-                        printf("  Dynamics            %10d\n", intValues[c + 6]);
-                        printf("  Channel/Fader       %10d\n", intValues[c + 7]);
-                        printf("  Mixbus              %10d\n", intValues[c + 8]);
-                        printf("    set zero          %10d\n", intValues[c + 17]);
-                        printf("    acc channels      %10d\n", intValues[c + 18]);
-                        printf("    write back        %10d\n", intValues[c + 19]);
-                        printf("    volume            %10d\n", intValues[c + 20]);
-                        printf("  Main-Out            %10d\n", intValues[c + 9]);
-                        printf("  EQMain              %10d\n", intValues[c + 10]);
-                        printf("  Main Volume         %10d\n", intValues[c + 11]);
-                        printf("  Matrix              %10d\n", intValues[c + 12]);
-                        printf("  Monitor             %10d\n", intValues[c + 13]);
-                        printf("  Routing/OutputDelay %10d\n", intValues[c + 14]);
-                        printf("  Copy VU-Data        %10d\n", intValues[c + 15]);
-                        printf("NonAudioprocess       %10d\n", intValues[c + 16]);
-                        printf("  copy cylcedata      %10d\n", intValues[c + 23]);
-                        printf("  process SPI         %10d\n", intValues[c + 24]);
-                        printf("\n");
-                        printf("SPI Buffer Overflow   %10d\n", intValues[c + 25]);
-                        printf("Glitch Audio ISR      %10d\n", intValues[c + 26]);
+                        if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
+                        {
+                            printf("audioProcessData()    %10d\n", intValues[c + 0]);
+                            printf("  prepare             %10d\n", intValues[c + 21]);
+                            printf("  audioSmoothVolume   %10d\n", intValues[c + 22]);
+                            printf("  Data Input          %10d\n", intValues[c + 1]);
+                            printf("  InputDelay/Routing  %10d\n", intValues[c + 2]);
+                            printf("  Lowcut              %10d\n", intValues[c + 3]);
+                            printf("  Noisegate           %10d\n", intValues[c + 4]);
+                            printf("  EQ                  %10d\n", intValues[c + 5]);
+                            printf("  Dynamics            %10d\n", intValues[c + 6]);
+                            printf("  Copy DSP2-Return    %10d\n", intValues[c + 27]);
+                            printf("  Channel/Fader       %10d\n", intValues[c + 7]);
+                            printf("  Mixbus              %10d\n", intValues[c + 8]);
+                            printf("    set zero          %10d\n", intValues[c + 17]);
+                            printf("    acc channels      %10d\n", intValues[c + 18]);
+                            printf("    write back        %10d\n", intValues[c + 19]);
+                            printf("    volume            %10d\n", intValues[c + 20]);
+                            printf("  Main-Out            %10d\n", intValues[c + 9]);
+                            printf("  EQMain              %10d\n", intValues[c + 10]);
+                            printf("  Main Volume         %10d\n", intValues[c + 11]);
+                            printf("  Matrix              %10d\n", intValues[c + 12]);
+                            printf("  Monitor             %10d\n", intValues[c + 13]);
+                            printf("  Routing/OutputDelay %10d\n", intValues[c + 14]);
+                            printf("  Copy VU-Data        %10d\n", intValues[c + 15]);
+                            printf("NonAudioprocess       %10d\n", intValues[c + 16]);
+                            printf("  copy cylcedata      %10d\n", intValues[c + 23]);
+                            printf("  process SPI         %10d\n", intValues[c + 24]);
+                            printf("\n");
+                            printf("SPI Buffer Overflow   %10d\n", intValues[c + 25]);
+                            printf("Glitch Audio ISR      %10d\n", intValues[c + 26]);
+                        }
                         
-                        
-
-
-                        // rChannel  1-40 -> DSP-channels 1-40
-                        // rChannel 41-48 -> FX-return-channels 1-8
-                        // rChannel 49-64 -> Mixbus 1-16
-
-
                         c  = 3 + CYCLEMAP_SIZE;
 
                         //copy meter-info to rChannel-struct
@@ -716,9 +720,9 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         MainChannelLR.meter[1] = abs(floatValues[c + DSP_BUF_IDX_MAINRIGHT -1]); // convert 32-bit audio-value
                         MainChannelSub.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINSUB -1]); // convert 32-bit audio-value
                     }
-                    else 
+                    else if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
                     {
-                        printf("DSP1 u  valuecount = %d\n", valueCount);
+                        printf("DSP1 \"u\" -> valuecount is wrong = %d\n", valueCount);
                     }
                     break;
             }
