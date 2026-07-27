@@ -286,30 +286,30 @@ void CtrlClient::Tick100ms()
     }
 
 	// DEBUG Row in GUI-Header
-	static float dspLoadHistory[2][20];
-	static uint8_t dspLoadHistoryPointer = 0;
+	// static float dspLoadHistory[2][20];
+	// static uint8_t dspLoadHistoryPointer = 0;
 	if (config->GetBool(DEBUG_HEADER) && config->HasDisplay())
 	{
-		// calculate mean-value and show the current DSP-load
-		dspLoadHistory[0][dspLoadHistoryPointer] = state->dspLoad[0];
-		dspLoadHistory[1][dspLoadHistoryPointer] = state->dspLoad[1];
-		dspLoadHistoryPointer++;
-		if (dspLoadHistoryPointer >= 20) {
-			dspLoadHistoryPointer = 0;
-		}
+		// // calculate mean-value and show the current DSP-load
+		// dspLoadHistory[0][dspLoadHistoryPointer] = state->dspLoad[0];
+		// dspLoadHistory[1][dspLoadHistoryPointer] = state->dspLoad[1];
+		// dspLoadHistoryPointer++;
+		// if (dspLoadHistoryPointer >= 20) {
+		// 	dspLoadHistoryPointer = 0;
+		// }
 
-		float dspLoadMean[2] = {0, 0};
-		for (uint8_t i = 0; i < 20; i++) {
-			dspLoadMean[0] += dspLoadHistory[0][i];
-			dspLoadMean[1] += dspLoadHistory[1][i];
-		}
-		dspLoadMean[0] /= 20.0f;
-		dspLoadMean[1] /= 20.0f;
+		// float dspLoadMean[2] = {0, 0};
+		// for (uint8_t i = 0; i < 20; i++) {
+		// 	dspLoadMean[0] += dspLoadHistory[0][i];
+		// 	dspLoadMean[1] += dspLoadHistory[1][i];
+		// }
+		// dspLoadMean[0] /= 20.0f;
+		// dspLoadMean[1] /= 20.0f;
 
 		// show DSP debug infos
-		lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.0f V: v%.2f G: %.0f DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free", 
-			(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], /*mixer->dsp->spi->GetDspTxQueueLength(0),*/
-			(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
+		lv_label_set_text_fmt(objects.header_statustext, "DSP1 L: %.0f %% V: v%.2f G: %.0f DSP2 L: %.1f %% V: v%.2f G: %.0f H: %.0f free", 
+			(double)((state->dspLoad[0] * 100)/DSP1_100_PERCENT_CYCLES), (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], /*mixer->dsp->spi->GetDspTxQueueLength(0),*/
+			(double)state->dspLoad[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
 		);
 	}
 }
