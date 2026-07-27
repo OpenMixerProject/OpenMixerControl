@@ -392,7 +392,7 @@ void DSP1::SendEQ(uint chanIndex)
     // a0 a0 a1 a1 a2 a2 b1 b1 b2 b2 (section 2/3)
     // a0 a1 a2 b1 b2 (section 4)
 
-    float values[MAX_CHAN_EQS * 5];
+    float values[(MAX_CHAN_EQS * 5) + 1];
 
     for (uint peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
     {
@@ -434,7 +434,9 @@ void DSP1::SendEQ(uint chanIndex)
         }
     }
 
-    spi->QueueDspData(0, 'e', chanIndex, 'e', MAX_CHAN_EQS * 5, &values[0]);
+    values[(MAX_CHAN_EQS * 5)] = config->GetBool(CHANNEL_EQ_ENABLE, chanIndex);
+
+    spi->QueueDspData(0, 'e', chanIndex, 'e', (MAX_CHAN_EQS * 5) + 1, &values[0]);
 }
 
 void DSP1::ResetEq(uint8_t chan)
@@ -623,6 +625,7 @@ bool clearer = true;
 
 void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values)
 {
+    #if DSP1_DEBUG_SHOW_CYCLES
     if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
     {
         if(clearer)
@@ -634,6 +637,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
         gotoxy(0,0);
         printf("\n\n--------------DSP1_CALLBACK----------------\n");
     }
+    #endif
 
     float* floatValues = (float*)values;
     uint32_t* intValues = (uint32_t*)values;
@@ -665,17 +669,20 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         //state->dspLoad[0] = (((float)intValues[1]/264.0f) / (16.0f/0.048f)) * 100.0f;
                         //state->dspAudioGlitchCounter[0] = floatValues[1]; // audio-glitch-counter
 
+                        #if DSP1_DEBUG_SHOW_CYCLES
                         if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
                         {
                             printf("Glitch ISR: %f\n", floatValues[1]);
                             printf("Glitch Main: %f\n", floatValues[2]);
                         }
+                        #endif
                        
                         uint c  = 3;
 
                         state->dspLoad[0] = intValues[c + 0];
                         state->dspAudioGlitchCounter[0] = intValues[c + 26];
 
+                        #if DSP1_DEBUG_SHOW_CYCLES
                         if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
                         {
                             printf("audioProcessData()    %10d\n", intValues[c + 0]);
@@ -708,6 +715,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                             printf("SPI Buffer Overflow   %10d\n", intValues[c + 25]);
                             printf("Glitch Audio ISR      %10d\n", intValues[c + 26]);
                         }
+                        #endif
                         
                         c  = 3 + CYCLEMAP_SIZE;
 
@@ -721,10 +729,12 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         MainChannelLR.meter[1] = abs(floatValues[c + DSP_BUF_IDX_MAINRIGHT -1]); // convert 32-bit audio-value
                         MainChannelSub.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINSUB -1]); // convert 32-bit audio-value
                     }
+                    #if DSP1_DEBUG_SHOW_CYCLES
                     else if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
                     {
                         printf("DSP1 \"u\" -> valuecount is wrong = %d\n", valueCount);
                     }
+                    #endif
                     break;
             }
             break;

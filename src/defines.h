@@ -6,6 +6,8 @@
 
 #define BUILD_DEBUG 1 // build with or without debug functions
 
+#define DSP1_DEBUG_SHOW_CYCLES 1 // show the fancy cycle table
+
 //#################################################################################
 
 typedef unsigned int uint;
@@ -153,6 +155,7 @@ typedef unsigned int uint;
 #define DSP_BUF_IDX_MONRIGHT	91	// Monitor Right
 #define DSP_BUF_IDX_TALKBACK	92	// Talkback
 
+#define DSP1_100_PERCENT_CYCLES 70000
 #define CYCLEMAP_SIZE			33
 #define SPI_DMA_COMMDATA_SIZE   3 + CYCLEMAP_SIZE + MAX_FPGA_TO_DSP1_CHANNELS + 3 + 100
 
