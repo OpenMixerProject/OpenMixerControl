@@ -141,7 +141,7 @@ void Surface::LoadDefaultSurfaceBinding()
 
     if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() || config->IsModelAnyWing())
     {
-        config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, CLEAR_SOLO);
+        config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, SOLO_ACTIVE);
     }
 
 	if (config->IsModelAnyXM32())

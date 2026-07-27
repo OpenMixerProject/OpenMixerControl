@@ -507,12 +507,6 @@ void CtrlClient::syncSurface(bool fullSync)
 	//
 	// ######################################
 
-	if(config->HasParameterChanged(CLEAR_SOLO_COMMAND))
-	{
-        // TODO
-		//mixer->ClearSolo();
-	}
-
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
 		if (config->HasParameterChanged(BANKING_INPUT))
@@ -899,7 +893,7 @@ void CtrlClient::syncSurface(bool fullSync)
 			switch (binding_parameter->mp_action)
 			{
 				case MixerparameterAction::CLEAR_SOLO:
-					hasChanged = config->HasParameterChanged(CHANNEL_SOLO);
+					hasChanged = config->HasParameterChanged(CHANNEL_SOLO) || config->HasParameterChanged(SOLO_ACTIVE);
 					break;
 				case MixerparameterAction::LCD_Channel:
 					switch(config->GetUint(CHANNEL_LCD_MODE))
@@ -1058,8 +1052,7 @@ void CtrlClient::syncSurface(bool fullSync)
 
 				if (binding_parameter->mp_action == MixerparameterAction::CLEAR_SOLO)
 				{
-                    // TODO
-					//ledBlink = mixer->IsSoloActivated();
+					ledBlink = config->GetBool(SOLO_ACTIVE);
 				}
 				if (binding_parameter->mp_action == MixerparameterAction::SET_TO_INDEX)
 				{					

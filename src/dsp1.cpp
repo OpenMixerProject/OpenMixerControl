@@ -159,14 +159,14 @@ void DSP1::SendChannelVolume(uint chanIndex)
     spi->QueueDspData(0, 'v', chanIndex, 0, 4, &values[0]);
 }
 
-void DSP1::SendChannelSolo(uint chanIndex, bool isSoloActivated)
+void DSP1::SendChannelSolo(uint chanIndex)
 {
     uint32_t values[2];
 
     values[0] = config->GetBool(CHANNEL_SOLO, chanIndex);
-    values[1] = isSoloActivated;
+    values[1] = config->GetBool(SOLO_ACTIVE);
 
-    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelSolo() channelindex %d: %u, %u", chanIndex, values[0], values[1]);
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelSolo() channelindex %d: channel solo %u, solo active %u", chanIndex, values[0], values[1]);
 
     spi->QueueDspData(0, 'v', chanIndex, 10, 2, (float*)&values[0]);
 }
@@ -250,12 +250,12 @@ void DSP1::SendMatrixVolume(uint chanIndex)
     spi->QueueDspData(0, 'v', chanIndex - matrixChannelIndex, 2, 1, &values[0]);
 }
 
-void DSP1::SendMatrixSolo(uint chanIndex, bool isSoloActivated)
+void DSP1::SendMatrixSolo(uint chanIndex)
 {
     uint32_t values[2];
 
     values[0] = config->GetBool(CHANNEL_SOLO, chanIndex);
-    values[1] = isSoloActivated;
+    values[1] = config->GetBool(SOLO_ACTIVE);
 
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendMatrixSolo() channelindex %d: %u, %u", chanIndex, values[0], values[1]);
 
@@ -319,15 +319,16 @@ void DSP1::SendMainVolume(uint chanIndex)
     spi->QueueDspData(0, 'v', 0, 3, 3, &values[0]);
 }
 
-void DSP1::SendMainSolo(bool isSoloActivated)
+void DSP1::SendMainSolo()
 {
     uint32_t values[3];
 
     uint mainChannelIndex = 80;
     uint subChannelIndex = 71;
     values[0] = config->GetBool(CHANNEL_SOLO, mainChannelIndex);
+    values[1] = config->GetBool(SOLO_ACTIVE);
     values[2] = config->GetBool(CHANNEL_SOLO, subChannelIndex);
-    values[1] = isSoloActivated;
+    
 
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendMainSolo() channelindex %d: %u, %u, %u", 0, values[0], values[1], values[2]);
 

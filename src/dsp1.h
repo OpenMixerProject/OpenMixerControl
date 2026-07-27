@@ -39,13 +39,13 @@ class DSP1 : X32Base {
         float CompensateGainAndVolume(float targetGainDb, float targetVolumeDb);
 
         void SendChannelVolume(uint chanIndex);
-        void SendChannelSolo(uint chanIndex, bool isSoloActivated);
+        void SendChannelSolo(uint chanIndex);
         void SendChannelSend(uint chanIndex);
         void SendMatrixVolume(uint chanIndex);
-        void SendMatrixSolo(uint chanIndex, bool isSoloActivated);
+        void SendMatrixSolo(uint chanIndex);
         void SendMonitorVolume();
         void SendMainVolume(uint chanIndex);
-        void SendMainSolo(bool isSoloActivated);
+        void SendMainSolo();
         void SendGate(uint chanIndex);
         void SendLowcut(uint8_t chan);
         void SendEQ(uint chan);

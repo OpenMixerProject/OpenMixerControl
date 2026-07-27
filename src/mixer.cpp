@@ -281,6 +281,10 @@ void Mixer::Sync()
     filter = {CHANNEL_SOLO};
     if (config->HasParametersChanged(filter))
     {
+        // first set state of solo (it's needed to activate the solo bus in DSP1)
+        config->Set(SOLO_ACTIVE, IsSoloActivated());
+
+        // then set the solo
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter);
         for (auto const& changedIndex : changedIndexes)
         {
@@ -289,17 +293,18 @@ void Mixer::Sync()
                 helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::FXRET) ||
                 helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::BUS) )
             {
-                dsp->SendChannelSolo(changedIndex, IsSoloActivated());
+                dsp->SendChannelSolo(changedIndex);
             }
             else if (helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::MATRIX))
             {
-                dsp->SendMatrixSolo(changedIndex, IsSoloActivated());
+                dsp->SendMatrixSolo(changedIndex);
             }
             else if (helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::MAINSUB)) {
-                dsp->SendMainSolo(IsSoloActivated());
+                // TODO
+                //dsp->SendMainSolo();
             }
             else if (helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::MAIN)) {
-                dsp->SendMainSolo(IsSoloActivated());
+                dsp->SendMainSolo();
             }  
         }
     }
@@ -442,6 +447,12 @@ void Mixer::Sync()
             dsp->DSP2_SendFxParameter(fxSlot);
         }
     }
+
+    // CLEAR SOLO
+    if(config->HasParameterChanged(CLEAR_SOLO_COMMAND))
+	{
+		ClearSolo();
+	}
 
     helper->DEBUG_MIXER(DEBUGLEVEL_NORMAL, "sync done");
 }

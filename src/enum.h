@@ -207,7 +207,7 @@ enum class MP_ID {
 
     MONITOR_VOLUME,
     MONITOR_TAPPOINT,
-    CLEAR_SOLO, // the state of Clear Solo
+    SOLO_ACTIVE, // the state of Clear Solo
     CLEAR_SOLO_COMMAND, // triggers the execution of Clear Solo
 
     MUTE_GROUP_1,

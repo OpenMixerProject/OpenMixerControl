@@ -429,7 +429,7 @@ namespace OMC
 
         cat = MP_CAT::STATE;
 
-        DefParameter(CLEAR_SOLO, cat, "Clear Solo State")
+        DefParameter(SOLO_ACTIVE, cat, "Clear Solo State")
         ->DefNoConfig()
         ->DefStandard_Bool(false)
         ->DefButtonBlink();

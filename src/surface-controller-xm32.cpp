@@ -1,4 +1,6 @@
 #include "surface-controller-xm32.h"
+#include "helper.h"
+#include "surfaceelement.h"
 
 namespace OMC
 {
@@ -317,8 +319,10 @@ void SurfaceControllerXM32::Blink()
     {
         blinkstate = !blinkstate;
 
-        for(SurfaceElementId button : blinklist) {
-            SetLed(button, blinkstate, false);
+        for(SurfaceElementId buttonId : blinklist)
+        {
+            SurfaceElement* button = config->GetSurfaceElement(buttonId);
+            SetLedRaw((uint)button->GetBoard(), (uint)button->GetIndex(), blinkstate);
         }
 
         blinkwait = 5;
@@ -465,6 +469,8 @@ void SurfaceControllerXM32::SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t
 
 void SurfaceControllerXM32::SetLedRaw(uint board, uint index, bool ledOn)
 {
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SetLedRaw() -> Board %d, Index %d, State %s", board, index, ledOn ? "On" : "Off");
+
     SurfaceMessage message;
     message.AddDataByte(0x80 + board);
     message.AddDataByte('L');  // class: L = LED
@@ -515,26 +521,25 @@ void SurfaceControllerXM32::SetLcd(LcdData* p_data, uint p_textCount)
     SendData(&message, true);
 }
 
-void SurfaceControllerXM32::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
-{
-    if(blink)
+    void SurfaceControllerXM32::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
     {
-        blinklist.insert(buttonOrLed);
-    }
-    else
-    {
-        if (!blinklist.empty())
+        if(blink)
         {
-            set<SurfaceElementId>::iterator it = blinklist.find(buttonOrLed);
-            if (it != blinklist.end())
+            blinklist.insert(buttonOrLed);
+        }
+        else
+        {
+            if (!blinklist.empty())
             {
-                blinklist.erase(it);
+                set<SurfaceElementId>::iterator it = blinklist.find(buttonOrLed);
+                if (it != blinklist.end())
+                {
+                    blinklist.erase(it);
+                }
             }
         }
+
+        SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
+        SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
     }
-
-    SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
-    SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
-}
-
 }
