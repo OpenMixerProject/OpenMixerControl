@@ -248,7 +248,7 @@ uint8_t Helper::GetMeter6Info(int dbfs)
     if (dbfs >= -18) bitfield |= 0b00000100; // Bit 2
     if (dbfs >= -12) bitfield |= 0b00001000; // Bit 3
     if (dbfs >= -6)  bitfield |= 0b00010000; // Bit 4
-    if (dbfs >= 0)   bitfield |= 0b00100000; // Bit 5
+    if (dbfs >= -1)   bitfield |= 0b00100000; // Bit 5
 
     return bitfield;
 }
@@ -266,7 +266,7 @@ uint8_t Helper::GetMeter8Info(int dbfs)
     if (dbfs >= -9)  bitfield |= 0x10; // Bit 4
     if (dbfs >= -6)  bitfield |= 0x20; // Bit 5
     if (dbfs >= -3)  bitfield |= 0x40; // Bit 6
-    if (dbfs >= 0)   bitfield |= 0x80; // Bit 7
+    if (dbfs >= -1)   bitfield |= 0x80; // Bit 7
 
     return bitfield;
 }
