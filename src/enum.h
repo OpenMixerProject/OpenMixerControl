@@ -129,7 +129,8 @@ enum class MP_VALUE_TYPE {
     STRING
 };
 
-enum class MP_CAT {
+enum class MP_CAT
+{
     NONE,
     SETTING,
     ROUTING,

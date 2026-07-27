@@ -11,7 +11,14 @@
 namespace OMC
 {
 
-//class Surface;
+struct WingFrameParser {
+    uint8_t payload[512];
+    size_t len;
+    int in_frame;
+    int after_star;
+    int have_cmd;
+    uint8_t cmd;
+};
 
 // Die 4 möglichen Zustände einer LED
 enum class LedState : uint8_t 

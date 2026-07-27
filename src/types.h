@@ -80,15 +80,11 @@ typedef struct {
 	float b[3];
 } sPEQ;
 
-typedef struct {
+typedef struct
+{
 	float meterPu[2]; // meter information in p.u.
 	uint32_t meter[2];
 	uint32_t meterDecay[2]; // meter information with decay
-	uint8_t meterPeakIndex[2];
-	uint8_t meterPeakHoldTimer[2]; // will be updated every 100ms. On 0 the current value will be used
-	uint8_t meterPeakDecayTimer[2];
-	uint32_t meterInfo[2];
-	uint8_t meter6Info;
 } sMainChannel;
 
 // values only for runtime use
@@ -98,16 +94,6 @@ typedef struct
 
 	uint32_t meter;
 	uint32_t meterDecay; // meter information with decay
-
-	uint8_t meterPeak6Index;
-	uint8_t meterPeak6HoldTimer; // will be updated every 100ms. On 0 the current value will be used
-	uint8_t meterPeak6DecayTimer;
-	uint8_t meter6Info; // compatible to MeterLED on surface: 8-bit bitwise (bit 0=-60dB ... 4=-6dB, 5=Clip, 6=Gate, 7=Comp)
-
-	uint8_t meterPeak8Index;
-	uint8_t meterPeak8HoldTimer; // will be updated every 100ms. On 0 the current value will be used
-	uint8_t meterPeak8DecayTimer;
-	uint8_t meter8Info; // compatible to MeterLED on surface
 } srDspChannel;
 
 typedef struct {
@@ -119,15 +105,6 @@ typedef struct {
 	WString::String label;
 	WString::String value;
 } sDisplayEncoder;
-
-struct WingFrameParser {
-    uint8_t payload[512];
-    size_t len;
-    int in_frame;
-    int after_star;
-    int have_cmd;
-    uint8_t cmd;
-};
 
 typedef void (*SurfaceCallback)(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
 
