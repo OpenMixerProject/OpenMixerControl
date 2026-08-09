@@ -3228,7 +3228,7 @@ void create_user_widget_routing_element(lv_obj_t *parent_obj, int startWidgetInd
             // lbl_header
             lv_obj_t *obj = lv_label_create(parent_obj);
             ((lv_obj_t **)&objects)[startWidgetIndex + 0] = obj;
-            lv_obj_set_pos(obj, 2, 4);
+            lv_obj_set_pos(obj, 2, 3);
             lv_obj_set_size(obj, 67, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -3242,7 +3242,7 @@ void create_user_widget_routing_element(lv_obj_t *parent_obj, int startWidgetInd
             // lbl
             lv_obj_t *obj = lv_label_create(parent_obj);
             ((lv_obj_t **)&objects)[startWidgetIndex + 1] = obj;
-            lv_obj_set_pos(obj, 2, 17);
+            lv_obj_set_pos(obj, 2, 28);
             lv_obj_set_size(obj, 67, LV_SIZE_CONTENT);
             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_12, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -3252,7 +3252,7 @@ void create_user_widget_routing_element(lv_obj_t *parent_obj, int startWidgetInd
             // lbl_footer
             lv_obj_t *obj = lv_label_create(parent_obj);
             ((lv_obj_t **)&objects)[startWidgetIndex + 2] = obj;
-            lv_obj_set_pos(obj, 2, 34);
+            lv_obj_set_pos(obj, 2, 14);
             lv_obj_set_size(obj, 67, LV_SIZE_CONTENT);
             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);

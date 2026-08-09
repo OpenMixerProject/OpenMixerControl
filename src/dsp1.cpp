@@ -109,6 +109,7 @@ void DSP1::SendChannelVolume(uint chanIndex)
     }
 
     // convert volume from dB to linear
+    float trim_pu;
     float volumeLR_pu;
     float volumeSub_pu;
 
@@ -120,14 +121,13 @@ void DSP1::SendChannelVolume(uint chanIndex)
         float volumeSub_new = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeSub);
         volumeLR_pu = pow(10.0f, volumeLR_new/20.0f);
         volumeSub_pu = pow(10.0f, volumeSub_new/20.0f);
+        trim_pu = 1.0f;
     }
     else
     {
         // GAIN as TRIM
         float trim = config->GetFloat(CHANNEL_GAIN, chanIndex);
-        float trim_pu = pow(10.0f, trim/20.0f);
-        volumeLR_pu = pow(10.0f, volumeLR/20.0f) * trim_pu;
-        volumeSub_pu = pow(10.0f, volumeSub/20.0f) * trim_pu;
+        trim_pu = pow(10.0f, trim/20.0f);
     }
 
     // apply DCAs if enabled
@@ -148,15 +148,16 @@ void DSP1::SendChannelVolume(uint chanIndex)
     }
 
     // send volume to DSP via SPI
-    float values[4];
-    values[0] = volumeLR_pu; // volume of this specific channel
-    values[1] = balanceLeft; // 1 .. 1 ..  0
-    values[2] = balanceRight; // 0  .. 1 .. 1
-    values[3] = volumeSub_pu; // subwoofer
+    float values[5];
+    values[0] = trim_pu; // sofware trim
+    values[1] = volumeLR_pu; // volume of this specific channel
+    values[2] = balanceLeft; // 1 .. 1 ..  0
+    values[3] = balanceRight; // 0  .. 1 .. 1
+    values[4] = volumeSub_pu; // subwoofer
 
-    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelVolume() channelindex %d: %f, %f, %f, %f", chanIndex, (double)values[0], (double)values[1], (double)values[2], (double)values[3]);
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelVolume() channelindex %d: Trim %f, Volume LR %f, Balance Left %f, Balance Right %f, Volume Sub %f", chanIndex, (double)values[0], (double)values[1], (double)values[2], (double)values[3], (double)values[4]);
 
-    spi->QueueDspData(0, 'v', chanIndex, 0, 4, &values[0]);
+    spi->QueueDspData(0, 'v', chanIndex, 0, 5, &values[0]);
 }
 
 void DSP1::SendChannelSolo(uint chanIndex)
