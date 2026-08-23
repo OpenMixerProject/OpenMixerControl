@@ -468,9 +468,10 @@ void Mixer::halSendGain(uint8_t dspChannel) {
 
         // check if we are connected to a channel with gain
         uint8_t externalDspSourceIndex = config->GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (internalDspSourceIndex - 1));
-        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32))) {
-            // XLR-input
 
+        // XLR-input
+        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32)))
+        {
             // send value to adda-board
             uint8_t boardId = adda->GetXlrInBoardId(externalDspSourceIndex);
             if (boardId < 4) {
@@ -484,16 +485,19 @@ void Mixer::halSendGain(uint8_t dspChannel) {
                 // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
                 dsp->SendChannelVolume(dspChannel);
             }
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48))) {
-            // AES50A input (never thought that we get this far in the reverse-engineering process, but here we are... :) )
+        }
+        // AES50A input
+        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48)))
+        {
             fpga->AES50SetHeadampGain(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_GAIN,  dspChannel));
 
             // update channel-volume for virtual gain-resolution-increment
             // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
             dsp->SendChannelVolume(dspChannel);
-
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        }
+        // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48)))
+        {    
         }
     }
 }
@@ -511,9 +515,9 @@ void Mixer::halSendPhantomPower(uint8_t dspChannel) {
         // check if we are connected to a channel with gain
         uint8_t externalDspSourceIndex = config->GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (internalDspSourceIndex - 1));
 
-        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32))) {
-            // XLR-input
-
+        // XLR-input
+        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32))) 
+        {
             // send value to adda-board
             uint8_t boardId = adda->GetXlrInBoardId(externalDspSourceIndex);
 
@@ -524,12 +528,15 @@ void Mixer::halSendPhantomPower(uint8_t dspChannel) {
                 }
                 adda->SetGain(boardId, addaChannel, config->GetFloat(CHANNEL_GAIN,  dspChannel), config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
             }
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48))) {
-            // AES50A input
+        }
+        // AES50A input
+        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48)))
+        {
             fpga->AES50SetPhantomPowerState(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        }
+        // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48)))
+        {   
         }
     }
 }
