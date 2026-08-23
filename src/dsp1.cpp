@@ -65,7 +65,7 @@ bool DSP1::ChannelHasAdjustableGain(uint chanIndex)
 {
     // check if channel has an adjustable gain
     uint dspChannelInputRouting = config->GetUint(ROUTING_DSP_INPUT, chanIndex);
-    uint dspChannelFpgaSource = config->GetUint(ROUTING_FPGA, chanIndex);
+    uint dspChannelFpgaSource = config->GetUint(ROUTING_FPGA, dspChannelInputRouting + 72);
 
     // check if channel uses external signal from FPGA
     if ((dspChannelInputRouting >= DSP_BUF_IDX_DSPCHANNEL) && (dspChannelInputRouting < (DSP_BUF_IDX_AUX + 8)))
