@@ -35,7 +35,7 @@ ifeq "$(BUILD_TARGET)" "TARGET_WING"
 	FLTO            = 
 	C_STD           = -std=c11
 	LVGL_CONF       = files/lv_conf.h
-	LDFLAGS_EXTRA	= 
+	LDFLAGS_EXTRA	= -static
 
 endif
 
