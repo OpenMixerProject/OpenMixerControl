@@ -16,7 +16,8 @@ SurfaceControllerWing::SurfaceControllerWing(X32BaseParameter* basepar) : Surfac
     csc_led_map.insert({
         {SurfaceElementId::WING_CH1_12, 1},
         {SurfaceElementId::WING_CH13_24, 2},
-        {SurfaceElementId::WING_CH25_36, 3}
+        {SurfaceElementId::WING_CH25_36, 3},
+        {SurfaceElementId::WING_CH37_40_AUX, 4},
     });
     
     if(config->IsModelWingCompact())
@@ -198,6 +199,15 @@ void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const 
         uint16_t value = payload[1] | (payload[2] << 8);
 
         helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Fader: index=0x%02x value=%u", index, value);
+        surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
+    }
+
+    if (!pnlc && cmd == 'w' && len == 2)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1];
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Poti: index=0x%02x value=%u", index, value);
         surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
     }
 

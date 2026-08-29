@@ -324,6 +324,7 @@ void Surface::LoadDefaultSurfaceBinding()
 			config->SurfaceBind(SurfaceElementId::WING_CH1_12, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_1_12));
 			config->SurfaceBind(SurfaceElementId::WING_CH13_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_13_24));
 			config->SurfaceBind(SurfaceElementId::WING_CH25_36, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_25_36));
+            config->SurfaceBind(SurfaceElementId::WING_CH37_40_AUX, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_37_40_AUX));
 
 			config->SurfaceBind(SurfaceElementId::ASSIGN_1, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
 			config->SurfaceBind(SurfaceElementId::ASSIGN_2, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
@@ -397,8 +398,9 @@ void Surface::InitBanks()
 		uint channel_strip_size = 12;
 
 		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_1_12, "Channel 1-12", channel_strip_size), 0);
-		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_13_24, "Channel 1-12", channel_strip_size), 12);
-		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_25_36, "Channel 1-12", channel_strip_size), 24);
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_13_24, "Channel 13-24", channel_strip_size), 12);
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_25_36, "Channel 25-36", channel_strip_size), 24);
+        InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_37_40_AUX, "Channel 37-40 + AUX", channel_strip_size), 36);
 	}
 }
 

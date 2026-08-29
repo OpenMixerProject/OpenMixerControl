@@ -1178,6 +1178,7 @@ enum class OMCBankId
     WING_1_12,
     WING_13_24,
     WING_25_36,
+    WING_37_40_AUX,
 
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
