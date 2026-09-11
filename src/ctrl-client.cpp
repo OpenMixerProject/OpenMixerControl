@@ -509,6 +509,8 @@ void CtrlClient::syncSurface(bool fullSync)
 
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
+		bool faderBankChanged = false;
+
 		if (config->HasParameterChanged(BANKING_INPUT))
 		{
 			OMCBankId bankToSwitchTo = (OMCBankId)(config->GetUint(BANKING_INPUT));
@@ -564,6 +566,7 @@ void CtrlClient::syncSurface(bool fullSync)
 			{
 				surface->LoadBank(OMCBankTarget::InputSection, (OMCBankId)(config->GetUint(BANKING_INPUT)));
 			}
+			faderBankChanged = true;
 		}
 
 		if (config->HasParameterChanged(BANKING_BUS))
@@ -584,6 +587,15 @@ void CtrlClient::syncSurface(bool fullSync)
 			}
 
 			surface->LoadBank(OMCBankTarget::BusSection, bank);
+			faderBankChanged = true;
+		}
+
+		// Some surface firmwares assert the main Select LED while changing
+		// layers. Re-evaluate every Select binding after the new bank is loaded
+		// so the LEDs continue to represent SELECTED_CHANNEL.
+		if (faderBankChanged)
+		{
+			config->Refresh(SELECTED_CHANNEL);
 		}
 
 		if (config->HasParameterChanged(BANKING_ASSIGN))
