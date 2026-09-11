@@ -392,6 +392,7 @@ void Surface::InitBanks()
 		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX1, "Flex1", channel_strip_size));
 		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX2, "Flex2", channel_strip_size));
 		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX3, "Flex3", channel_strip_size));
+		UpdateStereoBanks();
 	}
 	else if (config->IsModelWingCompact())
 	{
@@ -593,6 +594,70 @@ X32FaderBank* Surface::GetBank(OMCBankId id)
 void Surface::ResetBank(OMCBankId id)
 {
     banks[(uint)id]->Reset();
+}
+
+vector<uint> Surface::GetActiveChannels(X32_VCHANNEL_BLOCK blockType)
+{
+    uint start = 0;
+    uint size = 0;
+    if (blockType == X32_VCHANNEL_BLOCK::NORMAL) { size = 32; }
+    else if (blockType == X32_VCHANNEL_BLOCK::AUX) { start = 32; size = 8; }
+    else if (blockType == X32_VCHANNEL_BLOCK::FXRET) { start = 40; size = 8; }
+    else if (blockType == X32_VCHANNEL_BLOCK::BUS) { start = 48; size = 16; }
+    else if (blockType == X32_VCHANNEL_BLOCK::MATRIX) { start = 64; size = 6; }
+
+    vector<uint> active;
+    for (uint index = start; index < start + size; index++)
+    {
+        if (!config->IsRightChannelOfLinkedPair(index))
+        {
+            active.push_back(index);
+        }
+    }
+    return active;
+}
+
+void Surface::PopulateBankWithActive(X32FaderBank* bank, X32_VCHANNEL_BLOCK blockType, uint activeOffset)
+{
+    vector<uint> active = GetActiveChannels(blockType);
+    bank->Reset();
+    for (uint strip = 0; strip < 8 && activeOffset + strip < active.size(); strip++)
+    {
+        SetChannelstripBinding(bank, strip, active[activeOffset + strip]);
+    }
+}
+
+void Surface::UpdateStereoBanks()
+{
+    if (!config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+    {
+        return;
+    }
+
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH1_8], X32_VCHANNEL_BLOCK::NORMAL, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH9_16], X32_VCHANNEL_BLOCK::NORMAL, 8);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH17_24], X32_VCHANNEL_BLOCK::NORMAL, 16);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH25_32], X32_VCHANNEL_BLOCK::NORMAL, 24);
+    PopulateBankWithActive(banks[(uint)OMCBankId::AUX_USB], X32_VCHANNEL_BLOCK::AUX, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::BUS1_8], X32_VCHANNEL_BLOCK::BUS, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::BUS9_16], X32_VCHANNEL_BLOCK::BUS, 8);
+
+    X32FaderBank* matrixBank = banks[(uint)OMCBankId::MATRIX_MAIN];
+    vector<uint> matrices = GetActiveChannels(X32_VCHANNEL_BLOCK::MATRIX);
+    matrixBank->Reset();
+    uint strip = 0;
+    for (; strip < matrices.size() && strip < 8; strip++)
+    {
+        SetChannelstripBinding(matrixBank, strip, matrices[strip]);
+    }
+    if (strip < 8) { SetChannelstripBinding(matrixBank, strip++, 70); }
+    if (strip < 8) { SetChannelstripBinding(matrixBank, strip, 71); }
+
+    const auto loadedBanks = bankloaded;
+    for (const auto& [target, bankId] : loadedBanks)
+    {
+        LoadBank(target, bankId);
+    }
 }
 
 // bit 0=CCW, bit 6=center, bit 12 = CW, bit 15=encoder-backlight

@@ -19,6 +19,18 @@ class PageRoutingChannels: public Page
 		int gui_selected_item = 0;
 		int gui_selected_item_before = 0;
         bool page_routing_dsp1_table_drawn = false;
+
+        String GetDestinationName(uint index)
+        {
+            String name = index < 32 ? String("Channel ") + String(index + 1) :
+                String("Aux ") + String(index - 31);
+            uint peerIndex = 0;
+            if (config->GetPeerVChannel(index, peerIndex))
+            {
+                name += index < peerIndex ? " [ST L]" : " [ST R]";
+            }
+            return name;
+        }
 	
         static void draw_event_header_cb(lv_event_t * e) {
             lv_draw_task_t * draw_task = lv_event_get_draw_task(e);
@@ -181,16 +193,7 @@ class PageRoutingChannels: public Page
 	 		lv_table_set_column_width(objects.table_routing_dsp_input, 4, 200);
 	 		for (uint8_t i = 0; i < 40; i++)
 	 		{
-	 			String inputChannelName;				
-	 			if (((i + 1) >= DSP_BUF_IDX_DSPCHANNEL) && ((i + 1) < (DSP_BUF_IDX_DSPCHANNEL + 32)))
-	 			{
-         			inputChannelName = String("Channel ") + (i + 1);
-				
-	 			}
-	 			else if (((i + 1) >= DSP_BUF_IDX_AUX) && ((i + 1) < (DSP_BUF_IDX_AUX + 8)))
-	 			{
-         			inputChannelName = String("Aux ") + (i + 1 - 32);
-	 			}
+			String inputChannelName = GetDestinationName(i);
 
 	 			lv_table_set_cell_value(objects.table_routing_dsp_input, i, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(72 + i) + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(i)).c_str());
 	 			lv_table_set_cell_value(objects.table_routing_dsp_input, i, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(i).c_str());
@@ -220,6 +223,14 @@ class PageRoutingChannels: public Page
 		void OnChange(bool force) override
 		{
             UpdateRowSelection();
+
+            if (config->HasParameterChanged(CHANNEL_LINKED) || force)
+            {
+                for (uint index = 0; index < 40; index++)
+                {
+                    lv_table_set_cell_value(objects.table_routing_dsp_input, index, 4, GetDestinationName(index).c_str());
+                }
+            }
 			
 	 		if(config->HasParametersChanged({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT}) || force)
 	 		{

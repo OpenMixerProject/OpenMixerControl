@@ -302,7 +302,7 @@ class PageSetupSurface: public Page
         PageSetupSurface(PageBaseParameter* pagebasepar) : Page(pagebasepar)
         {
             prevPage = X32_PAGE::SETUP_CARD ;
-            nextPage = X32_PAGE::ABOUT;
+            nextPage = X32_PAGE::SETUP_MIXER_CONFIG;
             tabLayer0 = objects.maintab;
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
