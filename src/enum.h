@@ -51,6 +51,7 @@ enum class X32_PAGE :int
         // sub-pages of setup
         SETUP_CARD,
         SETUP_SURFACE,
+        SETUP_MIXER_CONFIG,
         ABOUT,
         DEBUG,
         PROTOTYPEGUI,
@@ -477,6 +478,14 @@ enum class MP_ID {
     //DMX_ARTNET_ON_FADERS,
     DMX_ARTNET_VALUE,
     //DMX_ARTNET_OFFSET,
+
+    // Stereo-link configuration. Keep these at the end so existing scene
+    // files retain the numeric IDs of all established parameters.
+    CHANNEL_LINKED,
+    BUS_LINKED,
+    MATRIX_LINKED,
+    CHANNEL_STEREO_PAN,
+    CHANNEL_STEREO_WIDTH,
 
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };

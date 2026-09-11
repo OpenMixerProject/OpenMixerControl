@@ -24,6 +24,7 @@
 #include "page-setup.h"
 #include "page-setup-card.h"
 #include "page-setup-surface.h"
+#include "page-setup-mixer-config.h"
 #include "page-debug.h"
 #include "page-about.h"
 #include "page-scenes.h"
@@ -361,6 +362,7 @@ void CtrlClient::InitPagesAndGUI()
 	pages[X32_PAGE::SETUP] = new PageSetup(pagebasepar);
 	pages[X32_PAGE::SETUP_CARD] = new PageSetupCard(pagebasepar);
 	pages[X32_PAGE::SETUP_SURFACE] = new PageSetupSurface(pagebasepar);
+	pages[X32_PAGE::SETUP_MIXER_CONFIG] = new PageSetupMixerConfig(pagebasepar);
 	pages[X32_PAGE::ABOUT] = new PageAbout(pagebasepar);
 	pages[X32_PAGE::DEBUG] = new PageDebug(pagebasepar);
 	pages[X32_PAGE::PROTOTYPEGUI] = new PagePrototypeGui(pagebasepar);
@@ -501,6 +503,11 @@ void CtrlClient::syncGuiOrLcd() {
 // sync mixer state to Surface
 void CtrlClient::syncSurface(bool fullSync)
 {
+	if (config->HasParametersChanged({CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED}))
+	{
+		surface->UpdateStereoBanks();
+	}
+
 	// ######################################
 	//
 	// Check, if banking has changed

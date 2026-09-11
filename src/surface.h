@@ -53,6 +53,8 @@ class Surface : public X32Base
         void InitBank_Channelstrip_DCA(X32FaderBank* bank, uint offset);
         void InitBank_Flex(X32FaderBank* bank);
         void InitBank_DMX(X32FaderBank* bank, uint offset);
+        vector<uint> GetActiveChannels(X32_VCHANNEL_BLOCK blockType);
+        void PopulateBankWithActive(X32FaderBank* bank, X32_VCHANNEL_BLOCK blockType, uint activeOffset);
 
     public:
         
@@ -75,6 +77,7 @@ class Surface : public X32Base
         void LoadDefaultSurfaceBinding();
         void LoadMainFaderSurfaceBinding();
         void ResetBank(OMCBankId id);
+        void UpdateStereoBanks();
 
         void LoadX32CoreDefinitions();
 

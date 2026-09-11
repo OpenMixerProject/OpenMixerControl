@@ -32,6 +32,11 @@ namespace OMC
     {
         using enum MP_UOM;
 
+        if (parameter_id == MP_ID::CHANNEL_STEREO_WIDTH && value_float == 0.0f)
+        {
+            return "Mono";
+        }
+
         if (unitOfMeasurement == PERCENT) {
             value_float *= 100.0f;
         }
