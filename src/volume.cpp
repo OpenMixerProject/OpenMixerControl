@@ -31,7 +31,7 @@ void Volume::SetDbfs(float vol){
     _volumeDbfs = vol;
 }
 
-void Volume::SetFadervalue(float vol){
+void Volume::SetFadervalue(uint16_t vol){
     _volumeDbfs = helper->Fadervalue2dBfs(vol);
 }
 
