@@ -37,7 +37,7 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
     
     if (state->bodyless && !state->bodyless_with_surface_and_adda)
     {
-        return 0;
+        return 1;
     }
 
     struct termios tty;
