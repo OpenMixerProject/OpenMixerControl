@@ -285,7 +285,7 @@ uint32_t Helper::GetMeter18Info(int dbfs)
     if (dbfs >= main_led_lut_18[5])  bitfield |= (1UL << 5);  // -30 dBFS
     if (dbfs >= main_led_lut_18[6])  bitfield |= (1UL << 6);  // -27 dBFS
     if (dbfs >= main_led_lut_18[7])  bitfield |= (1UL << 7);  // -24 dBFS
-    if (dbfs >= main_led_lut_18[8])  bitfield |= (1UL << 21); // -21 dBFS
+    if (dbfs >= main_led_lut_18[8])  bitfield |= (1UL << 8); // -21 dBFS
     if (dbfs >= main_led_lut_18[9])  bitfield |= (1UL << 9);  // -18 dBFS
     if (dbfs >= main_led_lut_18[10]) bitfield |= (1UL << 10); // -15 dBFS
     if (dbfs >= main_led_lut_18[11]) bitfield |= (1UL << 11); // -12 dBFS
