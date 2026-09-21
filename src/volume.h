@@ -12,7 +12,7 @@ class Volume : public X32Base {
         float _volumeDbfs;
     public:
         void SetDbfs(float volume);
-        void SetFadervalue(float volume);
+        void SetFadervalue(uint16_t volume);
         float GetDbfs();
         float GetFadervalue();
 };
