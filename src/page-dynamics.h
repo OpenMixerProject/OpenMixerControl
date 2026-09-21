@@ -69,16 +69,16 @@ class PageDynamics: public Page {
         {
             // TODO: Metering
 
-            // int32_t compValueAudioDbfs = -120;
+            int32_t compValueAudioDbfs = -120;
 
-            // uint8_t selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
-            // if (selectedChannelIndex < 40) {
-            //     compValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
-            // }
+            uint8_t selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
+            if (selectedChannelIndex < 40) {
+                compValueAudioDbfs = helper->get_dbfs_from_peak_arm_opt(state->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
+            }
 
-            // // add new value to chart
-            // lv_chart_set_next_value(objects.current_channel_comp, chartSeriesCompressorAudio, compValueAudioDbfs);
-            // //lv_chart_refresh(objects.current_channel_comp);
+            // add new value to chart
+            lv_chart_set_next_value(objects.current_channel_comp, chartSeriesCompressorAudio, compValueAudioDbfs);
+            //lv_chart_refresh(objects.current_channel_comp);
         }
 
     private:
