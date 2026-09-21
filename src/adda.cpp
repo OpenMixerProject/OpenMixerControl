@@ -369,7 +369,13 @@ String Adda::SendReceive(String cmd) {
 	unsigned int readBytes = 0;
 	while (waitForMessage > 0) {
 		helper->DEBUG_ADDA(DEBUGLEVEL_TRACE, "Waiting for Message from ADDA-Boards, Counter: %d", waitForMessage);
-		readBytes += uart->Rx(&addaBufferUart[readBytes], sizeof(addaBufferUart));
+		int readResult = uart->Rx(&addaBufferUart[readBytes], sizeof(addaBufferUart));
+		if (readResult < 0)
+		{
+			// UART not opened!
+			break;
+		}
+		readBytes += readResult;
 		if (readBytes > 0) {
 
 			if (helper->DEBUG_ADDA(DEBUGLEVEL_TRACE)){
