@@ -110,7 +110,7 @@ typedef unsigned int uint;
 #define FX_CHORUS_DEPTH_B_MAX        100.0f //
 
 
-#define MAX_CHAN_EQS                       4
+#define MAX_CHAN_EQS                       4  // amount of EQs per Channel
 
 #define NUM_INPUT_CHANNEL                  160 // just use a single AES50-port for now
 #define NUM_OUTPUT_CHANNEL                 NUM_INPUT_CHANNEL
@@ -197,6 +197,8 @@ typedef unsigned int uint;
     (uint)X32_VCHANNEL_BLOCK_SIZE::SPECIAL
 
 #define VCHANNEL_NOT_SET MAX_VCHANNELS+1
+
+#define MAX_EQ_CHANNELS    MAX_FPGA_TO_DSP1_CHANNELS + MAX_FX_SLOTS + MAX_BUSSES + MAX_MATRIX + 2   // + 2 => Special + Sub; values used only during runtime
 
 #define MAX_MATRIX 6
 #define MAX_BUSSES 16

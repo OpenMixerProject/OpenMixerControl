@@ -25,6 +25,8 @@ class State {
         float dspAudioGlitchCounter[2];
         float dspVersion[2];
 
+        srDspChannel rChannel[MAX_EQ_CHANNELS];
+
         bool x32core_lcdmode_setup;
         uint8_t ledbrightness = LED_BRIGHTNESS_4;
 

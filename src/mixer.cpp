@@ -405,10 +405,10 @@ void Mixer::Sync()
             // copy values fromm Mixerparameter
             for (uint8_t peq = 0; peq < MAX_CHAN_EQS; peq++)
             {
-                dsp->rChannel[changedIndex].peq[peq].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peq), changedIndex);
-                dsp->rChannel[changedIndex].peq[peq].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peq), changedIndex);
-                dsp->rChannel[changedIndex].peq[peq].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peq), changedIndex);
-                dsp->rChannel[changedIndex].peq[peq].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peq), changedIndex);
             }
     
             dsp->SendEQ(changedIndex);

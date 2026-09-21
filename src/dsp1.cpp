@@ -49,14 +49,14 @@ DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
 
 void DSP1::Init()
 {
-    for (uint8_t chanIndex = 0; chanIndex < 40; chanIndex++)
+    for (uint chanIndex = 0; chanIndex < 40; chanIndex++)
     {
-         for (uint8_t peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
+         for (uint peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
          {
-            rChannel[chanIndex].peq[peqIndex].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peqIndex));
-            rChannel[chanIndex].peq[peqIndex].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peqIndex));
-            rChannel[chanIndex].peq[peqIndex].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peqIndex));
-            rChannel[chanIndex].peq[peqIndex].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peqIndex));
+            state->rChannel[chanIndex].peq[peqIndex].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peqIndex), chanIndex);
+            state->rChannel[chanIndex].peq[peqIndex].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peqIndex), chanIndex);
+            state->rChannel[chanIndex].peq[peqIndex].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peqIndex), chanIndex);
+            state->rChannel[chanIndex].peq[peqIndex].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peqIndex), chanIndex);
         }
     }
 }
@@ -400,7 +400,7 @@ void DSP1::SendEQ(uint chanIndex)
 
     for (uint peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
     {
-        fxmath->RecalcFilterCoefficients_PEQ(&(rChannel[chanIndex].peq[peqIndex]));
+        fxmath->RecalcFilterCoefficients_PEQ(&(state->rChannel[chanIndex].peq[peqIndex]));
 
 /*
         // send coeffiecients without interleaving for biquad() function
@@ -422,19 +422,19 @@ void DSP1::SendEQ(uint chanIndex)
                 // odd section index
                 sectionIndex += 1;
             }
-            values[sectionIndex + 0] = rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-            values[sectionIndex + 2] = rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-            values[sectionIndex + 4] = rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-            values[sectionIndex + 6] = -rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-            values[sectionIndex + 8] = -rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
+            values[sectionIndex + 0] = state->rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
+            values[sectionIndex + 2] = state->rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
+            values[sectionIndex + 4] = state->rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
+            values[sectionIndex + 6] = -state->rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
+            values[sectionIndex + 8] = -state->rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
         }else{
             // last section: store without interleaving
             int sectionIndex = (MAX_CHAN_EQS - 1) * 5;
-            values[sectionIndex + 0] = rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-            values[sectionIndex + 1] = rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-            values[sectionIndex + 2] = rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-            values[sectionIndex + 3] = -rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-            values[sectionIndex + 4] = -rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
+            values[sectionIndex + 0] = state->rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
+            values[sectionIndex + 1] = state->rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
+            values[sectionIndex + 2] = state->rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
+            values[sectionIndex + 3] = -state->rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
+            values[sectionIndex + 4] = -state->rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
         }
     }
 
@@ -526,23 +526,23 @@ void DSP1::SetOutputRouting(uint chanIndex) {
 uint8_t DSP1::GetPeak(int i, uint8_t steps)
 {
     if (steps==6) {
-        if (rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 6; } // CLIP
-        else if (rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 5; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
+        if (state->rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 6; } // CLIP
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 5; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
     }
 
     if (steps==8) {
-        if (rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 8; } // CLIP
-        else if (rChannel[i].meter >= VUTRESH_MINUS_03_DBFS) { return 7; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 6; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_09_DBFS) { return 5; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
+        if (state->rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 8; } // CLIP
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_03_DBFS) { return 7; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 6; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_09_DBFS) { return 5; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
     }
 
     return 0;
@@ -726,7 +726,7 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
                         //copy meter-info to rChannel-struct
                         for (int i = 0; i < (MAX_FPGA_TO_DSP1_CHANNELS + 8 + 16 + 8); i++)
                         {
-                            rChannel[i].meter = abs(floatValues[c + i]); // convert 32-bit audio-value
+                            state->rChannel[i].meter = abs(floatValues[c + i]); // convert 32-bit audio-value
                         }
 
                         MainChannelLR.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINLEFT -1]); // convert 32-bit audio-value
@@ -797,18 +797,18 @@ void DSP1::UpdateVuMeter(uint8_t intervalMs)
 	for (int i = 0; i < (40 + 8 + 16); i++)
     {
 		// Calculate decayed value
-        if (rChannel[i].meter > rChannel[i].meterDecay)
+        if (state->rChannel[i].meter > state->rChannel[i].meterDecay)
         {
             // current value is above stored decay-value -> copy value immediatly
-            rChannel[i].meterDecay = rChannel[i].meter;
+            state->rChannel[i].meterDecay = state->rChannel[i].meter;
         }
         else
         {
             // current value is below -> afterglow
             // this function is called every 10ms. A Decay-Rate of 6dB/second would be ideal, but we do a rought estimation here
-            rChannel[i].meterDecay -= (rChannel[i].meterDecay / coefficientDecay);
+            state->rChannel[i].meterDecay -= (state->rChannel[i].meterDecay / coefficientDecay);
         }
-        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(rChannel[i].meterDecay), i);
+        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(state->rChannel[i].meterDecay), i);
     }
 
     
