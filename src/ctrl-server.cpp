@@ -93,8 +93,6 @@ void CtrlServer::Init()
 	// unmute ADDA-boards
 	helper->Log("Unmute ADDA-Boards\n");
 	mixer->adda->SetMuteAll(false);
-
-	config->Set(CHANNEL_MUTE, 0, 35);
 }
 
 //#####################################################################################################################
