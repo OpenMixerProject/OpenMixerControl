@@ -159,7 +159,7 @@ namespace OMC
     //
     //#####################################################################################################################
 
-    bool Config::LoadConfig(uint scene)
+    bool Config::Load(uint scene)
     {
         WString::String loadFile = String("scene") + String(scene) + String(".json");
 
@@ -172,6 +172,7 @@ namespace OMC
         if (access(loadFile.c_str(), F_OK) == -1)
         {
             helper->Error("Can not load Config. File %s does not exist.", loadFile.c_str());
+            return false;
         }
 
         // Read file
@@ -184,9 +185,10 @@ namespace OMC
         // Parse JSON
         vector<X32ConfigFileEntry> entries;
         auto error = glz::read_json(entries, entireFile);
-        if (error) {
-        std::string error_msg = glz::format_error(error, entireFile);
-        std::cout << "ERROR: " << error_msg << std::endl;
+        if (error) 
+        {
+            std::string error_msg = glz::format_error(error, entireFile);
+            std::cout << "ERROR: " << error_msg << std::endl;
         }
         
         // Fill Mixerparameter

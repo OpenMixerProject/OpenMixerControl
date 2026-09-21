@@ -44,7 +44,7 @@ class PageScenes: public Page
             switch (surface_element_id)
             {
                 case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2:
-                    config->LoadConfig(configindex);
+                    config->Load(configindex);
                     break;
                 case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6:
                     config->Save(configindex);

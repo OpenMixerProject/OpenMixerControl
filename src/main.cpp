@@ -502,9 +502,10 @@ namespace OMC
 		bool runAsClient = app->count("--client") > 0;
 		Config* config = new Config(model_str, helper, runAsClient);
 
-		// #### CONFIG ############################################################################
-		//
-		if(!config->LoadConfig(0))
+		// #### Load CONFIG ######################################################################
+		// #
+		// #
+		if(!config->Load(0))
 		{
 			helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Load Default Routing");
 			LoadRoutingDefault(config);
@@ -535,10 +536,11 @@ namespace OMC
 
 			helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "no default configfile found, creating one");
 			config->Save(0);
+			config->Load(0); // Load config again to fully initialize everything!
 		}
-
-		//
-		// #### CONFIG #############################################################################
+		// #
+		// #
+		// #########################################################################################
 
 		// Print OSC-Doku
 		if (app->count("--osc-doc") > 0)

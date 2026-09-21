@@ -163,7 +163,7 @@ void CtrlServer::Tick100ms()
 	// 	// 	// if (startupCounter == 10)
 	// 	// 	// {
 	// 	// 	// 	// the gate, the dynamics and the EQ-settings are not loaded correctly on first load, so load it again after a short time
-	// 	// 	// 	config->LoadConfig(0);
+	// 	// 	// 	config->Load(0);
 
 	// 	// 	// 	// in the following lines the default configuration is set so that the users of the beta-version
 	// 	// 	// 	// can start with a working system

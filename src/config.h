@@ -56,7 +56,7 @@ namespace OMC
 
             Config(String model, Helper* h, bool runAsClient);
 
-            bool LoadConfig(uint scene);
+            bool Load(uint scene);
             void Save(uint scene);
 
             void DefineMixerparameters();
