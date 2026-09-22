@@ -56,7 +56,7 @@ void Adda::Init()
         # socat -d -d pty,raw,link=/tmp/ttyLocalAdda,echo=0 pty,raw,link=/tmp/ttyRemoteAdda,echo=0
 
         // start netcat server on port 10001
-        # nc -l 10000 </tmp/ttyRemoteAdda >/tmp/ttyRemoteAdda
+        # nc -l 10001 </tmp/ttyRemoteAdda >/tmp/ttyRemoteAdda
 
         X32
         ###
