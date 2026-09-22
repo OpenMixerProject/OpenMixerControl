@@ -367,7 +367,11 @@ namespace OMC
 				->group("Debug");
 
 		vector<string> debug_parameters;
-		app->add_option("-d,--debug", debug_parameters, "Prints debugging information to stdout. You can specify one or multiple of the following flags: ADDA DMX DSP1 DSP2 FPGA FX GUI INI MIXER OSC STATE SPI SURFACE TIMER UART X32CTRL")
+		app->add_option("-d,--debug", debug_parameters, 
+							"Print debugging information to stdout. You can specify one or multiple of the following flags: \n" \
+							"ALL - Print all Messages! \n" \
+							"ADDA CARD DMX DSP1 DSP2 FPGA FX GUI INI \n" \
+							"MIXER OSC STATE SPI SURFACE TIMER UART X32CTRL")
 				->configurable(false)
 				->group("Debug")
 				->expected(1,-1)
@@ -553,6 +557,7 @@ namespace OMC
 			for(uint8_t i=0; i<debug_parameters.size(); i++) {
 				if (debug_parameters[i] == "ALL") { helper->SetDebugAll(); }
 				if (debug_parameters[i] == "ADDA") { helper->DEBUG_ADDA(true); }
+				if (debug_parameters[i] == "CARD") { helper->DEBUG_CARD(true); }
 				if (debug_parameters[i] == "DMX") { helper->DEBUG_DMX(true); }
 				if (debug_parameters[i] == "DSP1") { helper->DEBUG_DSP1(true); }
 				if (debug_parameters[i] == "DSP2") { helper->DEBUG_DSP2(true); }

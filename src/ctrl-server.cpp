@@ -258,7 +258,7 @@ void CtrlServer::AutoSave()
 
 void CtrlServer::ProcessUartDataAdda()
 {
-	if (state->bodyless)
+	if (state->bodyless && !state->bodyless_with_surface_and_adda)
 	{
 		return;
 	}

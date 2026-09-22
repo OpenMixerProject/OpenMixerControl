@@ -31,27 +31,53 @@ Card::Card(X32BaseParameter* basepar, Adda* _adda) : X32Base(basepar) {
     this->adda = _adda;
 }
 
-void Card::Init() {
-    // TODO - move from ADDA Class
-
+void Card::Init()
+{
     // detect type of card
-    if (!adda->HasExpansion()) {
-        type = CARD_TYPE_NONE;
+
+    if (!adda->HasExpansion())
+    {
         return;
     }
 
+    // all known cards (X32 Firmware 4.13)
+    /*
+        1 = x-ufw, x-uf      <--- implemented
+        2 = x-usb
+        3 = x-dante
+        4 = x-adat           <--- implemented
+        5 = x-madi           <--- implemented
+        6 = dn32-usb
+        7 = dn32-dante
+        8 = dn32-adat
+        9 = dn32-madi
+        10 = x-urec, x-live  <--- implemented
+        11 = x-wsg
+        12 = dn32-urec, dn32-live
+        13 = dn32-wsg
+    */
+
     String typeString = adda->GetExpansion();
-    if ((typeString.indexOf("X-UF") > 0) || (typeString.indexOf("X-USB") > 0)) {
-        type = CARD_TYPE_XUSB;
-    } else if (typeString.indexOf("X-UREC") > 0) {
-        type = CARD_TYPE_XLIVE;
-    } else if (typeString.indexOf("X-ADAT") > 0) {
-        type = CARD_TYPE_XADAT;
-    } else if (typeString.indexOf("X-MADI") > 0) {
-        type = CARD_TYPE_XMADI;
-    } else {
-        type = CARD_TYPE_UNKNOWN; // unknown card
+    if ((typeString.indexOf("X-UF") > 0) || (typeString.indexOf("X-USB") > 0))
+    {
+        config->Set(CARD_TYPE, (uint)CARD::XUSB);
     }
+    else if ((typeString.indexOf("X-UREC") > 0) || (typeString.indexOf("X-LIVE") > 0))
+    {
+        config->Set(CARD_TYPE, (uint)CARD::XLIVE);
+    }
+    else if (typeString.indexOf("X-ADAT") > 0)
+    {
+        config->Set(CARD_TYPE, (uint)CARD::XADAT);
+    }
+    else if (typeString.indexOf("X-MADI") > 0)
+    {
+        config->Set(CARD_TYPE, (uint)CARD::XMADI);
+    }
+    else
+    {
+        config->Set(CARD_TYPE, (uint)CARD::UNKNOWN);
+    }    
 }
 
 void Card::Sync()
@@ -62,90 +88,100 @@ void Card::Sync()
     }
 }
 
+void Card::Tick100ms()
+{
+    // // put Card state into Mixerparameters
+
+    // // request card-information
+    // XLIVE_ReadTotalCardSpaceMB(0);
+    // XLIVE_ReadTotalCardSpaceMB(1);
+
+    // // // get all files from CARD
+    // // numberOfEntries = 0;
+    // // TOC = mixer->card->XLIVE_RequestToc(&numberOfEntries);
+}
+
 String Card::SendCommand(String command){
 	return adda->SendReceive(command);
 }
 
+bool Card::ProcessReturnCode(String returnCode)
+{
+    /*
+        Successfull Returncodes: *9X00#
+
+        "*9D00#"
+
+    */
+
+    uint Error_ID = (returnCode[3]-'0')*10 + (returnCode[4]-'0') + 100;
+
+    return true;
+}
+
 void Card::ProcessCommand(String command)
 {
-    if (command.indexOf("*9N0") > -1){
-        // command is send when a new card on slot 1 is detected
-        // *9N0003B68500000024EB# -> empty 32GB card
-        // *9N0003B2348000002459# -> 32GB card with four files
-        // *9N0003A6D300# -> only information about the remaining space
+    // Received X-LIVE command
+    helper->DEBUG_CARD(DEBUGLEVEL_VERBOSE, "CARD: Received Command: %s", command.c_str());
 
-        //XLIVE_CardPresent[0] = (command.substring(4, 4).toInt() == 0); // TODO: check if this value is really the information about card-present
-        XLIVE_CardPresent[0] = true;
+    // #################################
+    // # SD-Card - Inserted or removed #
+    // #################################
+    if ((command.indexOf("*9N0") > -1) || (command.indexOf("*9N1") > -1))
+    {
+        /*
+            Command is send when a new card is inserted or removed
 
-        if (XLIVE_CardPresent[0]) {
-            XLIVE_CardRemaingSpaceMB[0] = helper->hexToInt(command.substring(5, 5+8)) / 2000;
-            if (command.length() == 22) {
-                // we have information about the used space as well
-                XLIVE_CardUsedSpaceMB[0] = helper->hexToInt(command.substring(13, 13+8)) / 2000;
-            }
-        }else{
-            // no card installed
-            XLIVE_CardRemaingSpaceMB[0] = 0;
-            XLIVE_CardUsedSpaceMB[0] = 0;
+            Format: *9N<CARD#[1]{0, 1}><STATE[1]><Remaining Space[8]>00000000#
+
+            States: 0 - Ok
+                    1 - Removed
+                    3 - Write Protect
+                    4 - Wrong Format
+                    8 - Error
+
+            Examples
+            --------
+
+            *9N030A335F8000000000# <- 128GB Write Protected Card Slot 1
+            *9N100A335F8000000000# <- 128GB Card Slot 2
+
+        */
+
+        uint card = command.substring(3, 4).toInt();
+        enum CARD_STATE card_state = (CARD_STATE)command.substring(4, 5).toInt();
+        uint remaining_space = helper->hexToInt(command.substring(5, 5+8));
+
+        config->Set(CARD_SDCARD_STATE, (uint)card_state, card);
+
+        if (card_state == CARD_STATE::OK)
+        {
+            config->Set(CARD_SDCARD_REMAINING_SPACE, remaining_space, card);
         }
-
-        // estimate total size of card
-        XLIVE_CardTotalSpaceMB[0] = XLIVE_CardRemaingSpaceMB[0] + XLIVE_CardUsedSpaceMB[0];
-
-        // check for "no card" scenario (sure, there must be a better solution, but I'm lazy reverse-engineer more commands at the moment)
-        if ((XLIVE_CardRemaingSpaceMB[0] < 10) && (XLIVE_CardUsedSpaceMB[0] < 10)) {
+        else
+        {
             // no card installed
-            XLIVE_CardPresent[0] = false;
-            XLIVE_CardRemaingSpaceMB[0] = 0;
-            XLIVE_CardUsedSpaceMB[0] = 0;
-            XLIVE_CardTotalSpaceMB[0] = 0;
+            config->Set(CARD_SDCARD_REMAINING_SPACE, 0, card);
         }
-
-        // update card-page if currently shown
-        config->Refresh(CARD_STATE);
-    }else if (command.indexOf("*9N1") > -1){
-        // command is send when a new card on slot 2 is detected
-
-        //XLIVE_CardPresent[1] = (command.substring(4, 4).toInt() == 0); // TODO: check if this value is really the information about card-present
-        XLIVE_CardPresent[1] = true;
-
-        if (XLIVE_CardPresent[1]) {
-            XLIVE_CardRemaingSpaceMB[1] = helper->hexToInt(command.substring(5, 5+8)) / 2000;
-            if (command.length() == 22) {
-                // we have information about the used space as well
-                XLIVE_CardUsedSpaceMB[1] = helper->hexToInt(command.substring(13, 13+8)) / 2000;
-            }
-        }else{
-            // no card installed
-            XLIVE_CardRemaingSpaceMB[1] = 0;
-            XLIVE_CardUsedSpaceMB[1] = 0;
-        }
-
-        // estimate total size of card
-        XLIVE_CardTotalSpaceMB[1] = XLIVE_CardRemaingSpaceMB[1] + XLIVE_CardUsedSpaceMB[1];
-
-        // check for "no card" scenario (sure, there must be a better solution, but I'm lazy reverse-engineer more commands at the moment)
-        if ((XLIVE_CardRemaingSpaceMB[1] < 10) && (XLIVE_CardUsedSpaceMB[1] < 10)) {
-            // no card installed
-            XLIVE_CardPresent[1] = false;
-            XLIVE_CardRemaingSpaceMB[1] = 0;
-            XLIVE_CardUsedSpaceMB[1] = 0;
-            XLIVE_CardTotalSpaceMB[1] = 0;
-        }
-
-        // update card-page if currently shown
-        config->Refresh(CARD_STATE);
-    }else if (command.indexOf("*9N22") > -1) {
+    }
+    // #############################
+    // # SD-Card - Sample Position #
+    // #############################
+    else if (command.indexOf("*9N22") > -1)
+    {
         // we received current sample-position from expansion-card
         // *9N22xxxxxxxx#
         currentSongPositionSeconds = XLIVE_SampleIndexToSeconds(command.substring(5, command.length()-1));
         config->Refresh(CARD_POSITION);
-    } else if (command.indexOf("*9N24") > -1) {
+    }
+    else if (command.indexOf("*9N24") > -1)
+    {
         // command after stop of recording
-    }else if (command.indexOf("*9N07") > -1){
+    }
+    else if (command.indexOf("*9N07") > -1)
+    {
         // command after formatting the card
         // *9N0700000000#
-
     }
 }
 
@@ -155,7 +191,9 @@ void Card::FlushRxBuffer() {
 
 void Card::XUSB_XLIVE_SetConfig(uint8_t channelparameter, uint source)
 {
-    if ((type != CARD_TYPE_XUSB) && (type != CARD_TYPE_XLIVE))
+    CARD card_type = (CARD)config->GetUint(CARD_TYPE);
+
+    if ((card_type != CARD::XUSB) && (card_type != CARD::XLIVE))
     {
         // only X-LIVE and X-USB support this command
         return;
@@ -173,12 +211,16 @@ void Card::XUSB_XLIVE_SetConfig(uint8_t channelparameter, uint source)
 
 	String command = "*8C8" + String(channelparameter);
 
-    if (type == CARD_TYPE_XLIVE) {
+    if (card_type == CARD::XLIVE)
+    {
         // for X-LIVE we need to set the source as well (SD-Card or USB-Interface)
         // only X-Live
-        if (source == 0) {
+        if (source == 0)
+        {
             command += "U"; // USB-Interface
-        } else {
+        }
+        else
+        {
             command += "C"; // SD-Card
         }
     }
@@ -214,7 +256,7 @@ bool Card::XLIVE_Stop()
         XLIVE_Seek(0); // jump back to beginning of track
     }
 
-    config->Refresh(CARD_STATE);
+    config->Refresh(CARD_SDCARD_STATE);
 
 	return true;
 }
@@ -224,13 +266,13 @@ bool Card::XLIVE_PlayPause() {
     if (XLIVE_Playing) {
         ans = SendCommand("*9E#");
         XLIVE_Playing = false;
-        config->Refresh(CARD_STATE);
+        config->Refresh(CARD_SDCARD_STATE);
         return (ans == String("*9E00#"));
     } else {
         ans = SendCommand("*9D#");
         XLIVE_Playing = true;
-        config->Refresh(CARD_STATE);
-        return (ans == String("*9D00#"));
+        config->Refresh(CARD_SDCARD_STATE);
+        return ProcessReturnCode(ans);
     }
 }
 
@@ -279,7 +321,8 @@ String Card::XLIVE_RequestToc(uint* numberOfEntries) {
 	return TOC;
 }
 
-void Card::XLIVE_ReadRemainingCardSpace(uint card) {
+void Card::XLIVE_ReadRemainingCardSpace(uint card)
+{
 	String ans = SendCommand("*9N" + String(card) + "#");
     //                              cardMissing
 	// *9N" + intToHex(cardNumber, 1) + "0" + intToHex((cardSize-usedSpace)*2, 8) + intToHex(usedSpace*2, 8) + "#"
@@ -290,30 +333,42 @@ void Card::XLIVE_ReadRemainingCardSpace(uint card) {
 	//uint remaining = helper->hexToInt(ans.substring(5, 5+8)) / 2;
 	//uint used = helper->hexToInt(ans.substring(13, 13+8)) / 2;
 
-    XLIVE_CardPresent[card] = (ans.substring(4, 4).toInt() == 0);
+    bool cardPresent = (ans.substring(4, 4).toInt() == 0);
 
-    if (XLIVE_CardPresent[card]) {
-        XLIVE_CardRemaingSpaceMB[card] = helper->hexToInt(ans.substring(5, 5+8)) / 2000;
-        if (ans.length() == 22) {
-            // we have information about the used space as well
-            XLIVE_CardUsedSpaceMB[card] = helper->hexToInt(ans.substring(13, 13+8)) / 2000;
-        }
-    }else{
-        // no card installed
-        XLIVE_CardRemaingSpaceMB[card] = 0;
-        XLIVE_CardUsedSpaceMB[card] = 0;
+    if (cardPresent != config->GetBool(CARD_SDCARD_STATE, card))
+    {
+        // 
     }
 
-    if ((XLIVE_CardRemaingSpaceMB[card] < 10) && (XLIVE_CardUsedSpaceMB[card] < 10)) {
-        // no card installed
-        XLIVE_CardPresent[card] = false;
-        XLIVE_CardRemaingSpaceMB[card] = 0;
-        XLIVE_CardUsedSpaceMB[card] = 0;
-        XLIVE_CardTotalSpaceMB[card] = 0;
-    }
+
+    // if (XLIVE_CardPresent[card])
+    // {
+    //     XLIVE_CardRemaingSpaceMB[card] = helper->hexToInt(ans.substring(5, 5+8)) / 2000;
+    //     if (ans.length() == 22)
+    //     {
+    //         // we have information about the used space as well
+    //         XLIVE_CardUsedSpaceMB[card] = helper->hexToInt(ans.substring(13, 13+8)) / 2000;
+    //     }
+    // }
+    // else
+    // {
+    //     // no card installed
+    //     XLIVE_CardRemaingSpaceMB[card] = 0;
+    //     XLIVE_CardUsedSpaceMB[card] = 0;
+    // }
+
+    // if ((XLIVE_CardRemaingSpaceMB[card] < 10) && (XLIVE_CardUsedSpaceMB[card] < 10))
+    // {
+    //     // no card installed
+    //     config->Set(CARD_SDCARD_STATE, false, card);
+    //     config->Set(CARD_SDCARD_REMAINING_SPACE, 0, card);
+    //     config->Set(CARD_SDCARD_USED_SPACE, 0, card);
+    //     config->Set(CARD_SDCARD_TOTAL_SPACE, 0, card);
+    // }
 }
 
-void Card::XLIVE_ReadTotalCardSpaceMB(uint card) {
+void Card::XLIVE_ReadTotalCardSpaceMB(uint card)
+{
     // first update the card-state with this command (at least I guess that this command is doing this)
     SendCommand("*9R" + String(card) + "#");
 
@@ -323,13 +378,15 @@ void Card::XLIVE_ReadTotalCardSpaceMB(uint card) {
 	// *9G00xxxxxxxx#
     // *9G0003B70600# for a 32GB card -> 62326272 / (2*32 / 1000000) = 
 
-	XLIVE_CardTotalSpaceMB[card] = helper->hexToInt(ans.substring(5, 5+8)) / 2000;
+	uint CardTotalSpaceMB = helper->hexToInt(ans.substring(5, 5+8)) / 2000;
 
     // check if we read valid data. No card will report as 4 MB somehow...
-    if (XLIVE_CardTotalSpaceMB[card] < 10) {
-        XLIVE_CardPresent[card] = false;
-        XLIVE_CardTotalSpaceMB[card] = 0;
+    if (CardTotalSpaceMB < 10) {
+        //TODO XLIVE_CardPresent[card] = false;
+        CardTotalSpaceMB = 0;
     }
+
+    config->Set(CARD_SDCARD_TOTAL_SPACE, CardTotalSpaceMB, card);
 }
 
 bool Card::XLIVE_SelectInterface(uint option, uint interface) {
@@ -375,7 +432,7 @@ bool Card::XLIVE_RecordNewSession() {
             break;
     }
 
-    config->Refresh(CARD_STATE);
+    config->Refresh(CARD_SDCARD_STATE);
 
     return (String("*9Y00#") == SendCommand("*9H" + session + channelcount + "0" +  "#")); // TODO: check what the trailing zero before the "#" does
 }

@@ -5,12 +5,7 @@
 
 #include "adda.h"
 
-#define CARD_TYPE_NONE 0
-#define CARD_TYPE_XUSB 1
-#define CARD_TYPE_XLIVE 2
-#define CARD_TYPE_XADAT 3
-#define CARD_TYPE_XMADI 4
-#define CARD_TYPE_UNKNOWN 255
+
 
 using namespace WString;
 
@@ -25,25 +20,25 @@ class Card : X32Base
         Adda* adda;
 
         void XUSB_XLIVE_SetConfig(uint8_t channelparamter, uint source);
+        void GetMetadata(uint card);
 
     public:
         Card(X32BaseParameter* basepar, Adda* _adda);
 
-        uint type; // 0 = no card, 1 = X-UF/X-USB, 2 = X-LIVE, 3 = X-ADAT, 4 = X-MADI
         uint currentSongNumberChannels; // number of channels (e.g. 16 or 32)
         uint currentSongTotalSeconds;
         uint currentSongPositionSeconds;
 
         bool XLIVE_Playing = false;
         bool XLIVE_Recording = false;
-        bool XLIVE_CardPresent[2] = {false, false};
         uint XLIVE_CardTotalSpaceMB[2] = {0, 0};
-        uint XLIVE_CardRemaingSpaceMB[2] = {0, 0};
         uint XLIVE_CardUsedSpaceMB[2] = {0, 0};
 
         void Init();
         void Sync();
+        void Tick100ms();
         String SendCommand(String command);
+        bool ProcessReturnCode(String returnCode);
         void ProcessCommand(String command);
         void FlushRxBuffer();
 

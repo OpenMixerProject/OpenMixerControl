@@ -8,7 +8,7 @@
             //"args": ["--osc-doc"],
             //"args": ["-b", "-d", "OSC", "--trace", "--client=192.168.188.103"],
             //"args": ["-b", "-d", "OSC", "--trace"],
-            "args": ["-b"],
+            "args": ["-b", "-d", "UART", "CARD", "--verbose"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/pc_sdl2",
             "externalConsole": false,

@@ -362,6 +362,31 @@ namespace OMC
         ->DefMinMaxStandard_Uint(0, 1, 0)
         ->DefClientParameter();
 
+        DefParameter(CARD_TYPE, cat, "Card Type")
+        ->DefMinMaxStandard_Uint(0, (uint)CARD::__ELEMENT_COUNTER_DO_NOT_MOVE -1, (uint)CARD::NONE)
+        ->DefCycleMode(1, 1)
+        ->DefUOM(MP_UOM::CARD_TYPE);
+
+        DefParameter(CARD_SDCARD_STATE, cat, "Card SD-Card State", CARD_SDCARDS)
+        ->DefMinMaxStandard_Uint(0, (uint)CARD_STATE::__ELEMENT_COUNTER_DO_NOT_MOVE, (uint)CARD_STATE::REMOVED)
+        ->DefUOM(MP_UOM::CARD_SDCARD_STATE)
+        ->DefNoConfig();
+
+        DefParameter(CARD_SDCARD_TOTAL_SPACE, cat, "Card Total Space", CARD_SDCARDS)
+        ->DefMinMaxStandard_Uint(0, UINT32_MAX, 0)
+        ->DefUOM(MP_UOM::MEGABYTE)
+        ->DefNoConfig();
+
+        DefParameter(CARD_SDCARD_REMAINING_SPACE, cat, "Card Remaining Space", CARD_SDCARDS)
+        ->DefMinMaxStandard_Uint(0, UINT32_MAX, 0)
+        ->DefUOM(MP_UOM::MEGABYTE)
+        ->DefNoConfig();
+
+        DefParameter(CARD_SDCARD_USED_SPACE, cat, "Card Used Space", CARD_SDCARDS)
+        ->DefMinMaxStandard_Uint(0, UINT32_MAX, 0)
+        ->DefUOM(MP_UOM::MEGABYTE)
+        ->DefNoConfig();
+        
         DefParameter(CARD_NUMBER_OF_CHANNELS, cat, "Card Channels")
         ->DefMinMaxStandard_Uint(0, 5, 0)
         ->DefCycleMode(1, 1)
@@ -381,9 +406,6 @@ namespace OMC
         ->DefMinMaxStandard_Uint(0, 24*60*60, 0) // max. 1 day in seconds
         //->DefStepsize(1)
         //->DefUOM(MP_UOM::CARD_SDCARD)
-        ->DefNoConfig();
-        
-        DefParameter(CARD_STATE, cat, "Card State")
         ->DefNoConfig();
 
         // ##########

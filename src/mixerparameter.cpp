@@ -44,7 +44,7 @@ namespace OMC
             case DSP_ROUTING:
             case CHANNEL_LCD_MODE:
             case CARD_NUMBER_OF_CHANNELS:
-            case CARD_SDCARD:
+            case CARD_SDCARD_STATE:
             case CARD_AUDIO_SOURCE:
                 return GetUnitOfMesaurement(false, index, isResetLabel);
             case ZERO_BASED_INDEX__START_BY_ONE:
@@ -87,6 +87,9 @@ namespace OMC
         {
             using enum MP_UOM;
             
+            case MEGABYTE:
+                result += "MB";
+                break;
             case DB:
                 result += "dB";
                 break;
@@ -324,15 +327,26 @@ namespace OMC
                         break;
                 }
                 break;
-            case CARD_SDCARD:
-                switch((uint) (isResetLabel ? value_standard : value[index]))
+            case CARD_SDCARD_STATE:
+                switch((uint)value[index])
                 {
-                    case 0:
-                        result += String("#1");
+                    case (uint)CARD_STATE::OK:
+                        result += String("Ok");
                         break;
-                    case 1:
-                        result += String("#2");
+                    case (uint)CARD_STATE::REMOVED:
+                        result += String("Removed");
                         break;
+                    case (uint)CARD_STATE::WRITE_PROTECTED:
+                        result += String("Write Protected");
+                        break;
+                    case (uint)CARD_STATE::WRONG_FORMAT:
+                        result += String("Wrong Format");
+                        break;
+                    case (uint)CARD_STATE::ERROR:
+                        result += String("Error");
+                        break;
+                    default:
+                        result += String("UNKNOWN STATE");
                 }
                 break;
             case CARD_AUDIO_SOURCE:

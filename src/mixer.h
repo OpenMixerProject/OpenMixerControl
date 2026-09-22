@@ -44,6 +44,7 @@ class Mixer : public X32Base
 
         Mixer(X32BaseParameter* basepar);
         void Init();
+        void Tick100ms();
 
         void SetBusSend(uint8_t vChannelIndex, uint8_t index, float value);        
         String GetCardModelString();

@@ -102,6 +102,7 @@ enum class X32_VCHANNEL_BLOCK_SIZE : int {
 
 enum class MP_UOM {
     NONE,
+    MEGABYTE,
     DB, // dB
     DBFS, // dB Full Scale
     MS, // Milliseconds
@@ -114,6 +115,8 @@ enum class MP_UOM {
     TAPPOINT,
     ZERO_BASED_INDEX__START_BY_ONE,
     CHANNEL_LCD_MODE, // Displaymode of Channel LCDs
+    CARD_TYPE,
+    CARD_SDCARD_STATE,
     CARD_NUMBER_OF_CHANNELS,
     CARD_SDCARD,
     CARD_AUDIO_SOURCE,
@@ -164,11 +167,15 @@ enum class MP_ID {
     CHANNEL_LCD_MODE,
 
     // Card
+    CARD_TYPE,
+    CARD_SDCARD_STATE,
+    CARD_SDCARD_TOTAL_SPACE,
+    CARD_SDCARD_REMAINING_SPACE,
+    CARD_SDCARD_USED_SPACE,
     CARD_NUMBER_OF_CHANNELS,
     CARD_AUDIO_SOURCE,
     CARD_SDCARD,
     CARD_POSITION,
-    CARD_STATE,
 
     // Routing
 
@@ -1018,6 +1025,29 @@ enum class SurfaceElementType {
     Led,
     Lcd,
     VUMeter
+};
+
+enum class CARD : int
+{
+    NONE,
+    UNKNOWN,
+    XUSB,
+    XLIVE,
+    XADAT,
+    XMADI,
+
+    __ELEMENT_COUNTER_DO_NOT_MOVE
+};
+
+enum class CARD_STATE : int
+{
+    OK = 0,
+    REMOVED = 1,
+    WRITE_PROTECTED = 3,
+    WRONG_FORMAT = 4,
+    ERROR = 8,
+
+    __ELEMENT_COUNTER_DO_NOT_MOVE
 };
 
 enum class EQ_TYPE : int

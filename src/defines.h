@@ -177,6 +177,8 @@ typedef unsigned int uint;
 #define CARD_CHANNELMODE_8IN_8OUT       4
 #define CARD_CHANNELMODE_2IN_2OUT       5
 
+#define CARD_SDCARDS 2
+
 #define XM32_MAX_FADERS 25   // counted on X32 Full
 #define WING_MAX_FADERS 24   // counted on WING Full
 
@@ -278,3 +280,6 @@ typedef unsigned int uint;
 #define VUTRESH_MINUS_58_DBFS 2703521
 #define VUTRESH_MINUS_59_DBFS 2409516
 #define VUTRESH_MINUS_60_DBFS 2147483
+
+// Standards
+#define UINT32_MAX 0xFFFFFFFF
