@@ -246,7 +246,7 @@ namespace OMC
         String saveFile = String("scene") + String(scene) + String(".json");
         helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "Save config to %s", saveFile.c_str());
 
-        vector<X32ConfigFileEntry*> entries;
+        vector<X32ConfigFileEntry> entries;
 
         // go over all known Mixerparameter an store them
         for (uint i=0; i < (uint)__ELEMENT_COUNTER_DO_NOT_MOVE; i++)
@@ -259,19 +259,19 @@ namespace OMC
                 continue;
             }
 
-            X32ConfigFileEntry* entry = new X32ConfigFileEntry();
-            entry->MixerparameterId = (MP_ID)i;
+            X32ConfigFileEntry entry;
+            entry.MixerparameterId = (MP_ID)i;
 
             switch(parameter->GetType())
             {
                 case MP_VALUE_TYPE::STRING:
-                    entry->string_value = parameter->Config_GetValueString();
+                    entry.string_value = parameter->Config_GetValueString();
                     break;
                 default:
-                    entry->value = parameter->Config_GetValue();
+                    entry.value = parameter->Config_GetValue();
             }
 
-            entries.push_back(entry);
+            entries.push_back(std::move(entry));
         }
 
         std::string json;
