@@ -111,6 +111,7 @@ typedef unsigned int uint;
 
 
 #define MAX_CHAN_EQS                       4  // amount of EQs per Channel
+#define MAX_CHAN_ALTEQS                    3  // amount of EQs of the alternative EQ per Channel (EQ_ALT_BANDS in DSP1)
 
 #define NUM_INPUT_CHANNEL                  160 // just use a single AES50-port for now
 #define NUM_OUTPUT_CHANNEL                 NUM_INPUT_CHANNEL

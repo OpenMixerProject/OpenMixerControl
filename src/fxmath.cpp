@@ -24,6 +24,8 @@
 
 #include "fxmath.h"
 
+#include "../lib_ext/doctest/doctest/doctest.h"
+
 namespace OMC
 {
 
@@ -420,6 +422,74 @@ void FxMath::fxCalcParameters_DynamicEQ(float data[], int band, int type, float 
   float fs = (float)config->GetUint(MP_ID::SAMPLERATE)/(16.0f); // 16 samples per buffer
   data[9] = 1.0f - exp(-1000.0f / (fs * attack)); // convert ms to coeff
   data[10] = 1.0f - exp(-1000.0f / (fs * release)); // convert ms to coeff
+}
+
+// biquad_trans() on DSP1 needs the coeffs in the following order
+// a0 a0 a1 a1 a2 a2 b1 b1 b2 b2 (section 0/1)
+// a0 a0 a1 a1 a2 a2 b1 b1 b2 b2 (section 2/3)
+// a0 a1 a2 b1 b2 (last section if the number of sections is odd)
+void FxMath::InterleaveBiquadCoeffs(const sPEQ peq[], uint count, float values[]) {
+  for (uint peqIndex = 0; peqIndex < count; peqIndex++) {
+    int sectionIndex;
+    int stride;
+    if (((count % 2) == 0) || (peqIndex < (count - 1))) {
+      // store data with interleaving
+      sectionIndex = ((peqIndex / 2) * 2) * 5;
+      if ((peqIndex % 2) != 0) {
+        // odd section index
+        sectionIndex += 1;
+      }
+      stride = 2;
+    }else{
+      // last section: store without interleaving
+      sectionIndex = (count - 1) * 5;
+      stride = 1;
+    }
+    values[sectionIndex + 0 * stride] = peq[peqIndex].a[0]; // a0 (zeros)
+    values[sectionIndex + 1 * stride] = peq[peqIndex].a[1]; // a1 (zeros)
+    values[sectionIndex + 2 * stride] = peq[peqIndex].a[2]; // a2 (zeros)
+    values[sectionIndex + 3 * stride] = -peq[peqIndex].b[1]; // -b1 (poles)
+    values[sectionIndex + 4 * stride] = -peq[peqIndex].b[2]; // -b2 (poles)
+  }
+}
+
+TEST_CASE("FxMath - InterleaveBiquadCoeffs() builds the layout of biquad_trans()")
+{
+    sPEQ peq[4];
+    for (int i = 0; i < 4; i++)
+    {
+        peq[i].a[0] = 10 * i + 0;
+        peq[i].a[1] = 10 * i + 1;
+        peq[i].a[2] = 10 * i + 2;
+        peq[i].b[1] = 10 * i + 3;
+        peq[i].b[2] = 10 * i + 4;
+    }
+
+    SUBCASE("even number of sections: sections are interleaved pairwise")
+    {
+        float values[20];
+        float expected[20] = {0, 10, 1, 11, 2, 12, -3, -13, -4, -14,
+                              20, 30, 21, 31, 22, 32, -23, -33, -24, -34};
+        FxMath::InterleaveBiquadCoeffs(peq, 4, values);
+        for (int i = 0; i < 20; i++)
+        {
+            CAPTURE(i);
+            CHECK(values[i] == expected[i]);
+        }
+    }
+
+    SUBCASE("odd number of sections: last section is stored plain")
+    {
+        float values[15];
+        float expected[15] = {0, 10, 1, 11, 2, 12, -3, -13, -4, -14,
+                              20, 21, 22, -23, -24};
+        FxMath::InterleaveBiquadCoeffs(peq, 3, values);
+        for (int i = 0; i < 15; i++)
+        {
+            CAPTURE(i);
+            CHECK(values[i] == expected[i]);
+        }
+    }
 }
 
 }

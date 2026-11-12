@@ -415,8 +415,17 @@ void Mixer::Sync()
                 state->rChannel[changedIndex].peq[peq].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peq), changedIndex);
                 state->rChannel[changedIndex].peq[peq].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peq), changedIndex);
             }
+
+            for (uint8_t peq = 0; peq < MAX_CHAN_ALTEQS; peq++)
+            {
+                state->rChannel[changedIndex].altPeq[peq].type = config->GetUint(config->MpCalcId(CHANNEL_ALTEQ_TYPE1, peq), changedIndex);
+                state->rChannel[changedIndex].altPeq[peq].fc = config->GetFloat(config->MpCalcId(CHANNEL_ALTEQ_FREQ1, peq), changedIndex);
+                state->rChannel[changedIndex].altPeq[peq].Q = config->GetFloat(config->MpCalcId(CHANNEL_ALTEQ_Q1, peq), changedIndex);
+                state->rChannel[changedIndex].altPeq[peq].gain = config->GetFloat(config->MpCalcId(CHANNEL_ALTEQ_GAIN1, peq), changedIndex);
+            }
     
             dsp->SendEQ(changedIndex);
+            dsp->SendAltEQ(changedIndex);
             dsp->SendLowcut(changedIndex);
         }
     }

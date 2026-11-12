@@ -499,8 +499,25 @@ enum class MP_ID {
     DMX_ARTNET_VALUE = 279,
     //DMX_ARTNET_OFFSET,
 
+    // alternative EQ per channel (e.g. occlusion EQ for in-ear monitoring), used by bus sends with tap point ALT_EQ
+    CHANNEL_ALTEQ_ENABLE = 280,
+    CHANNEL_ALTEQ_TYPE1 = 281,
+    CHANNEL_ALTEQ_TYPE2 = 282,
+    CHANNEL_ALTEQ_TYPE3 = 283,
+    CHANNEL_ALTEQ_FREQ1 = 284,
+    CHANNEL_ALTEQ_FREQ2 = 285,
+    CHANNEL_ALTEQ_FREQ3 = 286,
+    CHANNEL_ALTEQ_GAIN1 = 287,
+    CHANNEL_ALTEQ_GAIN2 = 288,
+    CHANNEL_ALTEQ_GAIN3 = 289,
+    CHANNEL_ALTEQ_Q1 = 290,
+    CHANNEL_ALTEQ_Q2 = 291,
+    CHANNEL_ALTEQ_Q3 = 292,
+    BANKING_ALTEQ = 293,
+    EQ_PAGE_EDIT_ALTEQ = 294,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 280
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 295
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!
@@ -1137,6 +1154,7 @@ enum class DSP_TAP : int
     POST_EQ = 2,
     PRE_FADER = 3,
     POST_FADER = 4,
+    ALT_EQ = 5, // only for bus sends: pre fader + alternative EQ of the channel (e.g. occlusion EQ for IEM)
 };
 
 /// @brief Surface Binding Action

@@ -42,23 +42,20 @@ class PageEq: public Page {
 
         void OnShow() override
         {
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE, BANKING_EQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
-
+            BindEncoders();
             DrawEq();
         }
 
         void OnChange(bool force_update) override
         {
+            if (config->HasParameterChanged(EQ_PAGE_EDIT_ALTEQ))
+            {
+                BindEncoders();
+            }
+
             if (config->HasParameterChanged(CHANNEL_LOWCUT_FREQ) ||
                 config->HasParametersChanged({MP_CAT::CHANNEL_EQ}) ||
-                config->HasParametersChanged({BANKING_EQ, SELECTED_CHANNEL}) ||
+                config->HasParametersChanged({BANKING_EQ, BANKING_ALTEQ, EQ_PAGE_EDIT_ALTEQ, SELECTED_CHANNEL}) ||
                 force_update
             )
             {
@@ -72,6 +69,33 @@ class PageEq: public Page {
         lv_chart_series_t* chartSeriesEQPhase;
         FxMath* fxmath;
 
+        // encoder button 5 switches between the channel EQ and the alternative EQ (e.g. occlusion EQ for in-ear monitoring)
+        void BindEncoders()
+        {
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_5, MixerparameterAction::TOGGLE, EQ_PAGE_EDIT_ALTEQ);
+
+            if (config->GetBool(EQ_PAGE_EDIT_ALTEQ))
+            {
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_ALTEQ_FREQ1, (uint)BANKING_ALTEQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_ALTEQ_GAIN1, (uint)BANKING_ALTEQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_ALTEQ_Q1, (uint)BANKING_ALTEQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_ALTEQ_TYPE1, (uint)BANKING_ALTEQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE, BANKING_ALTEQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_ALTEQ_ENABLE);
+            }
+            else
+            {
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE, BANKING_EQ);
+                config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
+            }
+        }
+
         void DrawEq() {
 
             uint selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
@@ -81,8 +105,13 @@ class PageEq: public Page {
                 return;
             }
 
-            bool lowCutEnabled = config->GetBool(CHANNEL_LOWCUT_ENABLE, selectedChannelIndex);
-            bool eqEnabled = config->GetBool(CHANNEL_EQ_ENABLE, selectedChannelIndex);
+            // the alternative EQ is drawn alone, it is applied on top of the channel processing
+            bool editAltEq = config->GetBool(EQ_PAGE_EDIT_ALTEQ);
+            sPEQ* peqs = editAltEq ? state->rChannel[selectedChannelIndex].altPeq : state->rChannel[selectedChannelIndex].peq;
+            uint peqCount = editAltEq ? MAX_CHAN_ALTEQS : MAX_CHAN_EQS;
+
+            bool lowCutEnabled = !editAltEq && config->GetBool(CHANNEL_LOWCUT_ENABLE, selectedChannelIndex);
+            bool eqEnabled = config->GetBool(editAltEq ? CHANNEL_ALTEQ_ENABLE : CHANNEL_EQ_ENABLE, selectedChannelIndex);
 
             // calculate the filter-response between 20 Hz and 20 kHz for all 4 PEQs
             float eqValue[200];
@@ -105,9 +134,9 @@ class PageEq: public Page {
                 if (eqEnabled)
                 {
                     // PEQ
-                    for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                    for (uint8_t i_peq = 0; i_peq < peqCount; i_peq++)
                     {
-                        sPEQ* peq = &state->rChannel[selectedChannelIndex].peq[i_peq];
+                        sPEQ* peq = &peqs[i_peq];
 
                         fxmath->RecalcFilterCoefficients_PEQ(peq);
 
@@ -142,9 +171,9 @@ class PageEq: public Page {
                 if (eqEnabled)
                 {
                     // PEQ  
-                    for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                    for (uint8_t i_peq = 0; i_peq < peqCount; i_peq++)
                     {
-                        sPEQ* peq = &state->rChannel[selectedChannelIndex].peq[i_peq];
+                        sPEQ* peq = &peqs[i_peq];
 
                         phase += fxmath->CalcPhaseResponse_PEQ(
                             peq->a[0],

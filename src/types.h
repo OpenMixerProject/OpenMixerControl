@@ -91,6 +91,7 @@ typedef struct
 typedef struct
 {
 	sPEQ peq[MAX_CHAN_EQS];
+	sPEQ altPeq[MAX_CHAN_ALTEQS]; // alternative EQ, used by bus sends with tap point ALT_EQ
 
 	uint32_t meter;
 	uint32_t meterDecay; // meter information with decay

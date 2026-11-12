@@ -487,6 +487,17 @@ namespace OMC
         ->DefMinMaxStandard_Uint(0, 3, 0)
         ->DefClientParameter();
 
+        DefParameter(BANKING_ALTEQ, cat, "Alt EQ")
+        ->DefUOM(MP_UOM::ZERO_BASED_INDEX__START_BY_ONE)
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, MAX_CHAN_ALTEQS - 1, 0)
+        ->DefClientParameter();
+
+        DefParameter(EQ_PAGE_EDIT_ALTEQ, cat, "Edit Alt EQ")
+        ->DefNameShort("Alt EQ")
+        ->DefStandard_Bool(false)
+        ->DefClientParameter();
+
         DefParameter(BANKING_INPUT, cat, "Banking Input")
         ->DefHideEncoderReset()
         ->DefMinMaxStandard_Uint(0, (uint)OMCBankId::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)OMCBankId::None)
@@ -667,7 +678,7 @@ namespace OMC
         {
             DefParameter(MpCalcId(CHANNEL_BUS_SEND01_TAPPOINT, i), cat, String("Bus Send ")  + (i + 1) + " Tap", MAX_VCHANNELS)
             ->DefUOM(MP_UOM::TAPPOINT)
-            ->DefMinMaxStandard_Uint(0, 4, (uint)DSP_TAP::INPUT);
+            ->DefMinMaxStandard_Uint(0, (uint)DSP_TAP::ALT_EQ, (uint)DSP_TAP::PRE_FADER);
         }    
 
         // gate
@@ -779,6 +790,38 @@ namespace OMC
             ->DefNameShort(String("EQ Q") + String(i))
             ->DefStepsize(0.1f)
             ->DefMinMaxStandard_Float(0.3f, 10.0f, 2.0f, 1);
+        }
+
+        // alternative EQ (e.g. occlusion EQ for in-ear monitoring), used by bus sends with tap point ALT_EQ
+        DefParameter(CHANNEL_ALTEQ_ENABLE, cat, "Alt EQ Enable", MAX_VCHANNELS)
+        ->DefNameShort("AltEQ")
+        ->DefStandard_Bool(false);
+
+        float channel_alteq_freq[MAX_CHAN_ALTEQS] = {250.0f, 800.0f, 3000.0f};
+        for (uint i = 0; i < MAX_CHAN_ALTEQS; i++)
+        {
+            DefParameter(MpCalcId(CHANNEL_ALTEQ_TYPE1, i), cat, String("Alt EQ Type[") + String(i) + String("]"), MAX_VCHANNELS)
+            ->DefNameShort(String("AEqTy") + String(i))
+            ->DefUOM(MP_UOM::EQ_TYPE)
+            ->DefHideEncoderReset()
+            ->DefMinMaxStandard_Uint(0, 7, 1)
+            ->DefCycleMode(1, 1);
+
+            DefParameter(MpCalcId(CHANNEL_ALTEQ_FREQ1, i), cat, String("Alt EQ Freq[") + String(i) + String("]"), MAX_VCHANNELS)
+            ->DefNameShort(String("AEqFr") + String(i))
+            ->DefUOM(MP_UOM::HZ)
+            ->DefStepmode(1) // frequency mode
+            ->DefMinMaxStandard_Float(20.0f, 20000.0f, channel_alteq_freq[i]);
+
+            DefParameter(MpCalcId(CHANNEL_ALTEQ_GAIN1, i), cat, String("Alt EQ Gain[") + String(i) + String("]"), MAX_VCHANNELS)
+            ->DefNameShort(String("AEqGa") + String(i))
+            ->DefUOM(MP_UOM::DB)
+            ->DefMinMaxStandard_Float(-15.0f, 15.0f, 0.0f, 1);
+
+            DefParameter(MpCalcId(CHANNEL_ALTEQ_Q1, i), cat, String("Alt EQ Q[") + String(i) + String("]"), MAX_VCHANNELS)
+            ->DefNameShort(String("AEq Q") + String(i))
+            ->DefStepsize(0.1f)
+            ->DefMinMaxStandard_Float(0.3f, 10.0f, 1.0f, 1);
         }
 
         // ###########

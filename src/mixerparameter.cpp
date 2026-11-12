@@ -332,6 +332,9 @@ namespace OMC
                     case DSP_TAP::PRE_FADER:
                         result += "Pre Fader";
                         break;
+                    case DSP_TAP::ALT_EQ:
+                        result += "Alt EQ";
+                        break;
                 }
                 break;
             case CHANNEL_LCD_MODE:
@@ -543,6 +546,25 @@ namespace OMC
         SUBCASE("GetName")
         {
             CHECK(p->GetName() == "Ch Vol");
+        }
+    }
+
+    TEST_CASE("Mixerparameter - Tappoint labels")
+    {
+        Mixerparameter* p = new Mixerparameter(MP_ID::CHANNEL_BUS_SEND01_TAPPOINT, MP_CAT::CHANNEL_SENDS, "Bus Send 1 Tap", 1);
+        p->DefUOM(MP_UOM::TAPPOINT)
+        ->DefMinMaxStandard_Uint(0, (uint)DSP_TAP::ALT_EQ, (uint)DSP_TAP::PRE_FADER);
+
+        SUBCASE("Alt EQ")
+        {
+            p->Set((uint)DSP_TAP::ALT_EQ);
+            CHECK(p->GetFormatedValue() == "Alt EQ");
+        }
+
+        SUBCASE("Pre Fader")
+        {
+            p->Set((uint)DSP_TAP::PRE_FADER);
+            CHECK(p->GetFormatedValue() == "Pre Fader");
         }
     }
 

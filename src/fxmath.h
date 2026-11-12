@@ -11,6 +11,7 @@ class FxMath : X32Base {
 
         FxMath(X32BaseParameter* basepar);
         void RecalcFilterCoefficients_PEQ(sPEQ* peq);
+        static void InterleaveBiquadCoeffs(const sPEQ peq[], uint count, float values[]);
         float CalcFrequencyResponse_LC(float f, float fc, float fs);
         float CalcFrequencyResponse_HC(float f, float fc, float fs);
         float CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1, float b2, float f, float fs);

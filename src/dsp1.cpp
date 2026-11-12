@@ -192,27 +192,37 @@ void DSP1::ChannelSendTapPoints(uint chanIndex)
 {
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "ChannelSendTapPoints() for channelindex %d", chanIndex);
 
-    for (uint8_t sendChannel = 0; sendChannel < 16; sendChannel++)
+    uint dspChannel = chanIndex;
+    uint dspindex = 0;
+    uint8_t sendCount = 16;
+
+    if (chanIndex >= 64)
+    {
+        return;
+    }
+
+    // Mixbus
+    if (chanIndex >= 48) // Mixbus
+    {
+        // Mixbus has only 6 sends to matrix
+        sendCount = 6;
+        dspindex = 1;
+        dspChannel = chanIndex - 48;
+    }
+
+    for (uint8_t sendChannel = 0; sendChannel < sendCount; sendChannel++)
     {
         uint32_t values[2];
-        uint dspindex = 0;
         values[0] = sendChannel;
         values[1] = config->GetUint(config->MpCalcId(CHANNEL_BUS_SEND01_TAPPOINT, sendChannel), chanIndex);
 
-        // Mixbus
-        if (chanIndex >= 48) // Mixbus
+        // the alternative EQ exists only on channels, a mixbus->matrix send uses pre fader instead
+        if ((dspindex == 1) && (values[1] == (uint)DSP_TAP::ALT_EQ))
         {
-            // Mixbus has only 6 sends to matrix
-            if (sendChannel > 5)
-            {
-                return;
-            }
-
-            dspindex = 1;
-            chanIndex = chanIndex - 48;
+            values[1] = (uint)DSP_TAP::PRE_FADER;
         }
 
-        spi->QueueDspData(0, 't', chanIndex, dspindex, 2, (float*)&values[0]);
+        spi->QueueDspData(0, 't', dspChannel, dspindex, 2, (float*)&values[0]);
     }
 }
 
@@ -388,56 +398,35 @@ void DSP1::SendEQ(uint chanIndex)
 {
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendEQ() channelindex %d", chanIndex);
 
-    // biquad_trans() needs the coeffs in the following order
-    // a0 a0 a1 a1 a2 a2 b1 b1 b2 b2 (section 0/1)
-    // a0 a0 a1 a1 a2 a2 b1 b1 b2 b2 (section 2/3)
-    // a0 a1 a2 b1 b2 (section 4)
-
     float values[(MAX_CHAN_EQS * 5) + 1];
 
     for (uint peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
     {
         fxmath->RecalcFilterCoefficients_PEQ(&(state->rChannel[chanIndex].peq[peqIndex]));
-
-/*
-        // send coeffiecients without interleaving for biquad() function
-        int sectionIndex = peq * 5;
-        values[sectionIndex + 0] = -Channel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
-        values[sectionIndex + 1] = -Channel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-        values[sectionIndex + 2] = Channel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-        values[sectionIndex + 3] = Channel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-        values[sectionIndex + 4] = Channel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-*/
-
-        // interleave coefficients for biquad_trans()
-        if (((MAX_CHAN_EQS % 2) == 0) || (peqIndex < (MAX_CHAN_EQS - 1))) {
-            // we have even number of PEQ-sections
-            // or we have odd number but we are still below the last section
-            // store data with interleaving
-            int sectionIndex = ((peqIndex / 2) * 2) * 5;
-            if ((peqIndex % 2) != 0) {
-                // odd section index
-                sectionIndex += 1;
-            }
-            values[sectionIndex + 0] = state->rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-            values[sectionIndex + 2] = state->rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-            values[sectionIndex + 4] = state->rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-            values[sectionIndex + 6] = -state->rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-            values[sectionIndex + 8] = -state->rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
-        }else{
-            // last section: store without interleaving
-            int sectionIndex = (MAX_CHAN_EQS - 1) * 5;
-            values[sectionIndex + 0] = state->rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-            values[sectionIndex + 1] = state->rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-            values[sectionIndex + 2] = state->rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-            values[sectionIndex + 3] = -state->rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-            values[sectionIndex + 4] = -state->rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
-        }
     }
 
+    FxMath::InterleaveBiquadCoeffs(state->rChannel[chanIndex].peq, MAX_CHAN_EQS, &values[0]);
     values[(MAX_CHAN_EQS * 5)] = config->GetBool(CHANNEL_EQ_ENABLE, chanIndex);
 
     spi->QueueDspData(0, 'e', chanIndex, 'e', (MAX_CHAN_EQS * 5) + 1, &values[0]);
+}
+
+// send the alternative EQ (e.g. occlusion EQ for in-ear monitoring). DSP1 applies it on bus sends with tap point ALT_EQ
+void DSP1::SendAltEQ(uint chanIndex)
+{
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendAltEQ() channelindex %d", chanIndex);
+
+    float values[(MAX_CHAN_ALTEQS * 5) + 1];
+
+    for (uint peqIndex = 0; peqIndex < MAX_CHAN_ALTEQS; peqIndex++)
+    {
+        fxmath->RecalcFilterCoefficients_PEQ(&(state->rChannel[chanIndex].altPeq[peqIndex]));
+    }
+
+    FxMath::InterleaveBiquadCoeffs(state->rChannel[chanIndex].altPeq, MAX_CHAN_ALTEQS, &values[0]);
+    values[(MAX_CHAN_ALTEQS * 5)] = config->GetBool(CHANNEL_ALTEQ_ENABLE, chanIndex);
+
+    spi->QueueDspData(0, 'e', chanIndex, 'a', (MAX_CHAN_ALTEQS * 5) + 1, &values[0]);
 }
 
 void DSP1::ResetEq(uint8_t chan)
