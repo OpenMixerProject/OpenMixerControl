@@ -660,14 +660,16 @@ namespace OMC
         {
             DefParameter(MpCalcId(CHANNEL_BUS_SEND01, i), cat, String("Bus Send ") + (i + 1), MAX_VCHANNELS)
             ->DefUOM(MP_UOM::DB)
-            ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1);
+            ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
+            ->DefOSC(String("ch_send") + String(i + 1) + String("_lvl"));
         }
         
         for (uint i = 0; i < BUS_SENDS; i++)
         {
             DefParameter(MpCalcId(CHANNEL_BUS_SEND01_TAPPOINT, i), cat, String("Bus Send ")  + (i + 1) + " Tap", MAX_VCHANNELS)
             ->DefUOM(MP_UOM::TAPPOINT)
-            ->DefMinMaxStandard_Uint(0, 4, (uint)DSP_TAP::INPUT);
+            ->DefMinMaxStandard_Uint(0, 4, (uint)DSP_TAP::INPUT)
+            ->DefOSC(String("ch_send") + String(i + 1) + String("_tap"));
         }    
 
         // gate
