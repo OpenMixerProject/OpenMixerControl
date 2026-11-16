@@ -199,6 +199,7 @@ namespace OMC
         // scene must not shrink arrays and cause later reads to access past end.
         for (const auto& entry : entries)
         {
+            if ((int)entry.MixerparameterId < 0) { return false; }
             if (entry.MixerparameterId >= MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE) { continue; }
             auto* parameter = GetParameter(entry.MixerparameterId);
             if (parameter->GetId() == NONE) { continue; }
@@ -220,6 +221,7 @@ namespace OMC
             }
 
             Mixerparameter* parameter = GetParameter(parameter_id);
+            if (parameter->GetId() == NONE) { continue; }
 
             uint entrysize = 0;
             switch(parameter->GetType())

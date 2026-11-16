@@ -29,7 +29,7 @@ namespace OMC
 
             // Mixerparameter
 
-            Mixerparameter* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE];
+            Mixerparameter* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE] = {0};
             map<MP_ID, set<uint>>* mp_changedlist = new map<MP_ID, set<uint>>();
             bool MixerParameterChangelistFreeze = false;
             map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
