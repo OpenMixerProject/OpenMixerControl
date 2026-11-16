@@ -557,7 +557,8 @@ namespace OMC
         {
             DefParameter(MpCalcId(MUTE_GROUP_1_MUTE, i), cat, String("Mute Grp ") + String(i+1) + String(" On"))
             ->DefStandard_Bool(false)
-            ->DefAssignMembersIfTo(DISPLAY_MUTE_GROUP, MpCalcId(MUTE_GROUP_1, i));
+            ->DefAssignMembersIfTo(DISPLAY_MUTE_GROUP, MpCalcId(MUTE_GROUP_1, i))
+            ->DefOSC(String("mgrp") + String(i+1) + String("_mute"));
         }
 
         // DCA Group "master" - for DCA Spill and assigning the DCA Group via select button
@@ -633,14 +634,16 @@ namespace OMC
         for (uint i = 0; i < MUTE_GROUPS; i++)
         {
             DefParameter(MpCalcId(MUTE_GROUP_1, i), cat, String("Mute Grp ") + String(i+1) + String(" Assign"), MAX_VCHANNELS)
-            ->DefStandard_Bool(false);
+            ->DefStandard_Bool(false)
+            ->DefOSC(String("ch_mgrp") + String(i+1));
         }
         
         // DCA Group Membership
         for (uint i = 0; i < DCA_GROUPS; i++)
         {
             DefParameter(MpCalcId(DCA_GROUP_1, i), cat, String("DCA Grp ") + String(i+1) + String(" Assign"), MAX_VCHANNELS)
-            ->DefStandard_Bool(false);
+            ->DefStandard_Bool(false)
+            ->DefOSC(String("ch_dca") + String(i+1));
         }
 
         DefParameter(CHANNEL_PANORAMA, cat, "Pan/Bal", MAX_VCHANNELS)
