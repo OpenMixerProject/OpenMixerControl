@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <set>
 
@@ -29,7 +30,7 @@ namespace OMC
 
             // Mixerparameter
 
-            Mixerparameter* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE];
+            Mixerparameter* mpm[(uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE] = {0};
             map<MP_ID, set<uint>>* mp_changedlist = new map<MP_ID, set<uint>>();
             bool MixerParameterChangelistFreeze = false;
             map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
@@ -56,6 +57,12 @@ namespace OMC
             OMC_MODEL _model;
 
         public:
+
+            std::set<std::string> oscCapabilities;
+
+            // Observation is independent of bindings/claims and cannot consume
+            // an event. Called on the same control loop as ordinary handling.
+            std::function<void(SurfaceElement*, const char*, float)> surfaceObserver;
 
             Config(String model, Helper* h, bool runAsClient);
 
@@ -188,4 +195,3 @@ namespace OMC
             vector<X32ConfigFileEntry> entries;
     };
 }
-
