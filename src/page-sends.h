@@ -3,6 +3,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageSends : public Page
 {
     using enum MP_ID;
@@ -20,7 +23,6 @@ class PageSends : public Page
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 5;
-            led = X32_BTN_VIEW_MIX_BUS_SENDS;
             noLedOnRack = true;
         }
 
@@ -53,3 +55,5 @@ class PageSends : public Page
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE_SELECTED_CHANNEL, config->MpCalcId(CHANNEL_BUS_SEND02_TAPPOINT, bankingSends * 2));
         }
 };
+
+}

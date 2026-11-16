@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageDynamics: public Page {
     using enum MP_ID;
 
@@ -15,7 +18,6 @@ class PageDynamics: public Page {
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 3;
-            led = X32_BTN_VIEW_COMPRESSOR;
             noLedOnRack = true;
         }
 
@@ -65,11 +67,13 @@ class PageDynamics: public Page {
 
         void OnUpdateMeters() override
         {
+            // TODO: Metering
+
             int32_t compValueAudioDbfs = -120;
 
             uint8_t selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
             if (selectedChannelIndex < 40) {
-                compValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
+                compValueAudioDbfs = helper->get_dbfs_from_peak_arm_opt(state->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
             }
 
             // add new value to chart
@@ -123,7 +127,7 @@ class PageDynamics: public Page {
                 int32_t* y_array = lv_chart_get_series_y_array(chart, series); //lv_chart_get_y_array
                 int32_t value = y_array[point_id];
 
-                X32Config* config = (X32Config*)lv_obj_get_user_data(obj);
+                Config* config = (Config*)lv_obj_get_user_data(obj);
 
                 if (value >= config->GetFloat(MP_ID::CHANNEL_DYNAMICS_TRESHOLD, config->GetUint(SELECTED_CHANNEL)) * 100.0f) {
                     line_dsc->color = lv_palette_main(LV_PALETTE_ORANGE);
@@ -170,3 +174,5 @@ class PageDynamics: public Page {
             lv_chart_refresh(objects.current_channel_comp);
         }
 };
+
+}

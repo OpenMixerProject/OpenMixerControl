@@ -24,6 +24,9 @@
 
 #include "spi-event.h"
 
+namespace OMC
+{
+
 SpiEvent::SpiEvent(uint8_t _dsp, uint8_t _classId, uint8_t _channel, uint8_t _index, uint8_t _valueCount, void* _values){
     this->dsp = _dsp;
     this->classId = _classId;
@@ -31,4 +34,6 @@ SpiEvent::SpiEvent(uint8_t _dsp, uint8_t _classId, uint8_t _channel, uint8_t _in
     this->index = _index;
     this->valueCount = _valueCount;
     this->values = _values;
+}
+
 }

@@ -2,9 +2,13 @@
 #include "page.h"
 
 using namespace std;
+using enum MP_ID;
+
+namespace OMC
+{
+
 class PageScenes: public Page
 {
-    using enum MP_ID;
     private:
         int configindex = 0;
 
@@ -12,7 +16,6 @@ class PageScenes: public Page
         PageScenes(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
             tabLayer0 = objects.maintab;
             tabIndex0 = 7;
-            led = X32_BTN_VIEW_SCENES;
         }
 
         void OnShow() override
@@ -41,7 +44,7 @@ class PageScenes: public Page
             switch (surface_element_id)
             {
                 case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2:
-                    config->LoadConfig(configindex);
+                    config->Load(configindex);
                     break;
                 case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6:
                     config->Save(configindex);
@@ -51,3 +54,5 @@ class PageScenes: public Page
             }
         }
 };
+
+}

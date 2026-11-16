@@ -1,0 +1,665 @@
+#include "surface-controller-wing.h"
+
+namespace OMC
+{
+
+SurfaceControllerWing::SurfaceControllerWing(X32BaseParameter* basepar) : SurfaceController(basepar)
+{
+    memset(&parser, 0, sizeof(parser));
+
+    uart_csc = new Uart(basepar);
+    uart_pnlc = new Uart(basepar);
+    
+    uart_csc->Open("/dev/ttymxc4", 115200, true);
+    uart_pnlc->Open("/dev/ttymxc3", 115200, true);
+
+    csc_led_map.insert({
+        {SurfaceElementId::WING_CH1_12, 1},
+        {SurfaceElementId::WING_CH13_24, 2},
+        {SurfaceElementId::WING_CH25_36, 3},
+        {SurfaceElementId::WING_CH37_40_AUX, 4},
+    });
+    
+    if(config->IsModelWingCompact())
+    {
+        // Channel Strips
+        for (uint i = 0; i < 13; i++)
+        {
+            csc_led_strip_map.insert({
+                {config->CalcSurfaceElementId(SurfaceElementId::WING_SELECT_1, i), i},
+                {config->CalcSurfaceElementId(SurfaceElementId::WING_SOLO_1, i), i + 13},
+                {config->CalcSurfaceElementId(SurfaceElementId::WING_MUTE_1, i), i + 13 + 13}
+            });
+        }
+    }
+
+    pnlc_led_map.insert({
+        {SurfaceElementId::HOME, 0},
+        {SurfaceElementId::EFFECTS, 1},
+        {SurfaceElementId::METERS, 2},
+        {SurfaceElementId::ROUTING, 3},
+        {SurfaceElementId::SETUP , 4},
+        {SurfaceElementId::LIBRARY, 5},
+        {SurfaceElementId::UTILITY, 6},
+        //{SurfaceElementId::, 7},
+        {SurfaceElementId::CLEAR_SOLO, 8}
+    });
+
+    for (int i = 0; i < 40; ++i) {
+            setCSCLedRaw(i, LedState::AUS);
+    }
+
+    for (int i = 0; i < 39; ++i) {
+            setCSCLedStripRaw(i, LedState::AUS);
+    }
+    
+    Reset();
+}
+
+
+void SurfaceControllerWing::Tick100ms()
+{
+    heartbeatWaitCounter++;
+    if (heartbeatWaitCounter > 30) // 3 seconds
+    {
+        SendHeartbeat();
+
+        heartbeatWaitCounter = 0;
+    }
+    
+}
+
+void SurfaceControllerWing::ProcessUartData()
+{
+    char buf[256];
+    int n = uart_csc->Rx(buf, sizeof(buf));
+    if (n > 0) {
+        char hex[3 * 256 + 1];
+        int pos = 0;
+        for (int i = 0; i < n && i < 256; ++i) {
+            pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", (uint8_t)buf[i]);
+        }
+        hex[pos] = '\0';
+        helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "CSC RX %d bytes: %s", n, hex);
+        for (int i = 0; i < n; ++i) {
+            WingParserFeed(false, (uint8_t)buf[i]);
+        }
+    }
+
+    char buf_pnlc[256];
+    int n_pnlc = uart_pnlc->Rx(buf_pnlc, sizeof(buf_pnlc));
+    if (n_pnlc > 0) {
+        char hex[3 * 256 + 1];
+        int pos = 0;
+        for (int i = 0; i < n_pnlc && i < 256; ++i) {
+            pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", (uint8_t)buf_pnlc[i]);
+        }
+        hex[pos] = '\0';
+        helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "PNLC RX %d bytes: %s", n_pnlc, hex);
+        for (int i = 0; i < n_pnlc; ++i) {
+            WingParserFeed(true, (uint8_t)buf_pnlc[i]);
+        }
+    }
+}
+
+void SurfaceControllerWing::WingParserFeed(bool pnlc, uint8_t byte) {
+    if (!parser.in_frame) {
+        if (byte == 0x2a) {
+            parser.in_frame = 1;
+            parser.after_star = 1;
+            parser.have_cmd = 0;
+            parser.len = 0;
+        }
+        return;
+    }
+
+    if (parser.after_star) {
+        parser.after_star = 0;
+        if (byte == 0x2a) {
+            parser.have_cmd = 0;
+            parser.len = 0;
+            parser.after_star = 1;
+        } else if (byte == 0x40) {
+            if (parser.len < sizeof(parser.payload))
+                parser.payload[parser.len++] = 0x2a;
+        } else if (byte & 0x80) {
+            if (parser.have_cmd) {
+                uint8_t expect = helper->CalculateWingChecksum(parser.payload, parser.len);
+                if (byte == expect) {
+                    WingHandleParsedFrame(pnlc, parser.cmd, parser.payload, parser.len);
+                }
+            }
+            memset(&parser, 0, sizeof(parser));
+        } else if (!parser.have_cmd) {
+            parser.cmd = byte;
+            parser.have_cmd = 1;
+        } else if (parser.len + 2 <= sizeof(parser.payload)) {
+            parser.payload[parser.len++] = 0x2a;
+            parser.payload[parser.len++] = byte;
+        }
+        return;
+    }
+
+    if (byte == 0x2a) {
+        parser.after_star = 1;
+    } else if (!parser.have_cmd) {
+        parser.cmd = byte;
+        parser.have_cmd = 1;
+    } else if (parser.len < sizeof(parser.payload)) {
+        parser.payload[parser.len++] = byte;
+    }
+}
+
+void SurfaceControllerWing::WingHandleParsedFrame(bool pnlc, uint8_t cmd, const uint8_t* payload, size_t len)
+{
+    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "SurfaceControllerWing parsed frame cmd=%c len=%zu", cmd, len);
+
+    if (len > 0)
+    {
+        char hex[3 * 256 + 1];
+        int pos = 0;
+        for (size_t i = 0; i < len && i < 256; ++i)
+        {
+            pos += snprintf(hex + pos, sizeof(hex) - pos, "%02x ", payload[i]);
+        }
+        hex[pos] = '\0';
+        helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "SurfaceControllerWing payload: %s", hex);
+    }
+
+    if (cmd == 'b' && len == 2)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1];
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Button: pnlc=%d index=0x%02x value=%u", pnlc, index, value);
+        surfaceCallback(callbackArg, pnlc ? OMC_BOARD_WING_PNLC : OMC_BOARD_WING, cmd, index, value);
+
+        // DEBUG
+        if (value && (index == 0x46 || index == 0x47))
+        {
+            if (index == 0x46)
+            {
+                ledDebug--;
+            }
+            else if (index == 0x47)
+            {
+                ledDebug++;
+            }
+
+            printf("LED DEBUG: %d\n", ledDebug);
+            setCSCLedRaw(ledDebug, LedState::LED_AN);
+            debugCSCLedPrint();
+            SendWingFrame(false, 'L', getCSCLedBuffer(), 10);
+        }   
+    }
+
+    if (!pnlc && cmd == 'f' && len == 3)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1] | (payload[2] << 8);
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Fader: index=0x%02x value=%u", index, value);
+        surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
+    }
+
+    if (!pnlc && cmd == 'w' && len == 2)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1];
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Poti: index=0x%02x value=%u", index, value);
+        surfaceCallback(callbackArg, OMC_BOARD_WING, cmd, index, value);
+    }
+
+    if (pnlc && cmd == 'v' && len == 2)
+    {
+        uint8_t index = payload[0];
+        uint16_t value = payload[1];
+
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SurfaceControllerWing Encoder: index=0x%02x value=%u", index, value);
+        surfaceCallback(callbackArg, OMC_BOARD_WING_PNLC, 'e', index, value);
+    }
+}
+
+
+
+
+void SurfaceControllerWing::Reset()
+{
+    FaderReset();
+
+    // TODO implement with Mixerparameters
+    setCSCBrightnessRaw();
+
+    LcdData* lcd = new LcdData();
+    lcd->lcdIndex = 0;
+    lcd->texts[0].text = "<-";
+    SetUserLcd(lcd, 1);
+    lcd->lcdIndex = 1;
+    lcd->texts[0].text = "->";
+    SetUserLcd(lcd, 1);
+    lcd->lcdIndex = 3;
+    lcd->texts[0].text = "UP";
+    SetUserLcd(lcd, 1);
+    lcd->lcdIndex = 5;
+    lcd->texts[0].text = "DOWN";
+    SetUserLcd(lcd, 1);
+
+}
+
+void SurfaceControllerWing::FaderReset()
+{
+    for (uint8_t i = 0; i < 13; ++i)
+    {
+        faders[i].wait = 0;
+        faders[i].position_real = 0;
+        SetFaderRaw(i, 0);
+    }
+}
+
+void SurfaceControllerWing::SetFader(uint8_t boardId, uint8_t index, uint16_t position)
+{
+    uint8_t wingFaderIndex = GetWingFaderIndex(boardId, index);
+    if (wingFaderIndex != 255)
+    {
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Want to move WING fader at index %d to %d", wingFaderIndex, position);
+        faders[wingFaderIndex].position_wanted = position;
+    }
+}
+
+void SurfaceControllerWing::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value)
+{
+    uint8_t wingFaderIndex = GetWingFaderIndex(boardId, index);
+    if (wingFaderIndex != 255)
+    {
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "WING fader at index %d moved to %d", wingFaderIndex, value);
+        faders[wingFaderIndex].position_wanted = value;
+        faders[wingFaderIndex].position_real = value;
+        faders[wingFaderIndex].wait = 10; // wait 100ms
+    }
+}
+
+void SurfaceControllerWing::Touchcontrol()
+{
+    for (uint8_t i = 0; i < 13; ++i)
+    {
+        if (faders[i].wait > 0)
+        {
+            faders[i].wait--;
+        }
+        else if (faders[i].position_real != faders[i].position_wanted)
+        {
+            helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Move WING fader at index %d from %d to %d", i, faders[i].position_real, faders[i].position_wanted);
+            faders[i].position_real = faders[i].position_wanted;
+            SetFaderRaw(i, faders[i].position_wanted);
+        }
+    }
+}
+
+uint8_t SurfaceControllerWing::GetWingFaderIndex(uint8_t boardId, uint8_t index)
+{
+    return index;
+}
+
+
+
+void SurfaceControllerWing::SendWingFrame(bool pnlc, uint8_t cmd, const uint8_t* payload, uint len)
+{
+    MessageBase msg;
+    msg.AddRawByte(0x2a); // WING_FRAME_STAR
+    
+    if (cmd == 0x2a) {
+        msg.AddRawByte(0x2a);
+        msg.AddRawByte(0x40);
+    } else {
+        msg.AddRawByte(cmd);
+    }
+
+    for (uint i = 0; i < len; ++i) {
+        if (payload[i] == 0x2a) {
+            msg.AddRawByte(0x2a);
+            msg.AddRawByte(0x40);
+        } else {
+            msg.AddRawByte(payload[i]);
+        }
+    }
+
+    msg.AddRawByte(0x2a);
+    uint8_t chk = helper->CalculateWingChecksum(payload, len);
+    if (chk == 0x2a) {
+        msg.AddRawByte(0x2a);
+        msg.AddRawByte(0x40);
+    } else {
+        msg.AddRawByte(chk);
+    }
+
+    if (pnlc)
+    {
+        uart_pnlc->Tx(&msg);
+    }
+    else
+    {
+        uart_csc->Tx(&msg);
+    }   
+}
+
+// Setzt den Zustand einer einzelnen LED (0 bis 39)
+void SurfaceControllerWing::setCSCLedRaw(int ledIndex, LedState state)
+{
+    if (ledIndex < 0 || ledIndex >= 40) {
+        return; // Index außerhalb des gültigen Bereichs
+    }
+
+    // 1. Bestimmen, in welchem Byte sich die LED befindet (4 LEDs pro Byte)
+    int byteIndex = ledIndex / 4;
+
+    // 2. Bestimmen, welches Bit-Paar im Byte adressiert wird (von links nach rechts)
+    // LED 0 -> Paar 3 (Bits 7,6), LED 1 -> Paar 2 (Bits 5,4), etc.
+    int pairPosition = (ledIndex % 4);
+    int bitShift = pairPosition * 2;
+
+    // 3. Altes Bit-Paar an dieser Position löschen (auf 00 setzen)
+    csc_ledBuffer[byteIndex] &= ~(0x03 << bitShift);
+
+    // 4. Neuen Zustand an die richtige Position schieben und per ODER einfügen
+    csc_ledBuffer[byteIndex] |= (static_cast<uint8_t>(state) << bitShift);
+
+    return;
+}
+
+
+const uint8_t* SurfaceControllerWing::getCSCLedBuffer() const
+{
+    return csc_ledBuffer;
+}
+
+// Hilfsfunktion zur Ausgabe auf der Konsole (Hex-Format)
+void SurfaceControllerWing::debugCSCLedPrint() const {
+    for (int i = 0; i < 10; ++i) {
+        std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') 
+                    << static_cast<int>(csc_ledBuffer[i]) << " ";
+    }
+    std::cout << "\n";
+}
+
+// Setzt den Zustand einer einzelnen LED (0 bis 39)
+void SurfaceControllerWing::setCSCLedStripRaw(int ledIndex, LedState state)
+{
+    if (ledIndex < 0 || ledIndex >= 39) {
+        return; // Ungültiger LED-Index
+    }
+
+    // Berechnung der Spalte und der Reihe:
+    // Wir nehmen an: LED 0-12 ist Reihe 1, 13-25 Reihe 2, 26-38 Reihe 3.
+    // Falls deine LEDs spaltenweise durchnummeriert sind, müsste man hier / und % tauschen.
+    int row = ledIndex / 13; // Bestimmt die Reihe (0, 1 oder 2)
+    int col = ledIndex % 13; // Bestimmt die Spalte (0 bis 12)
+
+    // Zuordnung im Byte (von rechts nach links):
+    // Reihe 0 -> Bits 1 & 0 (Shift 0)
+    // Reihe 1 -> Bits 3 & 2 (Shift 2)
+    // Reihe 2 -> Bits 5 & 4 (Shift 4)
+    int bitShift = row * 2;
+
+    // 1. Altes Bit-Paar an dieser Position im jeweiligen Spalten-Byte löschen
+    csc_led_Strip_buffer[col] &= ~(0x03 << bitShift);
+
+    // 2. Neuen Zustand an die richtige Position schieben und einfügen
+    csc_led_Strip_buffer[col] |= (static_cast<uint8_t>(state) << bitShift);
+    
+    return;
+}
+
+const uint8_t* SurfaceControllerWing::getCSCLedStripBuffer() const
+{
+    return csc_led_Strip_buffer;
+}
+
+// Setzt den Zustand einer einzelnen LED (0 bis 8)
+void SurfaceControllerWing::setPnlcLedRaw(int ledIndex, LedState state)
+{
+    if (ledIndex < 0 || ledIndex >= 8) {
+        return; // Index außerhalb des gültigen Bereichs
+    }
+
+    // 1. Bestimmen, in welchem Byte sich die LED befindet (4 LEDs pro Byte)
+    int byteIndex = ledIndex / 4;
+
+    // 2. Bestimmen, welches Bit-Paar im Byte adressiert wird (von links nach rechts)
+    // LED 0 -> Paar 3 (Bits 7,6), LED 1 -> Paar 2 (Bits 5,4), etc.
+    int pairPosition = (ledIndex % 4);
+    int bitShift = pairPosition * 2;
+
+    // 3. Altes Bit-Paar an dieser Position löschen (auf 00 setzen)
+    pnlc_led_buffer[byteIndex] &= ~(0x03 << bitShift);
+
+    // 4. Neuen Zustand an die richtige Position schieben und per ODER einfügen
+    pnlc_led_buffer[byteIndex] |= (static_cast<uint8_t>(state) << bitShift);
+
+    return;
+}
+
+const uint8_t* SurfaceControllerWing::getPnlcLedBuffer() const
+{
+    return pnlc_led_buffer;
+}
+
+//###################################################################################
+//
+//  ########  ########   #######  ########  #######   ######   #######  ##       
+//  ##     ## ##     ## ##     ##    ##    ##     ## ##    ## ##     ## ##       
+//  ##     ## ##     ## ##     ##    ##    ##     ## ##       ##     ## ##       
+//  ########  ########  ##     ##    ##    ##     ## ##       ##     ## ##       
+//  ##        ##   ##   ##     ##    ##    ##     ## ##       ##     ## ##       
+//  ##        ##    ##  ##     ##    ##    ##     ## ##    ## ##     ## ##       
+//  ##        ##     ##  #######     ##     #######   ######   #######  ######## 
+//
+//###################################################################################
+
+
+void SurfaceControllerWing::SendHeartbeat()
+{
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Heartbeat to CSC");
+    SendWingFrame(false, 'H', nullptr, 0);
+
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Heartbeat to PNLC");
+    SendWingFrame(true, 'H', nullptr, 0);
+}
+
+void SurfaceControllerWing::SetFaderRaw(uint8_t wingFaderIndex, uint16_t position)
+{
+    if (wingFaderIndex > 12 || position > 4095) return;
+
+    uint8_t payload[3];
+    payload[0] = wingFaderIndex;
+    payload[1] = (uint8_t)(position & 0xff);
+    payload[2] = (uint8_t)((position >> 8) & 0x0f);
+
+    SendWingFrame(false, 'F', payload, 3);
+}
+
+void SurfaceControllerWing::setCSCBrightnessRaw()
+{
+    // TODO - implement using Mixerparameter
+
+    uint8_t payload[9];
+
+    // CSC <ButtonBacklight> <ButtonLeds> <Meters> <ColorLeds> <Scribble> <ContrastScribble> <User LCD> <PatchLeds> 0x02
+    payload[0] = 100; // % ButtonBacklight
+    payload[1] = 100; // % ButtonLeds
+    payload[2] = 100; // % Meters
+    payload[3] = 80; // % ColorLeds
+    payload[4] = 60; // % Scribble
+    payload[5] = 60; // % ContrastScribble
+    payload[6] = 60; // % User LCD
+    payload[7] = 0; // % PatchLeds
+    payload[8] = 0x02; // unknown
+    SendWingFrame(false, 'B', payload, 9);
+
+    // PNLC   <HelligkeitBacklight> <HelligkeitButton> <HelligkeitMeters> <HelligkeitDisplay>
+    payload[0] = 100; // % ButtonBacklight
+    payload[1] = 100; // % ButtonLeds
+    payload[2] = 100; // % Meters
+    payload[3] = 90; // % Display
+    SendWingFrame(false, 'B', payload, 4);
+}
+
+void SurfaceControllerWing::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
+{
+    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "SetLed(buttonOrLed=%d, ledOn=%d, blink=%d)", buttonOrLed, ledOn, blink);
+
+    LedState state = LedState::AUS;
+
+    if (ledOn)
+    {
+        state = LedState::LED_AN;
+    }
+    else if (blink)
+    {
+        state = LedState::BLINKEN;
+    }
+    else
+    {
+        state = LedState::AUS;
+    }
+
+    if (csc_led_map.count(buttonOrLed))
+    {
+        setCSCLedRaw(csc_led_map.at(buttonOrLed), state);
+        SendWingFrame(false, 'L', getCSCLedBuffer(), 10);
+    }
+    
+    if (csc_led_strip_map.count(buttonOrLed))
+    {
+        setCSCLedStripRaw(csc_led_strip_map.at(buttonOrLed), state);
+        SendWingFrame(false, 'l', getCSCLedStripBuffer(), 13);
+    }
+
+    if (pnlc_led_map.count(buttonOrLed))
+    {
+        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "LED PNLC");
+
+        setPnlcLedRaw(pnlc_led_map.at(buttonOrLed), state);
+        SendWingFrame(true, 'L', getPnlcLedBuffer(), 3);
+    }
+}
+
+void SurfaceControllerWing::SetLcd(LcdData* p_data, uint p_textCount)
+{
+    uint8_t payload[200];
+    uint p = 0;
+
+    uint lcdIndex = p_data->lcdIndex;
+    uint lcdGroup = 0;
+
+    if (lcdIndex == 0x54) // User LCD Header
+    {
+        SetUserLcd(p_data, p_textCount);
+        return;
+    }
+
+
+    while(lcdIndex > 3)
+    {
+        lcdIndex = lcdIndex - 4;
+        lcdGroup++;
+    }
+
+    payload[p++] = lcdGroup; // LCD 4er Gruppe
+    payload[p++] = lcdIndex; // LCD Index in 4er Gruppe
+
+    for (uint textindex = 0; textindex < p_textCount; textindex++)
+    {
+        if (textindex == 2)
+        {
+            if (p_textCount == 3)
+            {
+                payload[p++] = 0x04; // einzeilig
+            }
+            else if (p_textCount == 4)
+            {
+                payload[p++] = 0x05; // zweizeilig
+            }
+            else
+            {
+                // TODO
+                payload[p++] = 0x06; // dreizeilig?
+            }
+        }
+
+        // switch text 1 and text 2 -> Channel Name <-> Channel Internal Name
+        uint textsourceindex = textindex;
+        if (textsourceindex == 1)
+        {
+            textsourceindex = 2;
+        }
+        else if (textsourceindex == 2)
+        {
+            textsourceindex = 1;
+        }
+
+        String text = p_data->texts[textsourceindex].text;
+        
+        uint textlength  = text.length(); 
+        if (textindex == 1)
+        {
+            textlength = textlength | 0x80; // + 0x80 - solid background
+        }
+        payload[p++] = textlength;
+
+        for (uint c = 0; c < text.length(); c++)
+        {
+            payload[p++] = text[c];
+        }
+    }
+
+    SendWingFrame(false, 'D', payload, p);
+}
+
+void SurfaceControllerWing::SetUserLcd(LcdData* p_data, uint p_textCount)
+{
+    uint8_t payload[200];
+    uint p = 0;
+
+    if (p_data->lcdIndex == 0x54) // Main Fader / Header
+    {
+        payload[p++] = p_data->lcdIndex; // index
+    }
+    else
+    {
+        payload[p++] = 0x41 + p_data->lcdIndex; // index
+        payload[p++] = 0x42; // color
+        payload[p++] = 0x14 + p_data->lcdIndex; // index "Aufzählungszeichen": 0x10 M1, 0x11 M2, 0x12 M3, 0x13 M4, 0x14 1 ... 0x1b 16
+        payload[p++] = 0x00;
+        payload[p++] = 0x00;
+        payload[p++] = 0x00;
+    }
+    
+    // 1. Text
+    String text = p_data->texts[0].text;
+    payload[p++] = text.length();
+
+    for (uint c = 0; c < text.length(); c++)
+    {
+        payload[p++] = text[c];
+    }
+
+    if (p_data->lcdIndex == 0x54) // Header
+    {
+        payload[p++] = 0x08; // color
+        payload[p++] = 0x00; // 0x02 - Picture
+        payload[p++] = 0x00; // Pictureindex
+
+        String text = p_data->texts[1].text;
+        payload[p++] = text.length();
+
+        for (uint c = 0; c < text.length(); c++)
+        {
+            payload[p++] = text[c];
+        }
+    }
+
+    SendWingFrame(false, 'T', payload, p);
+}
+
+}

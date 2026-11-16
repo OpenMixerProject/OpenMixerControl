@@ -24,6 +24,9 @@
 
 #include "message-base.h"
 
+namespace OMC
+{
+
 MessageBase::MessageBase(){
     current_length = 0;
 }
@@ -107,4 +110,6 @@ int MessageBase::AddRawDataArray(const char* data, uint8_t len){
     }
     
     return 0;
+}
+
 }

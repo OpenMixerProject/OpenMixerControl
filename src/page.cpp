@@ -24,11 +24,12 @@
 
 #include "page.h"
 
+namespace OMC
+{
+
 Page::Page(PageBaseParameter* pagebasepar) : X32Base(pagebasepar)
 {
     helper->DEBUG_GUI(DEBUGLEVEL_NORMAL, "Page::Page()");
-
-    mixer = pagebasepar->mixer;
     surface = pagebasepar->surface;
 }
 
@@ -239,15 +240,6 @@ X32_PAGE Page::GetPrevPage() {
     return prevPage;
 }
 
-X32_BTN Page::GetLed() {
-    if (!(config->IsModelX32Rack() && noLedOnRack))
-    {
-        return led;
-    }
-
-    return X32_BTN_NONE;
-}
-
 void Page::SyncEncoderWidgets(bool force)
 {
     if (hideEncoders && !config->GetBool(DISPLAY_MUTE_GROUP)) {
@@ -402,4 +394,6 @@ void Page::ClearEncoderButton(LVGLEncoderWidget *binding)
 {
     lv_label_set_text(binding->ButtonLabel, "");
     remove_style_label_bg_yellow(binding->ButtonLabel);
+}
+
 }

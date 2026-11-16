@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageRoutingChannels: public Page
 {
 #ifndef __clang__
@@ -282,7 +285,6 @@ class PageRoutingChannels: public Page
             tabIndex0 = 2;
             tabLayer1 = objects.routingtab;
             tabIndex1 = 2;
-			led = X32_BTN_ROUTING;
         }
 
 	 	void OnInit() override
@@ -414,3 +416,5 @@ class PageRoutingChannels: public Page
             }
         }
 };
+
+}

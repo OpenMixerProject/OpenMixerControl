@@ -24,29 +24,36 @@
 
 #include "dsp1.h"
 
-DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar) {
+#include "const.h"
+#include "defines.h"
+#include "helper.h"
+#include <cstdint>
+
+namespace OMC
+{
+    
+DSP1::DSP1(X32BaseParameter* basepar) : X32Base(basepar)
+{
     spi = new SPI(basepar);
-    if (!state->bodyless && !state->raspi) {
+    if (!state->bodyless && !state->raspi && !config->IsModelAnyWing())
+    {
         spi->UploadBitstreamDsps(true); // use CLI to show progress
         spi->OpenConnectionDsps();
     }
     
     fxmath = new FxMath(basepar);
-    for (uint8_t i = 0; i < MAX_FX_SLOTS; i++){
-        fx_slot[i] = new FxSlot(basepar);
-    }
 };
 
-void DSP1::Init(void)
+void DSP1::Init()
 {
-    for (uint8_t chanIndex = 0; chanIndex < 40; chanIndex++)
+    for (uint chanIndex = 0; chanIndex < 40; chanIndex++)
     {
-         for (uint8_t peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
+         for (uint peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
          {
-            rChannel[chanIndex].peq[peqIndex].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peqIndex));
-            rChannel[chanIndex].peq[peqIndex].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peqIndex));
-            rChannel[chanIndex].peq[peqIndex].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peqIndex));
-            rChannel[chanIndex].peq[peqIndex].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peqIndex));
+            state->rChannel[chanIndex].peq[peqIndex].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peqIndex), chanIndex);
+            state->rChannel[chanIndex].peq[peqIndex].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peqIndex), chanIndex);
+            state->rChannel[chanIndex].peq[peqIndex].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peqIndex), chanIndex);
+            state->rChannel[chanIndex].peq[peqIndex].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peqIndex), chanIndex);
         }
     }
 }
@@ -55,7 +62,7 @@ bool DSP1::ChannelHasAdjustableGain(uint chanIndex)
 {
     // check if channel has an adjustable gain
     uint dspChannelInputRouting = config->GetUint(ROUTING_DSP_INPUT, chanIndex);
-    uint dspChannelFpgaSource = config->GetUint(ROUTING_FPGA, chanIndex);
+    uint dspChannelFpgaSource = config->GetUint(ROUTING_FPGA, dspChannelInputRouting + 72);
 
     // check if channel uses external signal from FPGA
     if ((dspChannelInputRouting >= DSP_BUF_IDX_DSPCHANNEL) && (dspChannelInputRouting < (DSP_BUF_IDX_AUX + 8)))
@@ -99,23 +106,29 @@ void DSP1::SendChannelVolume(uint chanIndex)
     }
 
     // convert volume from dB to linear
-    float volumeLR_pu;
-    float volumeSub_pu;
+    float trim_pu;
+
 
     // check if current channel has an adjustable gain. If not, apply GAIN as TRIM
-    if (!ChannelHasAdjustableGain(chanIndex))
+    if (ChannelHasAdjustableGain(chanIndex))
     {
-        float trim = config->GetFloat(CHANNEL_GAIN, chanIndex);
-        float trim_pu = pow(10.0f, trim/20.0f);
-        volumeLR_pu = pow(10.0f, volumeLR/20.0f) * trim_pu;
-        volumeSub_pu = pow(10.0f, volumeSub/20.0f) * trim_pu;
-    }else{
         // apply digital gain to increase gain-resolution as hardware supports 2.5dB-steps "only"
-        float volumeLR_new = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeLR);
-        float volumeSub_new = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeSub);
-        volumeLR_pu = pow(10.0f, volumeLR_new/20.0f);
-        volumeSub_pu = pow(10.0f, volumeSub_new/20.0f);
+        volumeLR = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeLR);
+        volumeSub = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeSub);
+
+        // no TRIM
+        trim_pu = 1.0f;
     }
+    else
+    {
+        // GAIN as TRIM
+        float trim = config->GetFloat(CHANNEL_GAIN, chanIndex);
+        trim_pu = pow(10.0f, trim/20.0f);
+    }
+
+    float volumeLR_pu = pow(10.0f, volumeLR/20.0f);
+    float volumeSub_pu = pow(10.0f, volumeSub/20.0f);
+
 
     // apply DCAs if enabled
     // loop through all DCA groups
@@ -135,25 +148,26 @@ void DSP1::SendChannelVolume(uint chanIndex)
     }
 
     // send volume to DSP via SPI
-    float values[4];
-    values[0] = volumeLR_pu; // volume of this specific channel
-    values[1] = balanceLeft; // 1 .. 1 ..  0
-    values[2] = balanceRight; // 0  .. 1 .. 1
-    values[3] = volumeSub_pu; // subwoofer
+    float values[5];
+    values[0] = trim_pu; // sofware trim
+    values[1] = volumeLR_pu; // volume of this specific channel
+    values[2] = balanceLeft; // 1 .. 1 ..  0
+    values[3] = balanceRight; // 0  .. 1 .. 1
+    values[4] = volumeSub_pu; // subwoofer
 
-    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelVolume() channelindex %d: %f, %f, %f, %f", chanIndex, (double)values[0], (double)values[1], (double)values[2], (double)values[3]);
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelVolume() channelindex %d: Trim %f, Volume LR %f, Balance Left %f, Balance Right %f, Volume Sub %f", chanIndex, (double)values[0], (double)values[1], (double)values[2], (double)values[3], (double)values[4]);
 
-    spi->QueueDspData(0, 'v', chanIndex, 0, 4, &values[0]);
+    spi->QueueDspData(0, 'v', chanIndex, 0, 5, &values[0]);
 }
 
-void DSP1::SendChannelSolo(uint chanIndex, bool isSoloActivated)
+void DSP1::SendChannelSolo(uint chanIndex)
 {
     uint32_t values[2];
 
     values[0] = config->GetBool(CHANNEL_SOLO, chanIndex);
-    values[1] = isSoloActivated;
+    values[1] = config->GetBool(SOLO_ACTIVE);
 
-    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelSolo() channelindex %d: %u, %u", chanIndex, values[0], values[1]);
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendChannelSolo() channelindex %d: channel solo %u, solo active %u", chanIndex, values[0], values[1]);
 
     spi->QueueDspData(0, 'v', chanIndex, 10, 2, (float*)&values[0]);
 }
@@ -237,12 +251,12 @@ void DSP1::SendMatrixVolume(uint chanIndex)
     spi->QueueDspData(0, 'v', chanIndex - matrixChannelIndex, 2, 1, &values[0]);
 }
 
-void DSP1::SendMatrixSolo(uint chanIndex, bool isSoloActivated)
+void DSP1::SendMatrixSolo(uint chanIndex)
 {
     uint32_t values[2];
 
     values[0] = config->GetBool(CHANNEL_SOLO, chanIndex);
-    values[1] = isSoloActivated;
+    values[1] = config->GetBool(SOLO_ACTIVE);
 
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendMatrixSolo() channelindex %d: %u, %u", chanIndex, values[0], values[1]);
 
@@ -306,15 +320,16 @@ void DSP1::SendMainVolume(uint chanIndex)
     spi->QueueDspData(0, 'v', 0, 3, 3, &values[0]);
 }
 
-void DSP1::SendMainSolo(bool isSoloActivated)
+void DSP1::SendMainSolo()
 {
     uint32_t values[3];
 
     uint mainChannelIndex = 80;
     uint subChannelIndex = 71;
     values[0] = config->GetBool(CHANNEL_SOLO, mainChannelIndex);
+    values[1] = config->GetBool(SOLO_ACTIVE);
     values[2] = config->GetBool(CHANNEL_SOLO, subChannelIndex);
-    values[1] = isSoloActivated;
+    
 
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendMainSolo() channelindex %d: %u, %u, %u", 0, values[0], values[1], values[2]);
 
@@ -324,10 +339,11 @@ void DSP1::SendMainSolo(bool isSoloActivated)
 void DSP1::SendGate(uint chanIndex)
 {
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendGate() channelindex %d", chanIndex);
-    
+
     using enum MP_ID;
 
-	float samplerate = (float)config->GetUint(SAMPLERATE)/(float)DSP_SAMPLES_IN_BUFFER;
+    float samplerate = (float)config->GetUint(SAMPLERATE);
+    float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
     float values[5];
 
     // threshold
@@ -337,15 +353,17 @@ void DSP1::SendGate(uint chanIndex)
     // range of 60dB means that we will reduce the signal on active gate by 60dB. We have to convert logarithmic dB-value into linear value for gain
     values[1] = 1.0f / pow(10.0f, config->GetFloat(CHANNEL_GATE_RANGE, chanIndex)/20.0f);
 
-    // coeff_attack
+    // coeff_attack (envelope is recalculated every sample)
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
     // ln(10%) - ln(90%) = -2.197224577
+    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
     values[2] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
 
-    // hold_ticks 
-    values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * samplerate / 1000.0f;
+    // hold_ticks (recalculated every 16 samples, hence 333 microseconds)
+    values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * bufferrate / 1000.0f;
 
-    // coeff_release 
+    // coeff_release (envelope is recalculated every sample)
+    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
     values[4] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
 
     spi->QueueDspData(0, 'g', chanIndex, 0, 5, &values[0]);
@@ -375,11 +393,11 @@ void DSP1::SendEQ(uint chanIndex)
     // a0 a0 a1 a1 a2 a2 b1 b1 b2 b2 (section 2/3)
     // a0 a1 a2 b1 b2 (section 4)
 
-    float values[MAX_CHAN_EQS * 5];
+    float values[(MAX_CHAN_EQS * 5) + 1];
 
     for (uint peqIndex = 0; peqIndex < MAX_CHAN_EQS; peqIndex++)
     {
-        fxmath->RecalcFilterCoefficients_PEQ(&(rChannel[chanIndex].peq[peqIndex]));
+        fxmath->RecalcFilterCoefficients_PEQ(&(state->rChannel[chanIndex].peq[peqIndex]));
 
 /*
         // send coeffiecients without interleaving for biquad() function
@@ -401,23 +419,25 @@ void DSP1::SendEQ(uint chanIndex)
                 // odd section index
                 sectionIndex += 1;
             }
-            values[sectionIndex + 0] = rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-            values[sectionIndex + 2] = rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-            values[sectionIndex + 4] = rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-            values[sectionIndex + 6] = -rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-            values[sectionIndex + 8] = -rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
+            values[sectionIndex + 0] = state->rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
+            values[sectionIndex + 2] = state->rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
+            values[sectionIndex + 4] = state->rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
+            values[sectionIndex + 6] = -state->rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
+            values[sectionIndex + 8] = -state->rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
         }else{
             // last section: store without interleaving
             int sectionIndex = (MAX_CHAN_EQS - 1) * 5;
-            values[sectionIndex + 0] = rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
-            values[sectionIndex + 1] = rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
-            values[sectionIndex + 2] = rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
-            values[sectionIndex + 3] = -rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
-            values[sectionIndex + 4] = -rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
+            values[sectionIndex + 0] = state->rChannel[chanIndex].peq[peqIndex].a[0]; // a0 (zeros)
+            values[sectionIndex + 1] = state->rChannel[chanIndex].peq[peqIndex].a[1]; // a1 (zeros)
+            values[sectionIndex + 2] = state->rChannel[chanIndex].peq[peqIndex].a[2]; // a2 (zeros)
+            values[sectionIndex + 3] = -state->rChannel[chanIndex].peq[peqIndex].b[1]; // -b1 (poles)
+            values[sectionIndex + 4] = -state->rChannel[chanIndex].peq[peqIndex].b[2]; // -b2 (poles)
         }
     }
 
-    spi->QueueDspData(0, 'e', chanIndex, 'e', MAX_CHAN_EQS * 5, &values[0]);
+    values[(MAX_CHAN_EQS * 5)] = config->GetBool(CHANNEL_EQ_ENABLE, chanIndex);
+
+    spi->QueueDspData(0, 'e', chanIndex, 'e', (MAX_CHAN_EQS * 5) + 1, &values[0]);
 }
 
 void DSP1::ResetEq(uint8_t chan)
@@ -437,26 +457,29 @@ void DSP1::SendCompressor(uint8_t chanIndex)
 
     float values[6];
 
-	float samplerate = (float)config->GetUint(SAMPLERATE)/(float)DSP_SAMPLES_IN_BUFFER;
+    float samplerate = (float)config->GetUint(SAMPLERATE);
+    float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
 
     // threshold
-	//values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
+    //values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
     values[0] = config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex); // send threshold as dB value, DSP will convert it to linear value for 32-bit fixed point representation
 
-    // ratio
-    values[1] = config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex);
+    // pre-calculated ratio
+    values[1] = (1.0f - 1.0f / config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex));
 
     // makeup
-	values[2] = pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
+    values[2] = pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
 
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
     // ln(10%) - ln(90%) = -2.197224577
-    // attack
-	values[3] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
-    // hold
-	values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * samplerate / 1000.0f;
-    // release
-	values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
+    // attack (envelope is recalculated every sample)
+    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
+    values[3] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
+    // hold (hold-timer is calculated every 16 samples, hence every 333 microseconds)
+    values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * bufferrate / 1000.0f;
+    // release (envelope is recalculated every sample)
+    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
+    values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
 
     spi->QueueDspData(0, 'c', chanIndex, 0, 6, &values[0]);
 }
@@ -497,406 +520,42 @@ void DSP1::SetOutputRouting(uint chanIndex) {
     spi->QueueDspData(0, 'r', chanIndex, 1, 2, (float*)&values[0]);
 }
 
-
-
-String DSP1::RoutingGetOutputNameByIndex(uint8_t index) {
-/*
-    // 64 DSP-output-channels:
-    // 1-32		Main-Output to FPGA
-    // 33-40	Aux-Output to FPGA
-    // 41-56	FX-Sends 1-16 to DSP2
-    // 57-64	FX-Aux to DSP2
-*/
-    if ((index >= 1) && (index <= 32)) {
-        return String("DSP Out ") + index;
-    } else if ((index >= 33) && (index <= 40)) {
-        return String("DSP AuxOut ") + (index - 32);
-    } else if ((index >= 41) && (index <= 56)) {
-        return String("FX SendOut ") + (index - 40);
-    // the following channels are FX AUX Send 1-8 to DSP2
-    } else if ((index == 57)) {
-        return String("Linux Audio L");
-    } else if ((index == 58)) {
-        return String("Linux Audio R");
-    } else if ((index == 59)) {
-        return String("AES/EBU Out L");
-    } else if ((index == 60)) {
-        return String("AES/EBU Out R");
-    } else if ((index == 61)) {
-        return String("Unused Ch 5");
-    } else if ((index == 62)) {
-        return String("Unused Ch 6");
-    } else if ((index == 63)) {
-        return String("Unused Ch 7");
-    } else if (index == 64) {
-        return String("RTA Source");
-    }
-
-    return "???";
-}
-
-void DSP1::UpdateVuMeter(uint8_t intervalMs)
-{
-    uint8_t preloadPeakHold = 1000 / intervalMs; // 50ms * 20 = 1000ms
-    uint8_t preloadPeakDecay = 50 / intervalMs; // 50ms * 1 = 50ms
-    uint8_t coefficientDecay = 250 / intervalMs; // 50ms * 5 = 250ms
-
-    uint8_t vuTreshLookupSize = 0;
-    if (config->HasSmallDisplay()) {
-        vuTreshLookupSize = 18;
-    } else if (config->HasBigDisplay()) {
-        vuTreshLookupSize = 24;
-    }
-
-	uint32_t data[3];
-	data[0] = MainChannelLR.meter[0];
-	data[1] = MainChannelLR.meter[1];
-	data[2] = MainChannelSub.meter[0];
-
-	// Step 1: Perform Peak Hold Logic for MainL/R and Sub
-	uint8_t currentMeterPeakIndexMain[3]; // L, R, Sub
-	for (int k = 0; k < 3; k++) {
-		currentMeterPeakIndexMain[k] = 0;
-		for (int i = 0; i < vuTreshLookupSize; i++) {
-            if (config->HasSmallDisplay()) {
-                if (data[k] >= vuThresholds_minus45dbfs_18steps[i]) {
-                    currentMeterPeakIndexMain[k] = (16 - i) + 1;
-                    break;
-			    }
-            } else if (config->HasBigDisplay()) {
-                if (data[k] >= vuThresholds_minus60dbfs_25steps[i]) {
-                    currentMeterPeakIndexMain[k] = (23 - i) + 1;
-                    break;
-                }
-            }
-		}
-	}
-	// MainLeft
-	if (currentMeterPeakIndexMain[0] >= MainChannelLR.meterPeakIndex[0]) {
-		MainChannelLR.meterPeakIndex[0] = currentMeterPeakIndexMain[0];
-		MainChannelLR.meterPeakHoldTimer[0] = preloadPeakHold; // preload to 1000ms
-	}else{
-		// currentMeterPeakIndex is below current LED -> check if we have to hold the peak LED
-		if (MainChannelLR.meterPeakHoldTimer[0] > 0) {
-			// hold current LED
-			MainChannelLR.meterPeakHoldTimer[0]--;
-			MainChannelLR.meterPeakDecayTimer[0] = preloadPeakDecay; // preload to 100ms
-		}else{
-			// let peak LED fall down every 100ms. It takes a maximum of 2400ms to let the peak fall down over all 24 LEDs
-			if (MainChannelLR.meterPeakIndex[0] > currentMeterPeakIndexMain[0]) {
-				if (MainChannelLR.meterPeakDecayTimer[0] > 0) {
-					MainChannelLR.meterPeakDecayTimer[0]--;
-				}else{
-					MainChannelLR.meterPeakIndex[0]--;
-					MainChannelLR.meterPeakDecayTimer[0] = preloadPeakDecay; // preload for next iteration
-				}
-			}
-		}
-	}
-	// MainRight
-	if (currentMeterPeakIndexMain[1] >= MainChannelLR.meterPeakIndex[1]) {
-		MainChannelLR.meterPeakIndex[1] = currentMeterPeakIndexMain[1];
-		MainChannelLR.meterPeakHoldTimer[1] = preloadPeakHold; // preload to 1000ms
-	}else{
-		// currentMeterPeakIndex is below current LED -> check if we have to hold the peak LED
-		if (MainChannelLR.meterPeakHoldTimer[1] > 0) {
-			// hold current LED
-			MainChannelLR.meterPeakHoldTimer[1]--;
-			MainChannelLR.meterPeakDecayTimer[1] = preloadPeakDecay; // preload to 100ms
-		}else{
-			// let peak LED fall down every 100ms. It takes a maximum of 400ms to let the peak fall down
-			if (MainChannelLR.meterPeakIndex[1] > currentMeterPeakIndexMain[1]) {
-				if (MainChannelLR.meterPeakDecayTimer[1] > 0) {
-					MainChannelLR.meterPeakDecayTimer[1]--;
-				}else{
-					MainChannelLR.meterPeakIndex[1]--;
-					MainChannelLR.meterPeakDecayTimer[1] = preloadPeakDecay; // preload for next iteration
-				}
-			}
-		}
-	}
-	// Sub
-	if (currentMeterPeakIndexMain[2] >= MainChannelSub.meterPeakIndex[0]) {
-		MainChannelSub.meterPeakIndex[0] = currentMeterPeakIndexMain[2];
-		MainChannelSub.meterPeakHoldTimer[0] = preloadPeakHold; // preload to 1000ms
-	}else{
-		// currentMeterPeakIndex is below current LED -> check if we have to hold the peak LED
-		if (MainChannelSub.meterPeakHoldTimer[0] > 0) {
-			// hold current LED
-			MainChannelSub.meterPeakHoldTimer[0]--;
-			MainChannelSub.meterPeakDecayTimer[0] = preloadPeakDecay; // preload to 100ms
-		}else{
-			// let peak LED fall down every 100ms. It takes a maximum of 400ms to let the peak fall down
-			if (MainChannelSub.meterPeakIndex[0] > currentMeterPeakIndexMain[2]) {
-				if (MainChannelSub.meterPeakDecayTimer[0] > 0) {
-					MainChannelSub.meterPeakDecayTimer[0]--;
-				}else{
-					MainChannelSub.meterPeakIndex[0]--;
-					MainChannelSub.meterPeakDecayTimer[0] = preloadPeakDecay; // preload for next iteration
-				}
-			}
-		}
-	}
-
-	// Step 2: Calculate decayed value
-	// MainLeft
-	if (MainChannelLR.meter[0] > MainChannelLR.meterDecay[0]) {
-		// current value is above stored decay-value -> copy value immediatly
-		MainChannelLR.meterDecay[0] = MainChannelLR.meter[0];
-	}else{
-		// current value is below -> afterglow
-		MainChannelLR.meterDecay[0] -= (MainChannelLR.meterDecay[0] / coefficientDecay);
-	}
-	// MainRight
-	if (MainChannelLR.meter[1] > MainChannelLR.meterDecay[1]) {
-		// current value is above stored decay-value -> copy value immediatly
-		MainChannelLR.meterDecay[1] = MainChannelLR.meter[1];
-	}else{
-		// current value is below -> afterglow
-		MainChannelLR.meterDecay[1] -= (MainChannelLR.meterDecay[1] / coefficientDecay);
-	}
-	// MainSub
-	if (MainChannelSub.meter[0] > MainChannelSub.meterDecay[0]) {
-		// current value is above stored decay-value -> copy value immediatly
-		MainChannelSub.meterDecay[0] = MainChannelSub.meter[0];
-	}else{
-		// current value is below -> afterglow
-		MainChannelSub.meterDecay[0] -= (MainChannelSub.meterDecay[0] / coefficientDecay);
-	}
-
-	// Step 3: Calculate real LEDs to switch on
-	MainChannelLR.meterInfo[0] = 0;
-	MainChannelLR.meterInfo[1] = 0;
-	MainChannelSub.meterInfo[0] = 0;
-	for (int i = 0; i < vuTreshLookupSize; i++) {
-        if (config->HasSmallDisplay()) {
-            if (MainChannelLR.meterDecay[0] >= vuThresholds_minus45dbfs_18steps[i]) { MainChannelLR.meterInfo[0]  |= (1U << (16 - i)); }
-            if (MainChannelLR.meterDecay[1] >= vuThresholds_minus45dbfs_18steps[i]) { MainChannelLR.meterInfo[1]  |= (1U << (16 - i)); }
-            if (MainChannelSub.meterDecay[0] >= vuThresholds_minus45dbfs_18steps[i]) { MainChannelSub.meterInfo[0] |= (1U << (16 - i)); }
-        } else if (config->HasBigDisplay()) {
-            if (MainChannelLR.meterDecay[0] >= vuThresholds_minus60dbfs_25steps[i]) { MainChannelLR.meterInfo[0]  |= (1U << (23 - i)); }
-            if (MainChannelLR.meterDecay[1] >= vuThresholds_minus60dbfs_25steps[i]) { MainChannelLR.meterInfo[1]  |= (1U << (23 - i)); }
-            if (MainChannelSub.meterDecay[0] >= vuThresholds_minus60dbfs_25steps[i]) { MainChannelSub.meterInfo[0] |= (1U << (23 - i)); }
-        }
-	}
-	if (MainChannelLR.meterPeakIndex[0] > 0) {
-		MainChannelLR.meterInfo[0]  |= (1U << (MainChannelLR.meterPeakIndex[0] - 1));
-	}
-	if (MainChannelLR.meterPeakIndex[1] > 0) {
-		MainChannelLR.meterInfo[1]  |= (1U << (MainChannelLR.meterPeakIndex[1] - 1));
-	}
-	if (MainChannelSub.meterPeakIndex[0] > 0) {
-		MainChannelSub.meterInfo[0]  |= (1U << (MainChannelSub.meterPeakIndex[0] - 1));
-	}
-
-    // meter6info for Main LR
-    MainChannelLR.meter6Info = 0;
-    if (MainChannelLR.meterDecay[0] >= VUTRESH_00_DBFS_CLIP)  { 
-        MainChannelLR.meter6Info = 0b00111111;
-    } else if (MainChannelLR.meterDecay[0] >= VUTRESH_MINUS_06_DBFS) {
-        MainChannelLR.meter6Info = 0b00011111;
-    } else if (MainChannelLR.meterDecay[0] >= VUTRESH_MINUS_12_DBFS) {
-        MainChannelLR.meter6Info = 0b00001111;
-    } else if (MainChannelLR.meterDecay[0] >= VUTRESH_MINUS_18_DBFS) {
-        MainChannelLR.meter6Info = 0b00000111;
-    } else if (MainChannelLR.meterDecay[0] >= VUTRESH_MINUS_30_DBFS) {
-        MainChannelLR.meter6Info = 0b00000011;
-    } else if (MainChannelLR.meterDecay[0] >= VUTRESH_MINUS_60_DBFS) {
-        MainChannelLR.meter6Info = 0b00000001;
-    }
-
-    // meter6info for Sub
-    MainChannelSub.meter6Info = 0;
-    if (MainChannelSub.meterDecay[0] >= VUTRESH_00_DBFS_CLIP)  { 
-        MainChannelSub.meter6Info = 0b00111111;
-    } else if (MainChannelSub.meterDecay[0] >= VUTRESH_MINUS_06_DBFS) {
-        MainChannelSub.meter6Info = 0b00011111;
-    } else if (MainChannelSub.meterDecay[0] >= VUTRESH_MINUS_12_DBFS) {
-        MainChannelSub.meter6Info = 0b00001111;
-    } else if (MainChannelSub.meterDecay[0] >= VUTRESH_MINUS_18_DBFS) {
-        MainChannelSub.meter6Info = 0b00000111;
-    } else if (MainChannelSub.meterDecay[0] >= VUTRESH_MINUS_30_DBFS) {
-        MainChannelSub.meter6Info = 0b00000011;
-    } else if (MainChannelSub.meterDecay[0] >= VUTRESH_MINUS_60_DBFS) {
-        MainChannelSub.meter6Info = 0b00000001;
-    }
-
-
-
-	// Now calculate the VU Meter LEDs for each channel
-	// leds Channel = 8-bit bitwise (bit 0=-60dB ... 4=-6dB, 5=Clip, 6=Gate, 7=Comp)
-	for (int i = 0; i < (40 + 8 + 16); i++) {
-		// check if current data is above stored peak-index
-
-        if(!(config->IsModelX32Core() || config->IsModelX32Rack())) {
-            // Step 1: Perform Peak Hold Logic
-            uint8_t currentMeterPeak6Index;
-            currentMeterPeak6Index = GetPeak(i, 6);
-            if (currentMeterPeak6Index >= rChannel[i].meterPeak6Index) {
-                // currentMeterPeakIndex is above current LED -> set peakHold LED to highest value
-                rChannel[i].meterPeak6Index = currentMeterPeak6Index;
-                rChannel[i].meterPeak6HoldTimer = preloadPeakHold; // preload to 1000ms
-            }else{
-                // currentMeterPeakIndex is below current LED -> check if we have to hold the peak LED
-                if (rChannel[i].meterPeak6HoldTimer > 0) {
-                    // hold current LED
-                    rChannel[i].meterPeak6HoldTimer--;
-                    rChannel[i].meterPeak6DecayTimer = preloadPeakDecay; // preload
-                }else{
-                    // let peak LED fall down every 100ms. It takes a maximum of 400ms to let the peak fall down
-                    if (rChannel[i].meterPeak6Index > currentMeterPeak6Index) {
-                        if (rChannel[i].meterPeak6DecayTimer > 0) {
-                            rChannel[i].meterPeak6DecayTimer--;
-                        }else{
-                            rChannel[i].meterPeak6Index--;
-                            rChannel[i].meterPeak6DecayTimer = preloadPeakDecay; // preload for next iteration
-                        }
-                    }
-                }
-            }
-        }
-
-        // meter8 is used on every model
-        uint8_t currentMeterPeak8Index;
-        currentMeterPeak8Index = GetPeak(i, 8);
-        if (currentMeterPeak8Index >= rChannel[i].meterPeak8Index) {
-			// currentMeterPeakIndex is above current LED -> set peakHold LED to highest value
-			rChannel[i].meterPeak8Index = currentMeterPeak8Index;
-			rChannel[i].meterPeak8HoldTimer = preloadPeakHold; // preload to 1000ms
-		}else{
-			// currentMeterPeakIndex is below current LED -> check if we have to hold the peak LED
-			if (rChannel[i].meterPeak8HoldTimer > 0) {
-				// hold current LED
-				rChannel[i].meterPeak8HoldTimer--;
-				rChannel[i].meterPeak8DecayTimer = preloadPeakDecay; // preload
-			}else{
-				// let peak LED fall down every 100ms. It takes a maximum of 400ms to let the peak fall down
-				if (rChannel[i].meterPeak8Index > currentMeterPeak8Index) {
-					if (rChannel[i].meterPeak8DecayTimer > 0) {
-						rChannel[i].meterPeak8DecayTimer--;
-					}else{
-						rChannel[i].meterPeak8Index--;
-						rChannel[i].meterPeak8DecayTimer = preloadPeakDecay; // preload for next iteration
-					}
-				}
-			}
-		}
-
-		// Step 2: Calculate decayed value
-		if (rChannel[i].meter > rChannel[i].meterDecay) {
-			// current value is above stored decay-value -> copy value immediatly
-			rChannel[i].meterDecay = rChannel[i].meter;
-		}else{
-			// current value is below -> afterglow
-			// this function is called every 10ms. A Decay-Rate of 6dB/second would be ideal, but we do a rought estimation here
-			rChannel[i].meterDecay -= (rChannel[i].meterDecay / coefficientDecay);
-		}
-
-		// Step 3: Calculate real LEDs to switch on
-		// data contains a 32-bit sample-value
-		// lets check the threshold and set meterInfo
-
-        //####################################################################
-        //
-        //      6-Step Meter (Channelstrip on Full, Compact, Producer)
-        //
-        //      DYNAMCIS Enabled
-        //      GATE/PRE Enabled
-        //      CLIP
-        //      -6
-        //      -12
-        //      -18
-        //      -30
-        //      -60
-        //
-        //
-        //    8-Step Meter (Selected Channel Meter on all models)
-        //
-        //      CLIP
-        //      -3
-        //      -6
-        //      -9
-        //      -12
-        //      -18
-        //      -30
-        //      SIG (-60?)
-        //
-        //#####################################################################
-
-
-		rChannel[i].meter6Info = 0;
-        rChannel[i].meter8Info = 0;
-		    if (rChannel[i].meterDecay >= VUTRESH_00_DBFS_CLIP)  { 
-                rChannel[i].meter6Info = 0b00111111;
-                rChannel[i].meter8Info = 0b11111111;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_03_DBFS) {
-                rChannel[i].meter6Info = 0b00011111;
-                rChannel[i].meter8Info = 0b01111111;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_06_DBFS) {
-                rChannel[i].meter6Info = 0b00011111;
-                rChannel[i].meter8Info = 0b00111111;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_09_DBFS) {
-                rChannel[i].meter6Info = 0b00001111;
-                rChannel[i].meter8Info = 0b00011111;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_12_DBFS) {
-                rChannel[i].meter6Info = 0b00001111;
-                rChannel[i].meter8Info = 0b00001111;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_18_DBFS) {
-                rChannel[i].meter6Info = 0b00000111;
-                rChannel[i].meter8Info = 0b00000111;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_30_DBFS) {
-                rChannel[i].meter6Info = 0b00000011;
-                rChannel[i].meter8Info = 0b00000011;
-            } else if (rChannel[i].meterDecay >= VUTRESH_MINUS_60_DBFS) {
-                rChannel[i].meter6Info = 0b00000001;
-                rChannel[i].meter8Info = 0b00000001;
-            }
-
-        if(!(config->IsModelX32Core() || config->IsModelX32Rack())) {
-		    uint8_t peak6Bit = 0;
-            if (rChannel[i].meterPeak6Index > 0) peak6Bit = 1 << (rChannel[i].meterPeak6Index -1);
-		    rChannel[i].meter6Info |= peak6Bit;
-        }
-
-        uint8_t peak8Bit = 0;
-        if (rChannel[i].meterPeak8Index > 0) peak8Bit = 1 << (rChannel[i].meterPeak8Index -1);
-        rChannel[i].meter8Info |= peak8Bit;
-    }
-
-    // only the first 32 full-featured channels have dynamic-information for compressor and gate
-    for (int i = 0; i < 32; i++) {
-        if(config->IsModelX32Core() || config->IsModelX32Rack()) {
-		    // the dynamic-information is received with the 'd' information, but we will store them here
-		    //if (!!RECEIVED_CHANNEL_GAIN!! < 1.0f) { rChannel[i].meter6Info |= 0b01000000; }
-		    //if (Channel[i].compressor.gain < 1.0f) { rChannel[i].meter6Info |= 0b10000000; }
-        }
-	}
-}
-
 uint8_t DSP1::GetPeak(int i, uint8_t steps)
 {
     if (steps==6) {
-        if (rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 6; } // CLIP
-        else if (rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 5; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
+        if (state->rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 6; } // CLIP
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 5; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
     }
 
     if (steps==8) {
-        if (rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 8; } // CLIP
-        else if (rChannel[i].meter >= VUTRESH_MINUS_03_DBFS) { return 7; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 6; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_09_DBFS) { return 5; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
-        else if (rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
+        if (state->rChannel[i].meter >= VUTRESH_00_DBFS_CLIP) { return 8; } // CLIP
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_03_DBFS) { return 7; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_06_DBFS) { return 6; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_09_DBFS) { return 5; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_12_DBFS) { return 4; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_18_DBFS) { return 3; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_30_DBFS) { return 2; }
+        else if (state->rChannel[i].meter >= VUTRESH_MINUS_60_DBFS) { return 1; }
     }
 
     return 0;
 }
+
+//#########################################################################################################################
+//
+// ########   ######  ########     ###        ######     ###    ##       ##       ########     ###     ######  ##     ## 
+// ##     ## ##    ## ##     ##  ## ##       ##    ##   ## ##   ##       ##       ##     ##   ## ##   ##    ## ##    ##  
+// ##     ## ##       ##     ##     ##       ##        ##   ##  ##       ##       ##     ##  ##   ##  ##       ##   ##   
+// ##     ##  ######  ########      ##       ##       ##     ## ##       ##       ########  ##     ## ##       #####     
+// ##     ##       ## ##            ##       ##       ######### ##       ##       ##     ## ######### ##       ##   ##   
+// ##     ## ##    ## ##            ##       ##    ## ##     ## ##       ##       ##     ## ##     ## ##    ## ##    ##  
+// ########   ######  ##           ####       ######  ##     ## ######## ######## ########  ##     ##  ######  ##     ## 
+//
+//#########################################################################################################################
 
 void DSP1::CallbackStateMachine() {
     if (state->dsp_disable_readout) {
@@ -962,56 +621,121 @@ void DSP1::CallbackStateMachine() {
     }
 }
 
-void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values) {
+#define gotoxy(x,y) printf("\033[%d;%dH", (y), (x))
+bool clearer = true;
+
+void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values)
+{
+    #if DSP1_DEBUG_SHOW_CYCLES
+    if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
+    {
+        if(clearer)
+        {
+            printf("\033[H\033[J");
+            clearer = false;
+        }
+
+        gotoxy(0,0);
+        printf("\n\n--------------DSP1_CALLBACK----------------\n");
+    }
+    #endif
+
     float* floatValues = (float*)values;
     uint32_t* intValues = (uint32_t*)values;
 
-    //helper->DEBUG_DSP1(DEBUGLEVEL_TRACE, "Callback - classid=%c channel=%c, index=%d, valueCount=%d", classId, channel, index, valueCount);
-
-    switch (classId) {
+    switch (classId)
+    {
         case 's': // status-feedback
-            switch (channel) {
+            switch (channel)
+            {
                 case 'u': // Update pack
-                    if (valueCount == (3 + 40 + 8 + 0 + 3)) {
-                        // idx 0 = dspVersion
-                        // idx 1 = CPU-cycles
-                        // idx 2 = Audio Glitch Counter
-                        // idx 3..52 = volume 40 DSP-channels
-                        // idx 43.. = volume 8 DSP2 FX-return channels
-                        // idx 51.. = volume 8 MixBusses
-                        // idx 59..61 = volume 3 main-bus (L, R, C)
+                    if (valueCount == (SPI_DMA_COMMDATA_SIZE))
+                    {
+                        // idx  0     = dspVersion
+                        // idx  1     = CPU-cycles
+                        // idx  2     = Audio Glitch Counter
+                        // idx  3..42 = volume 40 DSP-channels
+                        // idx 43..50 = volume 8 DSP2 FX-return channels
+                        // idx 51..66 = volume 16 MixBusses
+                        // idx 67..69 = volume 3 main-bus (L, R, C)
 
                         // future options:
-                                // idx 58.. = gain of 32 compressors
-                                // idx 90.. = gain of 32 gates
-                                // idx 122.. = volume of 3 main-busses
+                            // gain of 32 compressors
+                            // gain of 32 gates
 
                         state->dspVersion[0] = floatValues[0];
 
                         // we are receiving 16 samples with 20.83us each resulting in 16*20.83us = 333us per interrupt
                         // DSP-Load calculation: number of used CPU-cycles for processing divided by the core-clock-frequency based on the 333us timebase
-                        state->dspLoad[0] = (((float)intValues[1]/264.0f) / (16.0f/0.048f)) * 100.0f;
-                        state->dspAudioGlitchCounter[0] = floatValues[2]; // audio-glitch-counter
+                        //state->dspLoad[0] = (((float)intValues[1]/264.0f) / (16.0f/0.048f)) * 100.0f;
+                        //state->dspAudioGlitchCounter[0] = floatValues[1]; // audio-glitch-counter
 
-                        // channel 1-40 -> DSP-channels
-                        // channel 41-48 -> FX-return-channels
-                        // channel 49-56 -> Mixbus 1-8
-
-                        // copy meter-info to channel-struct (regular DSP-channels)
-                        for (int i = 0; i < (40 + 8 + 0); i++)
+                        #if DSP1_DEBUG_SHOW_CYCLES
+                        if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
                         {
-                            rChannel[i].meter = abs(floatValues[3 + i]); // convert 32-bit audio-value
-                            rChannel[i].meterPu = abs(floatValues[3 + i])/2147483648.0f; // convert 32-bit audio-value to absolute p.u.
+                            printf("Glitch ISR: %f\n", floatValues[1]);
+                            printf("Glitch Main: %f\n", floatValues[2]);
+                        }
+                        #endif
+                       
+                        uint c  = 3;
+
+                        state->dspLoad[0] = intValues[c + 0];
+                        state->dspAudioGlitchCounter[0] = intValues[c + 26];
+
+                        #if DSP1_DEBUG_SHOW_CYCLES
+                        if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
+                        {
+                            printf("audioProcessData()    %10d\n", intValues[c + 0]);
+                            printf("  prepare             %10d\n", intValues[c + 21]);
+                            printf("  audioSmoothVolume   %10d\n", intValues[c + 22]);
+                            printf("  Data Input          %10d\n", intValues[c + 1]);
+                            printf("  InputDelay/Routing  %10d\n", intValues[c + 2]);
+                            printf("  Lowcut              %10d\n", intValues[c + 3]);
+                            printf("  Noisegate           %10d\n", intValues[c + 4]);
+                            printf("  EQ                  %10d\n", intValues[c + 5]);
+                            printf("  Dynamics            %10d\n", intValues[c + 6]);
+                            printf("  Copy DSP2-Return    %10d\n", intValues[c + 27]);
+                            printf("  Channel/Fader       %10d\n", intValues[c + 7]);
+                            printf("  Mixbus              %10d\n", intValues[c + 8]);
+                            printf("    set zero          %10d\n", intValues[c + 17]);
+                            printf("    acc channels      %10d\n", intValues[c + 18]);
+                            printf("    write back        %10d\n", intValues[c + 19]);
+                            printf("    volume            %10d\n", intValues[c + 20]);
+                            printf("  Main-Out            %10d\n", intValues[c + 9]);
+                            printf("  EQMain              %10d\n", intValues[c + 10]);
+                            printf("  Main Volume         %10d\n", intValues[c + 11]);
+                            printf("  Matrix              %10d\n", intValues[c + 12]);
+                            printf("  Monitor             %10d\n", intValues[c + 13]);
+                            printf("  Routing/OutputDelay %10d\n", intValues[c + 14]);
+                            printf("  Copy VU-Data        %10d\n", intValues[c + 15]);
+                            printf("NonAudioprocess       %10d\n", intValues[c + 16]);
+                            printf("  copy cylcedata      %10d\n", intValues[c + 23]);
+                            printf("  process SPI         %10d\n", intValues[c + 24]);
+                            printf("\n");
+                            printf("SPI Buffer Overflow   %10d\n", intValues[c + 25]);
+                            printf("Glitch Audio ISR      %10d\n", intValues[c + 26]);
+                        }
+                        #endif
+                        
+                        c  = 3 + CYCLEMAP_SIZE;
+
+                        //copy meter-info to rChannel-struct
+                        for (int i = 0; i < (MAX_FPGA_TO_DSP1_CHANNELS + 8 + 16 + 8); i++)
+                        {
+                            state->rChannel[i].meter = abs(floatValues[c + i]); // convert 32-bit audio-value
                         }
 
-                        MainChannelLR.meter[0] = abs(floatValues[59-8]); // convert 32-bit audio-value
-                        MainChannelLR.meter[1] = abs(floatValues[60-8]); // convert 32-bit audio-value
-                        MainChannelSub.meter[0] = abs(floatValues[61-8]); // convert 32-bit audio-value
-
-                        MainChannelLR.meterPu[0] = abs(floatValues[59-8])/2147483648.0f; // convert 32-bit audio-value to absolute p.u.
-                        MainChannelLR.meterPu[1] = abs(floatValues[60-8])/2147483648.0f; // convert 32-bit audio-value to absolute p.u.
-                        MainChannelSub.meterPu[0] = abs(floatValues[61-8])/2147483648.0f; // convert 32-bit audio-value to absolute p.u.
+                        MainChannelLR.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINLEFT -1]); // convert 32-bit audio-value
+                        MainChannelLR.meter[1] = abs(floatValues[c + DSP_BUF_IDX_MAINRIGHT -1]); // convert 32-bit audio-value
+                        MainChannelSub.meter[0] = abs(floatValues[c + DSP_BUF_IDX_MAINSUB -1]); // convert 32-bit audio-value
                     }
+                    #if DSP1_DEBUG_SHOW_CYCLES
+                    else if (helper->DEBUG_DSP1(DEBUGLEVEL_VERBOSE))
+                    {
+                        printf("DSP1 \"u\" -> valuecount is wrong = %d\n", valueCount);
+                    }
+                    #endif
                     break;
             }
             break;
@@ -1019,6 +743,85 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
             break;
     }
 }
+
+
+void DSP1::UpdateVuMeter(uint8_t intervalMs)
+{
+    uint8_t coefficientDecay = 250 / intervalMs; // 50ms * 5 = 250ms
+
+	// Calculate decayed value
+
+	// MainLeft
+	if (MainChannelLR.meter[0] > MainChannelLR.meterDecay[0])
+    {
+		// current value is above stored decay-value -> copy value immediatly
+		MainChannelLR.meterDecay[0] = MainChannelLR.meter[0];
+	}
+    else
+    {
+		// current value is below -> afterglow
+		MainChannelLR.meterDecay[0] -= (MainChannelLR.meterDecay[0] / coefficientDecay);
+	}
+    config->Set(MAIN_L_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(MainChannelLR.meterDecay[0]));
+
+	// MainRight
+	if (MainChannelLR.meter[1] > MainChannelLR.meterDecay[1])
+    {
+		// current value is above stored decay-value -> copy value immediatly
+		MainChannelLR.meterDecay[1] = MainChannelLR.meter[1];
+	}
+    else
+    {
+		// current value is below -> afterglow
+		MainChannelLR.meterDecay[1] -= (MainChannelLR.meterDecay[1] / coefficientDecay);
+	}
+    config->Set(MAIN_R_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(MainChannelLR.meterDecay[1]));
+
+	// MainSub
+	if (MainChannelSub.meter[0] > MainChannelSub.meterDecay[0])
+    {
+		// current value is above stored decay-value -> copy value immediatly
+		MainChannelSub.meterDecay[0] = MainChannelSub.meter[0];
+	}
+    else
+    {
+		// current value is below -> afterglow
+		MainChannelSub.meterDecay[0] -= (MainChannelSub.meterDecay[0] / coefficientDecay);
+	}
+    config->Set(SUB_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(MainChannelSub.meterDecay[0]));
+
+	// Now calculate the VU Meter LEDs for each channel
+	for (int i = 0; i < (40 + 8 + 16); i++)
+    {
+		// Calculate decayed value
+        if (state->rChannel[i].meter > state->rChannel[i].meterDecay)
+        {
+            // current value is above stored decay-value -> copy value immediatly
+            state->rChannel[i].meterDecay = state->rChannel[i].meter;
+        }
+        else
+        {
+            // current value is below -> afterglow
+            // this function is called every 10ms. A Decay-Rate of 6dB/second would be ideal, but we do a rought estimation here
+            state->rChannel[i].meterDecay -= (state->rChannel[i].meterDecay / coefficientDecay);
+        }
+        config->Set(CHANNEL_METER_DECAYED_POST_GAIN, helper->get_dbfs_from_peak_arm_opt(state->rChannel[i].meterDecay), i);
+    }
+
+    
+
+    // // only the first 32 full-featured channels have dynamic-information for compressor and gate
+    // for (int i = 0; i < 32; i++)
+    // {
+    //     if(config->IsModelX32Core() || config->IsModelX32Rack())
+    //     {
+	// 	    // the dynamic-information is received with the 'd' information, but we will store them here
+	// 	    //if (!!RECEIVED_CHANNEL_GAIN!! < 1.0f) { rChannel[i].meter6Info |= 0b01000000; }
+	// 	    //if (Channel[i].compressor.gain < 1.0f) { rChannel[i].meter6Info |= 0b10000000; }
+    //     }
+	// }
+}
+
 
 
 //#################################################
@@ -1034,11 +837,9 @@ void DSP1::callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
 //#################################################
 
 
-void DSP1::DSP2_SetFx(int fxSlot, FX_TYPE fxType, int mode)
+void DSP1::DSP2_SetFx(int fxSlot, enum FX_TYPE fxType, int mode)
 {
-    helper->DEBUG_DSP2(DEBUGLEVEL_NORMAL, "DSP2_SetFx() fxslot %d type %d mode %d", fxSlot, to_underlying(fxType), mode);
-
-    fx_slot[fxSlot]->LoadFx(fxType);
+    helper->DEBUG_DSP2(DEBUGLEVEL_NORMAL, "DSP2_SetFx() fxslot %d type %d mode %d", fxSlot, int(fxType), mode);
 
     int values[2];
     values[0] = (int)fxType; // type of the Effect
@@ -1050,7 +851,10 @@ void DSP1::DSP2_SetFx(int fxSlot, FX_TYPE fxType, int mode)
 
 void DSP1::DSP2_SendFxParameter(int slotIdx)
 {
-    if (!fx_slot[slotIdx]->HasFx()) {
+    enum FX_TYPE fxType = (enum FX_TYPE)config->GetUint(FX_TYPE, slotIdx);
+
+    if (slotIdx > MAX_FX_SLOTS-1 || fxType == FX_TYPE::NONE)
+    {
         return;
     }
 
@@ -1064,62 +868,60 @@ void DSP1::DSP2_SendFxParameter(int slotIdx)
     float phase[2];
     float freq[4];
 
-    FxBase* fx = fx_slot[slotIdx]->fx;
-
-    switch(fx_slot[slotIdx]->fxType)
+    switch(fxType)
     {
         case FX_TYPE::REVERB:
-            fxmath->fxCalcParameters_Reverb(&values[0], 
-                config->GetFloat(fx->GetParameterDefinition(0), slotIdx), // roomSizeMs
-                config->GetFloat(fx->GetParameterDefinition(1), slotIdx), // rt60
-                config->GetFloat(fx->GetParameterDefinition(2), slotIdx), // lpfFreq
-                config->GetFloat(fx->GetParameterDefinition(3), slotIdx), // dry
-                config->GetFloat(fx->GetParameterDefinition(4), slotIdx)  // wet
+            fxmath->fxCalcParameters_Reverb(&values[0],
+                config->GetFloat(config->GetFxParameterFromType(fxType, 0), slotIdx), // roomSizeMs
+                config->GetFloat(config->GetFxParameterFromType(fxType, 1), slotIdx), // rt60
+                config->GetFloat(config->GetFxParameterFromType(fxType, 2), slotIdx), // lpfFreq
+                config->GetFloat(config->GetFxParameterFromType(fxType, 3), slotIdx), // dry
+                config->GetFloat(config->GetFxParameterFromType(fxType, 4), slotIdx)  // wet
             );
             valueCount = 6;
             spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
             break;
         case FX_TYPE::CHORUS:
-            depth[0] = config->GetFloat(fx->GetParameterDefinition(0), slotIdx);
-            delayMs[0] = config->GetFloat(fx->GetParameterDefinition(1), slotIdx);
-            phase[0] = config->GetFloat(fx->GetParameterDefinition(2), slotIdx);
-            freq[0] = config->GetFloat(fx->GetParameterDefinition(3), slotIdx);
-            depth[1] = config->GetFloat(fx->GetParameterDefinition(4), slotIdx);
-            delayMs[1] = config->GetFloat(fx->GetParameterDefinition(5), slotIdx);
-            phase[1] = config->GetFloat(fx->GetParameterDefinition(6), slotIdx);
-            freq[1] = config->GetFloat(fx->GetParameterDefinition(7), slotIdx);
+            depth[0] = config->GetFloat(config->GetFxParameterFromType(fxType, 0), slotIdx);
+            delayMs[0] = config->GetFloat(config->GetFxParameterFromType(fxType, 1), slotIdx);
+            phase[0] = config->GetFloat(config->GetFxParameterFromType(fxType, 2), slotIdx);
+            freq[0] = config->GetFloat(config->GetFxParameterFromType(fxType, 3), slotIdx);
+            depth[1] = config->GetFloat(config->GetFxParameterFromType(fxType, 4), slotIdx);
+            delayMs[1] = config->GetFloat(config->GetFxParameterFromType(fxType, 5), slotIdx);
+            phase[1] = config->GetFloat(config->GetFxParameterFromType(fxType, 6), slotIdx);
+            freq[1] = config->GetFloat(config->GetFxParameterFromType(fxType, 7), slotIdx);
             
-            fxmath->fxCalcParameters_Chorus(&values[0], depth, delayMs, phase, freq, config->GetFloat(fx->GetParameterDefinition(8), slotIdx));
+            fxmath->fxCalcParameters_Chorus(&values[0], depth, delayMs, phase, freq, config->GetFloat(config->GetFxParameterFromType(fxType, 8), slotIdx));
             valueCount = 9;
             spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
             break;
         case FX_TYPE::TRANSIENTSHAPER:
             fxmath->fxCalcParameters_TransientShaper(&values[0],
-                config->GetFloat(fx->GetParameterDefinition(0), slotIdx), // tFastMs
-                config->GetFloat(fx->GetParameterDefinition(1), slotIdx), // tMediumMs
-                config->GetFloat(fx->GetParameterDefinition(2), slotIdx), // tSlowMs
-                config->GetFloat(fx->GetParameterDefinition(3), slotIdx), // attack
-                config->GetFloat(fx->GetParameterDefinition(4), slotIdx), // sustain
-                config->GetFloat(fx->GetParameterDefinition(5), slotIdx)  // delayMs
+                config->GetFloat(config->GetFxParameterFromType(fxType, 0), slotIdx), // tFastMs
+                config->GetFloat(config->GetFxParameterFromType(fxType, 1), slotIdx), // tMediumMs
+                config->GetFloat(config->GetFxParameterFromType(fxType, 2), slotIdx), // tSlowMs
+                config->GetFloat(config->GetFxParameterFromType(fxType, 3), slotIdx), // attack
+                config->GetFloat(config->GetFxParameterFromType(fxType, 4), slotIdx), // sustain
+                config->GetFloat(config->GetFxParameterFromType(fxType, 5), slotIdx)  // delayMs
                 );
             valueCount = 6;
             spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
             break;
         case FX_TYPE::OVERDRIVE:
             fxmath->fxCalcParameters_Overdrive(&values[0],
-                config->GetFloat(fx->GetParameterDefinition(0), slotIdx), // preGain
-                config->GetFloat(fx->GetParameterDefinition(1), slotIdx), // Q
-                config->GetFloat(fx->GetParameterDefinition(2), slotIdx), // Bias
-                config->GetFloat(fx->GetParameterDefinition(3), slotIdx), // hpfInputFreq
-                config->GetFloat(fx->GetParameterDefinition(4), slotIdx), // lpfInputFreq
-                config->GetFloat(fx->GetParameterDefinition(5), slotIdx)  // lpfOutputFreq
+                config->GetFloat(config->GetFxParameterFromType(fxType, 0), slotIdx), // preGain
+                config->GetFloat(config->GetFxParameterFromType(fxType, 1), slotIdx), // Q
+                config->GetFloat(config->GetFxParameterFromType(fxType, 2), slotIdx), // Bias
+                config->GetFloat(config->GetFxParameterFromType(fxType, 3), slotIdx), // hpfInputFreq
+                config->GetFloat(config->GetFxParameterFromType(fxType, 4), slotIdx), // lpfInputFreq
+                config->GetFloat(config->GetFxParameterFromType(fxType, 5), slotIdx)  // lpfOutputFreq
             );
             valueCount = 6;
             spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
             break;
         case FX_TYPE::DELAY:
-            delayMs[0] = config->GetFloat(fx->GetParameterDefinition(0), slotIdx);
-            delayMs[1] = config->GetFloat(fx->GetParameterDefinition(1), slotIdx);
+            delayMs[0] = config->GetFloat(config->GetFxParameterFromType(fxType, 0), slotIdx);
+            delayMs[1] = config->GetFloat(config->GetFxParameterFromType(fxType, 1), slotIdx);
             fxmath->fxCalcParameters_Delay(&values[0], delayMs);
             valueCount = 2;
             spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
@@ -1128,22 +930,22 @@ void DSP1::DSP2_SendFxParameter(int slotIdx)
             // first send parameters for all channels and all bands
             for (int c = 0; c < 2; c++) {
                 // now prepare the frequencies for both channels
-                freq[0] = config->GetFloat(fx->GetParameterDefinition(34 * c + 0), slotIdx);
-                freq[1] = config->GetFloat(fx->GetParameterDefinition(34 * c + 1), slotIdx);
-                freq[2] = config->GetFloat(fx->GetParameterDefinition(34 * c + 2), slotIdx);
-                freq[3] = config->GetFloat(fx->GetParameterDefinition(34 * c + 3), slotIdx);
+                freq[0] = config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 0), slotIdx);
+                freq[1] = config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 1), slotIdx);
+                freq[2] = config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 2), slotIdx);
+                freq[3] = config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 3), slotIdx);
                 fxmath->fxCalcParameters_MultibandCompressorFreq(&values[0], c, freq);
                 valueCount = 41;
                 spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
 
                 for (int band = 0; band < 5; band++) {
                     fxmath->fxCalcParameters_MultibandCompressor(&values[0], c, band, 
-                        config->GetFloat(fx->GetParameterDefinition(34 * c + 4 + band * 6), slotIdx), // threshold
-                        config->GetFloat(fx->GetParameterDefinition(34 * c + 5 + band * 6), slotIdx), // ratio
-                        config->GetFloat(fx->GetParameterDefinition(34 * c + 6 + band * 6), slotIdx), // attack
-                        config->GetFloat(fx->GetParameterDefinition(34 * c + 7 + band * 6), slotIdx), // hold
-                        config->GetFloat(fx->GetParameterDefinition(34 * c + 8 + band * 6), slotIdx), // release
-                        config->GetFloat(fx->GetParameterDefinition(34 * c + 9 + band * 6), slotIdx)  // makeup
+                        config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 4 + band * 6), slotIdx), // threshold
+                        config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 5 + band * 6), slotIdx), // ratio
+                        config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 6 + band * 6), slotIdx), // attack
+                        config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 7 + band * 6), slotIdx), // hold
+                        config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 8 + band * 6), slotIdx), // release
+                        config->GetFloat(config->GetFxParameterFromType(fxType, 34 * c + 9 + band * 6), slotIdx)  // makeup
                     );
                     valueCount = 8;
                     spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
@@ -1154,15 +956,15 @@ void DSP1::DSP2_SendFxParameter(int slotIdx)
         case FX_TYPE::DYNAMICEQ: //                       band type  freq   staticGain  maxDynGain  Q  thresh  ratio  attack  release
             for (int band = 0; band < 3; band++) {
                 fxmath->fxCalcParameters_DynamicEQ(&values[0], band,
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 0), slotIdx), // type
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 1), slotIdx), // freq
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 2), slotIdx), // staticGain
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 3), slotIdx), // maxDynGain
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 4), slotIdx), // Q
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 5), slotIdx), // threshold
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 6), slotIdx), // ratio
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 7), slotIdx), // attack
-                    config->GetFloat(fx->GetParameterDefinition(9 * band + 8), slotIdx)  // release
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 0), slotIdx), // type
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 1), slotIdx), // freq
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 2), slotIdx), // staticGain
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 3), slotIdx), // maxDynGain
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 4), slotIdx), // Q
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 5), slotIdx), // threshold
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 6), slotIdx), // ratio
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 7), slotIdx), // attack
+                    config->GetFloat(config->GetFxParameterFromType(fxType, 9 * band + 8), slotIdx)  // release
                 );
                 valueCount = 11;
                 spi->QueueDspData(1, 'f', 'c', slotIdx, valueCount, values);
@@ -1259,4 +1061,6 @@ void DSP1::callbackDsp2(uint8_t classId, uint8_t channel, uint8_t index, uint8_t
         default:
             break;
     }
+}
+
 }

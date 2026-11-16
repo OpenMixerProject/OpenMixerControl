@@ -2,6 +2,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageAbout: public Page {
     public:
         PageAbout(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
@@ -11,7 +14,8 @@ class PageAbout: public Page {
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 4;
-            led = X32_BTN_SETUP;
             hideEncoders = true;
         }
 };
+
+}

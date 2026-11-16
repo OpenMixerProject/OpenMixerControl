@@ -29,7 +29,7 @@ CSRCS           := $(shell find src -type f -name '*.c')
 CXXSRCS         := $(shell find src -type f -name '*.cpp')
 
 # Include LVGL sources
-include $(LVGL_DIR)/lvgl/lvgl.mk
+#include $(LVGL_DIR)/lvgl/lvgl.mk
 
 OBJEXT          ?= .o
 

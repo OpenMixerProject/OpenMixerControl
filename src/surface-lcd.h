@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include "../lib/WString.h"
 
+namespace OMC
+{
+
 class LcdText {
     public:
         // sizeA/B = 0x00 (small) or 0x20 (large)
@@ -35,6 +38,8 @@ class LcdData {
         // text(s) to display, max 7
         LcdText texts[7];
 };
+
+}
 
 
 

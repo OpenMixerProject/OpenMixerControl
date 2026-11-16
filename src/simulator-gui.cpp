@@ -1,13 +1,17 @@
 #include "simulator-gui.h"
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 #include "enum.h"
-#include <SDL2/SDL.h>
+#include "defines.h"
+#include <SDL.h>
 #include <algorithm>
 #include <string>
 #include <utility>
 
-X32Ctrl* SimulatorGUI::ctrl = nullptr;
+namespace OMC {
+
+Config* SimulatorGUI::config = nullptr;
+Uart* SimulatorGUI::uart = nullptr;
 lv_display_t* SimulatorGUI::nav_disp = nullptr;
 lv_display_t* SimulatorGUI::display_encoders_disp = nullptr;
 lv_display_t* SimulatorGUI::arrows_disp = nullptr;
@@ -94,8 +98,9 @@ void BuildSmallLabel(lv_obj_t* parent, const char* text, int x, int y, int w = 7
 }
 }
 
-void SimulatorGUI::Init(X32Ctrl* ctrl_inst) {
-    ctrl = ctrl_inst;
+void SimulatorGUI::Init(Config* config_inst, Uart* surface_uart) {
+    config = config_inst;
+    uart = surface_uart;
     virtual_faders.clear();
     virtual_buttons.clear();
     virtual_display_encoders.clear();
@@ -306,7 +311,7 @@ void SimulatorGUI::CreateFadersWindows(int y_start) {
     lv_obj_set_scroll_dir(scr_lsel, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(scr_lsel, LV_SCROLLBAR_MODE_AUTO);
 
-    if (ctrl->config->IsModelX32FullOrM32()) {
+    if (config->IsModelX32FullOrM32()) {
         BuildConsoleButton(scr_lsel, "CH 1-16", 10, 34, 92, 50, SurfaceElementId::CH1_16);
         BuildConsoleButton(scr_lsel, "CH 17-32", 10, 116, 92, 50, SurfaceElementId::CH17_32);
         BuildConsoleButton(scr_lsel, "AUX/USB", 10, 198, 92, 50, SurfaceElementId::AUX_USB_RX_RET);
@@ -346,13 +351,13 @@ void SimulatorGUI::CreateFadersWindows(int y_start) {
     for (int i = 0; i < 8; i++) {
         char buf[16];
         snprintf(buf, sizeof(buf), "IN %d", i + 1);
-        BuildFaderStrip(scr_bl, i, (uint8_t)X32_BOARD::X32_BOARD_L, i, buf);
+        BuildFaderStrip(scr_bl, i, (uint8_t)OMC_BOARD::X32_BOARD_L, i, buf);
     }
 
     x_offset += fader_window_width + kWindowGap;
 
     // --- 3. Board M Faders Window (8 faders, if full model) ---
-    bool is_full = ctrl->config->IsModelX32FullOrM32();
+    bool is_full = config->IsModelX32FullOrM32();
     if (is_full) {
         board_m_disp = lv_sdl_window_create(fader_window_width, kFaderWindowHeight);
         lv_sdl_window_set_title(board_m_disp, "OpenX32 - omc - Mid Faders");
@@ -369,7 +374,7 @@ void SimulatorGUI::CreateFadersWindows(int y_start) {
         for (int i = 0; i < 8; i++) {
             char buf[16];
             snprintf(buf, sizeof(buf), "MID %d", i + 1);
-            BuildFaderStrip(scr_bm, i, (uint8_t)X32_BOARD::X32_BOARD_M, i, buf);
+            BuildFaderStrip(scr_bm, i, (uint8_t)OMC_BOARD::X32_BOARD_M, i, buf);
         }
 
         x_offset += fader_window_width + kWindowGap;
@@ -433,16 +438,16 @@ void SimulatorGUI::CreateFadersWindows(int y_start) {
     for (int i = 0; i < 8; i++) {
         char buf[16];
         snprintf(buf, sizeof(buf), "BUS %d", i + 1);
-        BuildFaderStrip(scr_br, i, (uint8_t)X32_BOARD::X32_BOARD_R, i, buf);
+        BuildFaderStrip(scr_br, i, (uint8_t)OMC_BOARD::X32_BOARD_R, i, buf);
     }
-    BuildFaderStrip(scr_br, 8, (uint8_t)X32_BOARD::X32_BOARD_R, 8, "MAIN LR");
+    BuildFaderStrip(scr_br, 8, (uint8_t)OMC_BOARD::X32_BOARD_R, 8, "MAIN LR");
 }
 
 void SimulatorGUI::BuildDisplayEncoder(lv_obj_t* parent, int encoder_idx) {
-    SurfaceElementId encoder_id = ctrl->config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_1, encoder_idx);
-    SurfaceElementId button_id = ctrl->config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, encoder_idx);
-    SurfaceElement* encoder = ctrl->config->GetSurfaceElement(encoder_id);
-    SurfaceElement* button = ctrl->config->GetSurfaceElement(button_id);
+    SurfaceElementId encoder_id = config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_1, encoder_idx);
+    SurfaceElementId button_id = config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, encoder_idx);
+    SurfaceElement* encoder = config->GetSurfaceElement(encoder_id);
+    SurfaceElement* button = config->GetSurfaceElement(button_id);
     if (encoder == nullptr || button == nullptr || encoder->GetType() != SurfaceElementType::Encoder || button->GetType() != SurfaceElementType::Button) {
         return;
     }
@@ -523,7 +528,7 @@ void SimulatorGUI::BuildDisplayEncoder(lv_obj_t* parent, int encoder_idx) {
 }
 
 void SimulatorGUI::BuildSurfaceEncoder(lv_obj_t* parent, const char* label, int x, int y, int size, SurfaceElementId elementId) {
-    SurfaceElement* encoder = ctrl->config->GetSurfaceElement(elementId);
+    SurfaceElement* encoder = config->GetSurfaceElement(elementId);
     if (encoder == nullptr || encoder->GetType() != SurfaceElementType::Encoder) {
         return;
     }
@@ -691,7 +696,7 @@ void SimulatorGUI::BuildFaderStrip(lv_obj_t* parent, int local_col_idx, uint8_t 
 }
 
 lv_obj_t* SimulatorGUI::BuildConsoleButton(lv_obj_t* parent, const char* label, int x, int y, int w, int h, SurfaceElementId elementId) {
-    SurfaceElement* element = ctrl->config->GetSurfaceElement(elementId);
+    SurfaceElement* element = config->GetSurfaceElement(elementId);
     if (element == nullptr || element->GetType() != SurfaceElementType::Button) {
         return nullptr;
     }
@@ -759,29 +764,6 @@ void SimulatorGUI::TurnEncoder(uintptr_t encoder_idx, int amount) {
     SendEmulatedEvent(vencoder.boardId, 'e', vencoder.encoderIndex, encoded_amount);
 }
 
-void SimulatorGUI::PressSurfaceButton(SurfaceElementId elementId, bool pressed) {
-    if (ctrl == nullptr || ctrl->config == nullptr) return;
-
-    SurfaceElement* element = ctrl->config->GetSurfaceElement(elementId);
-    if (element == nullptr || element->GetType() != SurfaceElementType::Button) {
-        return;
-    }
-
-    uint8_t board_id = (uint8_t)element->GetBoard();
-    uint8_t button_code = (uint8_t)element->GetIndex();
-    SendEmulatedEvent(board_id, 'b', 0, pressed ? button_code + 0x80 : button_code);
-
-    for (auto& vbtn : virtual_buttons) {
-        if (vbtn.boardId == board_id && vbtn.buttonCode == button_code) {
-            if (pressed) {
-                lv_obj_add_state(vbtn.btn_obj, LV_STATE_PRESSED);
-            } else {
-                lv_obj_clear_state(vbtn.btn_obj, LV_STATE_PRESSED);
-            }
-        }
-    }
-}
-
 int SimulatorGUI::SDLEventWatch(void* userdata, SDL_Event* sdl_event) {
     (void)userdata;
     if (sdl_event == nullptr) {
@@ -793,26 +775,7 @@ int SimulatorGUI::SDLEventWatch(void* userdata, SDL_Event* sdl_event) {
         return 0;
     }
 
-    if (sdl_event->type == SDL_KEYDOWN || sdl_event->type == SDL_KEYUP) {
-        if (sdl_event->type == SDL_KEYDOWN && sdl_event->key.repeat != 0) {
-            return 0;
-        }
-
-        SurfaceElementId element_id = SurfaceElementId::NONE;
-        switch (sdl_event->key.keysym.sym) {
-            case SDLK_UP: element_id = SurfaceElementId::UP; break;
-            case SDLK_DOWN: element_id = SurfaceElementId::DOWN; break;
-            case SDLK_LEFT: element_id = SurfaceElementId::LEFT; break;
-            case SDLK_RIGHT: element_id = SurfaceElementId::RIGHT; break;
-            default: break;
-        }
-
-        if (element_id != SurfaceElementId::NONE) {
-            PressSurfaceButton(element_id, sdl_event->type == SDL_KEYDOWN);
-        }
-        return 0;
-    }
-
+    // Keyboard shortcuts are dispatched by CtrlClient::SimulatorButton().
     if (sdl_event->type != SDL_MOUSEWHEEL) {
         return 0;
     }
@@ -878,7 +841,7 @@ void SimulatorGUI::ButtonEventCB(lv_event_t* e) {
 }
 
 void SimulatorGUI::SendEmulatedEvent(uint8_t boardId, uint8_t classId, uint8_t index, uint16_t value) {
-    if (ctrl == nullptr || ctrl->surface == nullptr || ctrl->surface->uart == nullptr) return;
+    if (uart == nullptr) return;
 
     // 1. Send Board ID Announcement Frame
     char boardMsg[4];
@@ -887,7 +850,7 @@ void SimulatorGUI::SendEmulatedEvent(uint8_t boardId, uint8_t classId, uint8_t i
     boardMsg[2] = 0xFE;
     int32_t sumBoard = 0xFE - 0xFE - (0x80 | boardId) - 1;
     boardMsg[3] = sumBoard & 0x7F;
-    ctrl->surface->uart->WriteEmulatedRx(boardMsg, 4);
+    uart->WriteEmulatedRx(boardMsg, 4);
 
     // 2. Send Event Frame
     if (classId == 'b' || classId == 'e') { // Short package
@@ -898,7 +861,7 @@ void SimulatorGUI::SendEmulatedEvent(uint8_t boardId, uint8_t classId, uint8_t i
         eventMsg[3] = 0xFE;
         int32_t sum = 0xFE - classId - index - (uint8_t)value - 2;
         eventMsg[4] = sum & 0x7F;
-        ctrl->surface->uart->WriteEmulatedRx(eventMsg, 5);
+        uart->WriteEmulatedRx(eventMsg, 5);
     } else if (classId == 'f') { // Long package
         char eventMsg[6];
         eventMsg[0] = classId;
@@ -908,12 +871,12 @@ void SimulatorGUI::SendEmulatedEvent(uint8_t boardId, uint8_t classId, uint8_t i
         eventMsg[4] = 0xFE;
         int32_t sum = 0xFE - classId - index - (value & 0xFF) - ((value >> 8) & 0xFF) - 3;
         eventMsg[5] = sum & 0x7F;
-        ctrl->surface->uart->WriteEmulatedRx(eventMsg, 6);
+        uart->WriteEmulatedRx(eventMsg, 6);
     }
 }
 
 void SimulatorGUI::Tick() {
-    if (ctrl == nullptr || ctrl->surface == nullptr || ctrl->surface->uart == nullptr) return;
+    if (uart == nullptr) return;
 
     // Parse commands from emulated TX buffer
     ParseEmulatedTxData();
@@ -921,7 +884,7 @@ void SimulatorGUI::Tick() {
 
 void SimulatorGUI::ParseEmulatedTxData() {
     char buf[1024];
-    size_t len = ctrl->surface->uart->ReadEmulatedTx(buf, sizeof(buf));
+    size_t len = uart->ReadEmulatedTx(buf, sizeof(buf));
     if (len == 0) return;
 
     static std::vector<uint8_t> parse_buf;
@@ -1089,5 +1052,6 @@ void SimulatorGUI::ProcessEmulatedOutput(uint8_t boardId, uint8_t classId, uint8
             }
         }
     }
+}
 }
 #endif

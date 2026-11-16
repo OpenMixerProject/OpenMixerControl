@@ -2,20 +2,22 @@
 
 #include "base-parameter.h"
 #include "../lib/CLI11.hpp"
-#include "x32config.h"
+#include "config.h"
 #include "state.h"
 #include "helper.h"
-#include "mixer.h"
 #include "surface.h"
+
+namespace OMC
+{
 
 class PageBaseParameter : public X32BaseParameter {
     public:
-        Mixer* mixer;
         Surface* surface;
 
-
-        PageBaseParameter(CLI::App* a, X32Config* c, State* s, Helper* h, Mixer* m, Surface* su) : X32BaseParameter(a, c, s, h){        
-            mixer = m;
+        PageBaseParameter(CLI::App* a, Config* c, State* s, Helper* h, Surface* su) : X32BaseParameter(a, c, s, h)
+        {
             surface = su;
         }
 };
+
+}

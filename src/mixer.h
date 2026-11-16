@@ -5,14 +5,13 @@
 
 #include "external.h"
 #include "defines.h"
-#include "x32config.h"
+#include "config.h"
 #include "types.h"
 #include "base.h"
 
 #include "helper.h"
 
 #include "surface.h"
-#include "surface-event.h"
 
 #include "dsp1.h"
 #include "fpga.h"
@@ -20,18 +19,19 @@
 #include "card.h"
 
 using namespace std;
+using enum MP_ID;
+
+namespace OMC
+{
+
 class Mixer : public X32Base
 {
-    using enum MP_ID;
     private:
 
         // solo is (somewhere) activated
         bool solo = false;
 
         void halSendGain(uint8_t dspChannel);
-        void halSendPhantomPower(uint8_t dspChannel);
-        void LoadRoutingDefault();
-        void LoadVChannelLayout();
 
     public:
                   
@@ -44,13 +44,16 @@ class Mixer : public X32Base
 
         Mixer(X32BaseParameter* basepar);
         void Init();
+        void Tick100ms();
 
         void SetBusSend(uint8_t vChannelIndex, uint8_t index, float value);        
         String GetCardModelString();
 
-        void ClearSolo(void);
-        bool IsSoloActivated(void);
+        void ClearSolo();
+        bool IsSoloActivated();
 
-        void Sync(void);
+        void Sync();
         uint8_t halGetDspInputSource(uint8_t dspChannel);
 };
+
+}

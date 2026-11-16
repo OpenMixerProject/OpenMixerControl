@@ -1,12 +1,12 @@
 #pragma once
 
-#include "external.h"
 #include "types.h"
-#include "const.h"
-
 #include "base.h"
 #include "spi.h"
 #include "fxmath.h"
+
+namespace OMC
+{
 
 class DSP1 : X32Base {
 
@@ -17,7 +17,7 @@ class DSP1 : X32Base {
         uint8_t readState;
 
     public:
-        srDspChannel rChannel[MAX_FPGA_TO_DSP1_CHANNELS + 8 + 16 + 8];  // values used only during runtime
+        //srDspChannel rChannel[MAX_EQ_CHANNELS];
         sMainChannel MainChannelLR;
         sMainChannel MainChannelSub;
 
@@ -29,22 +29,20 @@ class DSP1 : X32Base {
         FxMath* fxmath;
         SPI* spi;
 
-        FxSlot* fx_slot[MAX_FX_SLOTS];
-
         DSP1(X32BaseParameter* basepar);
-        void Init(void);
+        void Init();
 
         bool ChannelHasAdjustableGain(uint chanIndex);
         float CompensateGainAndVolume(float targetGainDb, float targetVolumeDb);
 
         void SendChannelVolume(uint chanIndex);
-        void SendChannelSolo(uint chanIndex, bool isSoloActivated);
+        void SendChannelSolo(uint chanIndex);
         void SendChannelSend(uint chanIndex);
         void SendMatrixVolume(uint chanIndex);
-        void SendMatrixSolo(uint chanIndex, bool isSoloActivated);
+        void SendMatrixSolo(uint chanIndex);
         void SendMonitorVolume();
         void SendMainVolume(uint chanIndex);
-        void SendMainSolo(bool isSoloActivated);
+        void SendMainSolo();
         void SendGate(uint chanIndex);
         void SendLowcut(uint8_t chan);
         void SendEQ(uint chan);
@@ -61,7 +59,7 @@ class DSP1 : X32Base {
         void UpdateVuMeter(uint8_t intervalMs);
         uint8_t GetPeak(int i, uint8_t steps);
 
-        void DSP2_SetFx(int fxSlot, FX_TYPE fxType, int mode);
+        void DSP2_SetFx(int fxSlot, enum FX_TYPE fxType, int mode);
         void DSP2_SendFxParameter(int fxSlot);
         void DSP2_SetOscillator(uint8_t oscIndex, float frequency, float volumedB);
         void DSP2_SendOscillatorValues();
@@ -70,3 +68,5 @@ class DSP1 : X32Base {
         void callbackDsp1(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values);
         void callbackDsp2(uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, void* values);
 };
+
+}

@@ -1,31 +1,18 @@
 #pragma once
 
-// ##############
-// #  Features  #
-// ##############
-
-#define ENABLE_ARTNET 1
-
 // ###########
 // #  DEBUG  #
 // ###########
 
 #define BUILD_DEBUG 1 // build with or without debug functions
 
+#define DSP1_DEBUG_SHOW_CYCLES 1 // show the fancy cycle table
 
 //#################################################################################
 
-// bodyless mode does not compile with artnet, so disable it
-#ifdef BODYLESS_SDL2
-    #define ENABLE_ARTNET 0
-#endif
-
-
 typedef unsigned int uint;
 
-#define X32_CTRL_VERSION "v0.2.5"
-
-#define X32_CTRL_URL "https://github.com/OpenMixerProject/OpenX32"
+#define OMC_URL "https://github.com/OpenMixerProject/OpenMixerControl"
 
 #define TIMER_1MS 1000000 // 1ms = 1000000ns
 #define TIMER_100MS 100 * TIMER_1MS 
@@ -48,12 +35,6 @@ typedef unsigned int uint;
 #define DISPLAY_RESOLUTION_Y 480
 
 #define MAX_DISPLAY_ENCODER 6
-// #define DISPLAY_ENCODER_1   0
-// #define DISPLAY_ENCODER_2   1
-// #define DISPLAY_ENCODER_3   2
-// #define DISPLAY_ENCODER_4   3
-// #define DISPLAY_ENCODER_5   4
-// #define DISPLAY_ENCODER_6   5
 
 // LCD Contrast
 #define LCD_CONTRAST_MIN 0
@@ -129,7 +110,7 @@ typedef unsigned int uint;
 #define FX_CHORUS_DEPTH_B_MAX        100.0f //
 
 
-#define MAX_CHAN_EQS                       4
+#define MAX_CHAN_EQS                       4  // amount of EQs per Channel
 
 #define NUM_INPUT_CHANNEL                  160 // just use a single AES50-port for now
 #define NUM_OUTPUT_CHANNEL                 NUM_INPUT_CHANNEL
@@ -174,6 +155,10 @@ typedef unsigned int uint;
 #define DSP_BUF_IDX_MONRIGHT	91	// Monitor Right
 #define DSP_BUF_IDX_TALKBACK	92	// Talkback
 
+#define DSP1_100_PERCENT_CYCLES 70000
+#define CYCLEMAP_SIZE			33
+#define SPI_DMA_COMMDATA_SIZE   3 + CYCLEMAP_SIZE + MAX_FPGA_TO_DSP1_CHANNELS + 3 + 100
+
 #define SURFACE_COLOR_BLACK 0
 #define SURFACE_COLOR_RED 1
 #define SURFACE_COLOR_GREEN 2
@@ -192,7 +177,11 @@ typedef unsigned int uint;
 #define CARD_CHANNELMODE_8IN_8OUT       4
 #define CARD_CHANNELMODE_2IN_2OUT       5
 
-#define MAX_FADERS 25   // counted on X32 Full
+#define CARD_SDCARDS 2
+
+#define XM32_MAX_FADERS 25   // counted on X32 Full
+#define WING_MAX_FADERS 24   // counted on WING Full
+
 
 // Maximal mögliche Paketlänge inklusive Startbyte, Endbyte und Checksumme
 // Langes Paket: 0xFE (1) + BoardID (1) + ID (1) + Value_MSB (1) + Value_LSB (1) + 0xFE (1) + CHECKSUM (1) = 7 Bytes
@@ -210,6 +199,11 @@ typedef unsigned int uint;
     (uint)X32_VCHANNEL_BLOCK_SIZE::SPECIAL
 
 #define VCHANNEL_NOT_SET MAX_VCHANNELS+1
+
+#define MAX_EQ_CHANNELS    MAX_FPGA_TO_DSP1_CHANNELS + MAX_FX_SLOTS + MAX_BUSSES + MAX_MATRIX + 2   // + 2 => Special + Sub; values used only during runtime
+
+#define MAX_MATRIX 6
+#define MAX_BUSSES 16
 
 #define MAX_ARTNET_CHANNELS 512
 
@@ -286,3 +280,6 @@ typedef unsigned int uint;
 #define VUTRESH_MINUS_58_DBFS 2703521
 #define VUTRESH_MINUS_59_DBFS 2409516
 #define VUTRESH_MINUS_60_DBFS 2147483
+
+// Standards
+#define UINT32_MAX 0xFFFFFFFF

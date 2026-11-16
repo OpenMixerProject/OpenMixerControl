@@ -1,0 +1,16 @@
+name: Build for X32/M32
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+    - run:  bash compile-docker.sh TARGET_XM32

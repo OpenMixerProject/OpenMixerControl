@@ -2,22 +2,21 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC_DIR="${ROOT_DIR}/src"
-BIN="${ROOT_DIR}/bin/x32ctrl"
+BIN="${ROOT_DIR}/build/pc_sdl2/omc"
 
 usage() {
     cat <<'EOF'
-Usage: ./dev.sh [--clean] [--skip-submodules] [--] [x32ctrl args...]
+Usage: ./dev.sh [--clean] [--skip-submodules] [--] [omc args...]
 
 Builds the SDL2 desktop development simulator, then starts it in bodyless
 development mode.
 
 Options:
   --clean            Remove the simulator build output before compiling.
-  --skip-submodules  Do not run git submodule update --init --recursive.
+  --skip-submodules  Use existing lib_ext dependencies without downloading them.
   -h, --help         Show this help text.
 
-Any remaining arguments are forwarded to x32ctrl after --bodyless.
+Any remaining arguments are forwarded to omc after --bodyless.
 EOF
 }
 
@@ -82,33 +81,16 @@ EOF
     exit 1
 fi
 
-case "$(uname -s)" in
-    Linux)
-        platform_ldflags="-lrt"
-        ;;
-    Darwin)
-        platform_ldflags=""
-        ;;
-    *)
-        platform_ldflags=""
-        ;;
-esac
-
-if [[ "${update_submodules}" -eq 1 ]]; then
-    git -C "${ROOT_DIR}" submodule update --init --recursive
-fi
-
 if [[ "${clean}" -eq 1 ]]; then
-    make -C "${SRC_DIR}" -f Makefile_x64_SDL2 clean
+    make -C "${ROOT_DIR}" BUILD_TARGET=TARGET_PC_SDL2 clean
 fi
 
-common_flags="-g -I../lib -I../lib/libartnet -I../lib/lv_port_linux -I../lib/glaze/include ${sdl_cflags} -MMD -MP -DBODYLESS_SDL2"
-
-make -C "${SRC_DIR}" -f Makefile_x64_SDL2 -j"$(jobs_count)" \
-    CC="${CC:-cc}" \
-    CXX="${CXX:-c++}" \
-    CFLAGS="${CFLAGS:-${common_flags}}" \
-    CXXFLAGS="${CXXFLAGS:-"-std=c++23 ${common_flags}"}" \
-    LDFLAGS="${LDFLAGS:-"${sdl_libs} -lm -lpthread ${platform_ldflags}"}"
+export CC="${CC:-cc}" CXX="${CXX:-c++}"
+export SDL_CFLAGS="${sdl_cflags}" SDL_LIBS="${sdl_libs}"
+if [[ "${update_submodules}" -eq 1 ]]; then
+    "${ROOT_DIR}/compile.sh" TARGET_PC_SDL2
+else
+    make -C "${ROOT_DIR}" BUILD_TARGET=TARGET_PC_SDL2 -j"$(jobs_count)"
+fi
 
 exec "${BIN}" --bodyless "${app_args[@]}"

@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageRoutingFpga: public Page
 {
     using enum MP_ID;
@@ -28,7 +31,6 @@ class PageRoutingFpga: public Page
             tabIndex0 = 2;
             tabLayer1 = objects.routingtab;
             tabIndex1 = 1;
-            led = X32_BTN_ROUTING;
         }
 
         void OnShow() override
@@ -216,3 +218,5 @@ class PageRoutingFpga: public Page
             SyncEncoderWidgets(true);
         }
 };
+
+}

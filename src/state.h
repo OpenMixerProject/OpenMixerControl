@@ -6,6 +6,9 @@
 #include "../lib/WString.h"
 #include "helper.h"
 
+namespace OMC
+{
+
 // Class for holding only "temporary" state data during runtime
 class State {
 
@@ -13,7 +16,7 @@ class State {
 
         bool bodyless = false;
         bool raspi = false;
-        bool bodyless_with_surface_and_adda = false;
+        bool bodyless_with_surface_and_adda = true;
 
         // DSPs
 
@@ -21,6 +24,8 @@ class State {
         float dspFreeHeapWords[2];
         float dspAudioGlitchCounter[2];
         float dspVersion[2];
+
+        srDspChannel rChannel[MAX_EQ_CHANNELS];
 
         bool x32core_lcdmode_setup;
         uint8_t ledbrightness = LED_BRIGHTNESS_4;
@@ -40,3 +45,6 @@ class State {
         uint32_t dsp_spi_config_speed = 0;
         uint32_t dsp_spi_speed = 0;
 };
+
+
+}

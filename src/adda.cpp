@@ -24,9 +24,16 @@
 
 #include "adda.h"
 
+#include "adda-message.h"
 
-Adda::Adda(X32BaseParameter* basepar): X32Base(basepar) {
+namespace OMC
+{
+
+Adda::Adda(X32BaseParameter* basepar): X32Base(basepar)
+{
+	helper->Log("Mute ADDA-Boards\n");
     SetMuteAll(true);
+
 	uart = new Uart(basepar);
 	addaPacketBufLen = 0;
 }
@@ -49,7 +56,7 @@ void Adda::Init()
         # socat -d -d pty,raw,link=/tmp/ttyLocalAdda,echo=0 pty,raw,link=/tmp/ttyRemoteAdda,echo=0
 
         // start netcat server on port 10001
-        # nc -l 10000 </tmp/ttyRemoteAdda >/tmp/ttyRemoteAdda
+        # nc -l 10001 </tmp/ttyRemoteAdda >/tmp/ttyRemoteAdda
 
         X32
         ###
@@ -362,7 +369,13 @@ String Adda::SendReceive(String cmd) {
 	unsigned int readBytes = 0;
 	while (waitForMessage > 0) {
 		helper->DEBUG_ADDA(DEBUGLEVEL_TRACE, "Waiting for Message from ADDA-Boards, Counter: %d", waitForMessage);
-		readBytes += uart->Rx(&addaBufferUart[readBytes], sizeof(addaBufferUart));
+		int readResult = uart->Rx(&addaBufferUart[readBytes], sizeof(addaBufferUart));
+		if (readResult < 0)
+		{
+			// UART not opened!
+			break;
+		}
+		readBytes += readResult;
 		if (readBytes > 0) {
 
 			if (helper->DEBUG_ADDA(DEBUGLEVEL_TRACE)){
@@ -488,4 +501,6 @@ int8_t Adda::GetXlrInBoardId(uint8_t channel) {
 	}
 
 	return -1;
+}
+
 }

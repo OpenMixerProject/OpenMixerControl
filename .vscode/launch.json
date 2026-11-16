@@ -4,12 +4,37 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/omc",
-            "args": ["-b"],
-            //"args": ["-b", "-d", "SURFACE"],
+            "program": "${workspaceFolder}/build/pc_sdl2/omc",
+            //"args": ["--osc-doc"],
+            //"args": ["-b", "-d", "OSC", "--trace", "--client=192.168.188.103"],
+            //"args": ["-b", "-d", "OSC", "--trace"],
+            "args": ["-b", "-d", "UART", "CARD", "--verbose"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
-            //"environment": [{"name" :"DEBUGINFOD_URLS", "value": ""}],
+            "cwd": "${workspaceFolder}/build/pc_sdl2",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "openx32-x64-SDL2"
+        },
+        {
+            "name": "(gdb) Run Doctest",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/pc_sdl2/omc",
+            "args": ["--test"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/pc_sdl2",
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
@@ -30,10 +55,10 @@
             "type": "gdb",
             "request": "attach",
             "name": "Attach to gdbserver",
-            "executable": "../build/omc",
-            "target": "192.168.188.104:10001",
+            "executable": "${workspaceFolder}/build/omc",
+            "target": "192.168.188.104:10000",
             "remote": true,
-            "cwd": "${workspaceRoot}",
+            "cwd": "${workspaceRoot}/build",
             "valuesFormatting": "parseText",
             "gdbpath": "/usr/bin/gdb-multiarch", 
         }

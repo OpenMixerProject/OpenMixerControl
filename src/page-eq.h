@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageEq: public Page {
 
     using enum MP_ID;
@@ -16,8 +19,9 @@ class PageEq: public Page {
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 4;
-            led = X32_BTN_VIEW_EQ;
             noLedOnRack = true;
+
+            fxmath = new FxMath(pagebasepar);
         }
 
         void OnInit() override {
@@ -66,15 +70,19 @@ class PageEq: public Page {
     private:
         lv_chart_series_t* chartSeriesEQ;
         lv_chart_series_t* chartSeriesEQPhase;
+        FxMath* fxmath;
 
         void DrawEq() {
 
             uint selectedChannelIndex = config->GetUint(SELECTED_CHANNEL);
 
             // Draw EQ only for normal and aux channels
-            if (selectedChannelIndex >= to_underlying(X32_VCHANNEL_BLOCK::FXRET)) {
+            if (selectedChannelIndex >= int(X32_VCHANNEL_BLOCK::FXRET)) {
                 return;
             }
+
+            bool lowCutEnabled = config->GetBool(CHANNEL_LOWCUT_ENABLE, selectedChannelIndex);
+            bool eqEnabled = config->GetBool(CHANNEL_EQ_ENABLE, selectedChannelIndex);
 
             // calculate the filter-response between 20 Hz and 20 kHz for all 4 PEQs
             float eqValue[200];
@@ -84,25 +92,35 @@ class PageEq: public Page {
 
             // draw the amplitude response over frequency
             int32_t* chartSeriesEqPoints = lv_chart_get_series_y_array(objects.current_channel_eq, chartSeriesEQ);
+            
             for (uint16_t pixel = 0; pixel < 200; pixel++) {
                 freq = 20.0f * powf(1000.0f, ((float)pixel/199.0f));
 
                 // LowCut
-                eqValue[pixel] += mixer->dsp->fxmath->CalcFrequencyResponse_LC(freq, config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex), config->GetUint(SAMPLERATE));
-
-                // PEQ
-                for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                if (lowCutEnabled)
                 {
-                    mixer->dsp->fxmath->RecalcFilterCoefficients_PEQ(&mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq]);
-                    eqValue[pixel] += mixer->dsp->fxmath->CalcFrequencyResponse_PEQ(
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].a[0],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].a[1],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].a[2],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].b[1],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].b[2],
-                        freq,
-                        config->GetUint(SAMPLERATE)
-                    );
+                    eqValue[pixel] += fxmath->CalcFrequencyResponse_LC(freq, config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex), config->GetUint(SAMPLERATE));
+                }
+
+                if (eqEnabled)
+                {
+                    // PEQ
+                    for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                    {
+                        sPEQ* peq = &state->rChannel[selectedChannelIndex].peq[i_peq];
+
+                        fxmath->RecalcFilterCoefficients_PEQ(peq);
+
+                        eqValue[pixel] += fxmath->CalcFrequencyResponse_PEQ(
+                            peq->a[0],
+                            peq->a[1],
+                            peq->a[2],
+                            peq->b[1],
+                            peq->b[2],
+                            freq,
+                            config->GetUint(SAMPLERATE)
+                        );
+                    }
                 }
 
                 // draw point
@@ -114,21 +132,30 @@ class PageEq: public Page {
             for (uint16_t pixel = 0; pixel < 200; pixel++) {
                 freq = 20.0f * powf(1000.0f, ((float)pixel/199.0f));
                 float phase = 0.0f;
-                // LowCut
-                phase += mixer->dsp->fxmath->CalcPhaseResponse_LC(freq, config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex));
 
-                // PEQ  
-                for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                // LowCut
+                if (lowCutEnabled)
                 {
-                    phase += mixer->dsp->fxmath->CalcPhaseResponse_PEQ(
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].a[0],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].a[1],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].a[2],
-                        1.0f,
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].b[1],
-                        mixer->dsp->rChannel[selectedChannelIndex].peq[i_peq].b[2],
-                        freq,
-                        config->GetUint(SAMPLERATE));
+                    phase += fxmath->CalcPhaseResponse_LC(freq, config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex));
+                }
+
+                if (eqEnabled)
+                {
+                    // PEQ  
+                    for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                    {
+                        sPEQ* peq = &state->rChannel[selectedChannelIndex].peq[i_peq];
+
+                        phase += fxmath->CalcPhaseResponse_PEQ(
+                            peq->a[0],
+                            peq->a[1],
+                            peq->a[2],
+                            1.0f,
+                            peq->b[1],
+                            peq->b[2],
+                            freq,
+                            config->GetUint(SAMPLERATE));
+                    }
                 }
 
                 // limit phase to +/- PI
@@ -142,3 +169,5 @@ class PageEq: public Page {
             lv_chart_refresh(objects.current_channel_eq);
         }
 };
+
+}

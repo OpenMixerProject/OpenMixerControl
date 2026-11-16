@@ -4,6 +4,9 @@
 
 using namespace std;
 
+namespace OMC
+{
+
 class PageGate: public Page {
     public:
         PageGate(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
@@ -13,7 +16,6 @@ class PageGate: public Page {
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 2;
-            led = X32_BTN_VIEW_GATE;
             noLedOnRack = true;
         }
 
@@ -62,12 +64,15 @@ class PageGate: public Page {
             }
         }
 
-        void OnUpdateMeters() override {
+        void OnUpdateMeters() override 
+        {
+            // TODO: Metering
+
             int32_t gateValueAudioDbfs = -120;
 
             uint8_t selectedChannelIndex = config->GetUint(MP_ID::SELECTED_CHANNEL);
             if (selectedChannelIndex < 40) {
-                gateValueAudioDbfs = helper->sample2Dbfs(mixer->dsp->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
+                gateValueAudioDbfs = helper->get_dbfs_from_peak_arm_opt(state->rChannel[selectedChannelIndex].meterDecay) * 100.0f;
             }
             
             // add new value to chart
@@ -122,7 +127,7 @@ class PageGate: public Page {
                 int32_t* y_array = lv_chart_get_series_y_array(chart, series); //lv_chart_get_y_array
                 int32_t value = y_array[point_id];
 
-                X32Config* config = (X32Config*)lv_obj_get_user_data(obj);
+                Config* config = (Config*)lv_obj_get_user_data(obj);
                 if (value >= config->GetFloat(CHANNEL_GATE_TRESHOLD, config->GetUint(SELECTED_CHANNEL)) * 100.0f) {
                     line_dsc->color = lv_palette_main(LV_PALETTE_GREEN);
                 } else {
@@ -165,3 +170,5 @@ class PageGate: public Page {
             lv_chart_refresh(objects.current_channel_gate);
         }
 };
+
+}

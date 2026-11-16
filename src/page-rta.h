@@ -2,9 +2,13 @@
 #include "page.h"
 
 using namespace std;
+using enum MP_ID;
+
+namespace OMC
+{
+
 class PageRta : public Page 
 {
-    using enum MP_ID;
      private:
         lv_chart_series_t* chartSeriesRta;
         uint8_t updateRateReducer = 0;
@@ -37,7 +41,6 @@ class PageRta : public Page
             tabIndex0 = 1;
             tabLayer1 = objects.meterstab;
             tabIndex1 = 1;
-            led = X32_BTN_METERS;
         }
 
         void OnInit() override
@@ -63,17 +66,19 @@ class PageRta : public Page
 
         void OnUpdateMeters() override
         {
-            //if (updateRateReducer < 1) {
-            //    updateRateReducer++;
-            //    return;
-            //}
-            updateRateReducer = 0;
+            // //if (updateRateReducer < 1) {
+            // //    updateRateReducer++;
+            // //    return;
+            // //}
+            // updateRateReducer = 0;
 
-            for (uint8_t i = 0; i < 64; i++) {
-                // convert linear value to logarithmic value
-                float currentValue = helper->sample2Dbfs(mixer->dsp->rtaData[i]); // value between -120 ... 0dBfs
-                currentValue *= 10.0f;
-                lv_chart_set_next_value(objects.rta_chart, chartSeriesRta, (int32_t)currentValue);
-            }
+            // for (uint8_t i = 0; i < 64; i++) {
+            //     // convert linear value to logarithmic value
+            //     float currentValue = helper->sample2Dbfs(mixer->dsp->rtaData[i]); // value between -120 ... 0dBfs
+            //     currentValue *= 10.0f;
+            //     lv_chart_set_next_value(objects.rta_chart, chartSeriesRta, (int32_t)currentValue);
+            // }
         }      
 };
+
+}

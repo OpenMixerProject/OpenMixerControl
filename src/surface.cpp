@@ -23,60 +23,47 @@
 */
 
 #include "surface.h"
+#include "enum.h"
 
-Surface::Surface(X32BaseParameter* basepar): X32Base(basepar){
-    uart = new Uart(basepar);
-}
+namespace OMC
+{
 
-void Surface::Init(void) {
-    if (state->bodyless) {
-
-        /* 
-        
-        How to connect x32ctrl bodyless mode to a X32 runnig Linux:
-
-        Developer PC
-        ############
-
-        // create two virtual serial ports and connect them together as bridge
-        # socat -d -d pty,raw,link=/tmp/ttyLocal,echo=0 pty,raw,link=/tmp/ttyRemote,echo=0
-
-        // start netcat server on port 10000
-        # nc -l 10000 </tmp/ttyRemote >/tmp/ttyRemote
-
-        X32
-        ###
-        
-        // set serial to 115200 baud
-        # stty -F /dev/ttymxc1 115200 raw -echo -echoe -echok
-
-        // start netcat client to transmit/receive serial from/to devloper pc
-        # nc <ip of Developer PC> 10000 </dev/ttymxc1 >/dev/ttymxc1
-
-        Developer PC
-        ############        
-        
-        // start x32ctrl with bodyless commandline parameter "-b"
-        # x32ctrl -b
-        
-        */
-
-        uart->Open("/tmp/ttyLocal", 115200, true);
-    }
-    else if (state->raspi)
-    {
-        uart->Open("/dev/ttyUSB0", 115200, true);
+Surface::Surface(X32BaseParameter* basepar): X32Base(basepar)
+{
+    if (config->IsModelAnyWing())
+    {      
+        surfaceController = new SurfaceControllerWing(basepar);
     }
     else
     {
-        uart->Open("/dev/ttymxc1", 115200, true);
+        surfaceController = new SurfaceControllerXM32(basepar);
     }
-
-    Reset();
 }
 
-void Surface::Reset(void) {
-     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Reset surface ...");
+void Surface::Init(SurfaceCallback callback, void* arg)
+{
+    surfaceController->Init(callback, arg);
+
+    Reset();
+
+    InitBanks();
+	UpdateFaderBanks();
+	LoadDefaultSurfaceBinding();
+}
+
+#ifdef TARGET_PC_SDL2
+void Surface::InitSimulator()
+{
+    if (!config->IsModelAnyWing())
+    {
+        static_cast<SurfaceControllerXM32*>(surfaceController)->InitSimulator();
+    }
+}
+#endif
+
+void Surface::Reset()
+{
+    helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Reset surface ...");
 
     if (state->bodyless) 
     {
@@ -84,21 +71,633 @@ void Surface::Reset(void) {
     }
     else
     {  
-        int fd = open("/sys/class/leds/reset_surface/brightness", O_WRONLY);
-        write(fd, "1", 1);
-        usleep(100 * 1000);
-        write(fd, "0", 1);
-        close(fd);
-        usleep(2000 * 1000);
+        if (!config->IsModelAnyWing()) {
+            int fd = open("/sys/class/leds/reset_surface/brightness", O_WRONLY);
+            write(fd, "1", 1);
+            usleep(100 * 1000);
+            write(fd, "0", 1);
+            close(fd);
+            usleep(2000 * 1000);
+        }
     }
 
-    //Reset twice (the first faders are not reseted if we do it only once)
-    FaderReset();
-    FaderReset();
+    if (surfaceController) {
+        surfaceController->Reset();
+    }
 
     helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "... Done");
 }
 
+void Surface::Tick10ms()
+{
+    if (surfaceController)
+    {
+        surfaceController->Tick10ms();
+    }
+};
+
+void Surface::Tick100ms()
+{
+    if (surfaceController)
+    {
+        surfaceController->Tick100ms();
+    }
+};
+
+void Surface::ProcessUartDataSurface()
+{
+    surfaceController->ProcessUartData();
+}
+
+void Surface::UpdateFaderBanks()
+{
+    if (!config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+    {
+        return;
+    }
+
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH1_8], X32_VCHANNEL_BLOCK::NORMAL, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH9_16], X32_VCHANNEL_BLOCK::NORMAL, 8);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH17_24], X32_VCHANNEL_BLOCK::NORMAL, 16);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH25_32], X32_VCHANNEL_BLOCK::NORMAL, 24);
+    PopulateBankWithActive(banks[(uint)OMCBankId::AUX_USB], X32_VCHANNEL_BLOCK::AUX, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::FX_RET], X32_VCHANNEL_BLOCK::FXRET, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::BUS1_8], X32_VCHANNEL_BLOCK::BUS, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::BUS9_16], X32_VCHANNEL_BLOCK::BUS, 8);
+
+    vector<uint> activeMatrix = GetActiveChannels(X32_VCHANNEL_BLOCK::MATRIX);
+    X32FaderBank* matrixBank = banks[(uint)OMCBankId::MATRIX_MAIN];
+    for (uint i = 0; i < 8; i++)
+    {
+        if (i < activeMatrix.size())
+        {
+            SetChannelstripBinding(matrixBank, i, activeMatrix[i]);
+        }
+        else
+        {
+            uint extraIdx = i - activeMatrix.size();
+            if (extraIdx == 0)
+            {
+                SetChannelstripBinding(matrixBank, i, 70);
+            }
+            else if (extraIdx == 1)
+            {
+                SetChannelstripBinding(matrixBank, i, 71);
+            }
+            else
+            {
+                matrixBank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            }
+        }
+    }
+}
+
+vector<uint> Surface::GetActiveChannels(X32_VCHANNEL_BLOCK blockType)
+{
+    vector<uint> list;
+    uint start = 0;
+    uint size = 0;
+    if (blockType == X32_VCHANNEL_BLOCK::NORMAL) { start = 0; size = 32; }
+    else if (blockType == X32_VCHANNEL_BLOCK::AUX) { start = 32; size = 8; }
+    else if (blockType == X32_VCHANNEL_BLOCK::FXRET) { start = 40; size = 8; }
+    else if (blockType == X32_VCHANNEL_BLOCK::BUS) { start = 48; size = 16; }
+    else if (blockType == X32_VCHANNEL_BLOCK::MATRIX) { start = 64; size = 6; }
+    else { return list; }
+
+    for (uint i = 0; i < size; i++)
+    {
+        uint chanIdx = start + i;
+        if (!config->IsRightChannelOfLinkedPair(chanIdx))
+        {
+            list.push_back(chanIdx);
+        }
+    }
+    return list;
+}
+
+void Surface::PopulateBankWithActive(X32FaderBank* bank, X32_VCHANNEL_BLOCK blockType, uint activeOffset)
+{
+    vector<uint> active = GetActiveChannels(blockType);
+    for (uint i = 0; i < 8; i++)
+    {
+        uint activeIdx = activeOffset + i;
+        if (activeIdx < active.size())
+        {
+            SetChannelstripBinding(bank, i, active[activeIdx]);
+        }
+        else
+        {
+            bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+        }
+    }
+}
+
+
+//####################################################################
+//
+//  ######  ##     ## ########  ########    ###     ######  ######## 
+// ##    ## ##     ## ##     ## ##         ## ##   ##    ## ##       
+// ##       ##     ## ##     ## ##        ##   ##  ##       ##       
+//  ######  ##     ## ########  ######   ##     ## ##       ######   
+//       ## ##     ## ##   ##   ##       ######### ##       ##       
+// ##    ## ##     ## ##    ##  ##       ##     ## ##    ## ##       
+//  ######   #######  ##     ## ##       ##     ##  ######  ######## 
+//
+//
+// ########  #### ##    ## ########  #### ##    ##  ######   
+// ##     ##  ##  ###   ## ##     ##  ##  ###   ## ##    ##  
+// ##     ##  ##  ####  ## ##     ##  ##  ####  ## ##        
+// ########   ##  ## ## ## ##     ##  ##  ## ## ## ##   #### 
+// ##     ##  ##  ##  #### ##     ##  ##  ##  #### ##    ##  
+// ##     ##  ##  ##   ### ##     ##  ##  ##   ### ##    ##  
+// ########  #### ##    ## ########  #### ##    ##  ######   
+//
+//####################################################################
+
+
+
+// Bind Surfaceelements to Mixerparameter or special functions
+void Surface::LoadDefaultSurfaceBinding()
+{
+	LoadMainFaderSurfaceBinding();
+
+    if (config->HasDisplay())
+    {
+        // Display - XM32 and WING
+		config->SurfaceBind(SurfaceElementId::HOME, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::HOME));
+		config->SurfaceBind(SurfaceElementId::METERS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::METERS));
+		config->SurfaceBind(SurfaceElementId::ROUTING, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::ROUTING));
+		config->SurfaceBind(SurfaceElementId::SETUP, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP));
+		config->SurfaceBind(SurfaceElementId::LIBRARY, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::LIBRARY));
+		config->SurfaceBind(SurfaceElementId::EFFECTS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EFFECTS));
+        config->SurfaceBind(SurfaceElementId::UTILITY, MixerparameterAction::TOGGLE, DISPLAY_UTILITY);
+    }
+
+    if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack() || config->IsModelAnyWing())
+    {
+        config->SurfaceBind(SurfaceElementId::CLEAR_SOLO, MixerparameterAction::CLEAR_SOLO, SOLO_ACTIVE);
+    }
+
+	if (config->IsModelAnyXM32())
+	{
+        if (config->HasDisplay())
+	    {
+            // Display
+            config->SurfaceBind(SurfaceElementId::MUTE_GRP, MixerparameterAction::TOGGLE, DISPLAY_MUTE_GROUP);
+
+            config->SurfaceBind(SurfaceElementId::LEFT, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+            config->SurfaceBind(SurfaceElementId::RIGHT, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+            config->SurfaceBind(SurfaceElementId::UP, MixerparameterAction::TOGGLE, DISPLAY_UP);
+            config->SurfaceBind(SurfaceElementId::DOWN, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+        }
+
+		if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+		{
+			// Config / Preamp
+			config->SurfaceBind(SurfaceElementId::GAIN_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
+			config->SurfaceBind(SurfaceElementId::PHANTOM_48V, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHANTOM);
+			config->SurfaceBind(SurfaceElementId::PHASE_INVERT, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHASE_INVERT);
+			config->SurfaceBind(SurfaceElementId::LOW_CUT_FREQ_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
+			config->SurfaceBind(SurfaceElementId::LOW_CUT, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_CONFIG, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::CONFIG));
+
+			// Gate
+			config->SurfaceBind(SurfaceElementId::GATE_THRESHOLD_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_TRESHOLD);
+			config->SurfaceBind(SurfaceElementId::GATE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_GATE_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_GATE, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::GATE));
+
+			// Dynamics
+			config->SurfaceBind(SurfaceElementId::DYNAMICS_THRESHOLD_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_TRESHOLD);
+			config->SurfaceBind(SurfaceElementId::COMP_EXP, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_COMPRESSOR_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_DYNAMICS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::COMPRESSOR));
+
+			// EQ
+			config->SurfaceBind(SurfaceElementId::EQ_HCUT_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::HICUT);
+			config->SurfaceBind(SurfaceElementId::EQ_HSHV_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::HIGHSHELV);
+			//config->SurfaceBind(SurfaceElementId::EQ_VEQ_LED, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::V);
+			config->SurfaceBind(SurfaceElementId::EQ_PEQ_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::PEQ);
+			config->SurfaceBind(SurfaceElementId::EQ_LSHV_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::LOWSHELV);
+			config->SurfaceBind(SurfaceElementId::EQ_LCUT_LED, MixerparameterAction::SET__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ, (uint)EQ_TYPE::LOWCUT);
+			config->SurfaceBind(SurfaceElementId::EQ_MODE, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
+
+			config->SurfaceBind(SurfaceElementId::EQ_Q_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
+			config->SurfaceBind(SurfaceElementId::EQ_FREQ_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
+			config->SurfaceBind(SurfaceElementId::EQ_GAIN_ENCODER, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
+
+			config->SurfaceBind(SurfaceElementId::EQ_LOW, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 0);
+			config->SurfaceBind(SurfaceElementId::EQ_LOW_MID, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 1);
+			config->SurfaceBind(SurfaceElementId::EQ_HIGH_MID, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 2);
+			config->SurfaceBind(SurfaceElementId::EQ_HIGH, MixerparameterAction::SET_TO_INDEX, BANKING_EQ, 3);
+			config->SurfaceBind(SurfaceElementId::EQ, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
+			config->SurfaceBind(SurfaceElementId::VIEW_EQ, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::EQ));
+
+			// Bus Sends
+			config->SurfaceBind(SurfaceElementId::VIEW_MIX_BUS_SENDS, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SENDS));
+			if (config->IsModelX32FullOrM32())
+			{
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_1, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND01, (uint)BANKING_BUS_SENDS, 4);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND02, (uint)BANKING_BUS_SENDS, 4);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND03, (uint)BANKING_BUS_SENDS, 4);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_BUS_SEND04, (uint)BANKING_BUS_SENDS, 4);
+
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_1_4, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 0);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_5_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 1);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_9_12, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 2);
+				config->SurfaceBind(SurfaceElementId::BUS_SEND_13_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS_SENDS, 3);
+			}
+			
+			// Bus Mixes
+			config->SurfaceBind(SurfaceElementId::MAIN_BUS_LEVEL_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME_SUB);
+			config->SurfaceBind(SurfaceElementId::MONO_BUS, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_SUB);
+			config->SurfaceBind(SurfaceElementId::PAN_BAL_ENCODER, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_PANORAMA);
+			config->SurfaceBind(SurfaceElementId::MAIN_LR_BUS, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_LR);
+			config->SurfaceBind(SurfaceElementId::VIEW_MAIN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::MAIN));
+			
+			// Scenes
+			config->SurfaceBind(SurfaceElementId::VIEW_SCENES, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
+
+			// Assign
+			
+			// assign Channel 1-4 with Volume, LCD, Solo, Mute
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_1, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_1, MixerparameterAction::LCD_Channel, NONE, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_2, MixerparameterAction::LCD_Channel, NONE, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_3, MixerparameterAction::LCD_Channel, NONE, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_LCD_4, MixerparameterAction::LCD_Channel, NONE, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_VOLUME, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_5, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_7, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_8, MixerparameterAction::TOGGLE, CHANNEL_SOLO, 3);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_9, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_10, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_11, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 2);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_12, MixerparameterAction::TOGGLE, CHANNEL_MUTE, 3);
+
+			config->SurfaceBind(SurfaceElementId::ASSIGN_A, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 0);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_B, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 1);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_C, MixerparameterAction::SET_TO_INDEX, BANKING_ASSIGN, 2);
+			config->SurfaceBind(SurfaceElementId::VIEW_ASSIGN, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SETUP_SURFACE));
+
+			// Remote
+			config->SurfaceBind(SurfaceElementId::DAW_REMOTE, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::REMOTE1));
+
+			// Banking of Input Section
+			if (config->IsModelX32Full())
+			{
+				config->SurfaceBind(SurfaceElementId::CH1_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_16));
+				config->SurfaceBind(SurfaceElementId::CH17_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_32));
+				config->SurfaceBind(SurfaceElementId::AUX_USB_RX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB_FX_RET));
+				config->SurfaceBind(SurfaceElementId::BUS_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_16));
+			}
+			else if (config->IsModelX32CompactOrProducerOrM32R())
+			{
+				config->SurfaceBind(SurfaceElementId::CH1_8, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH1_8));
+				config->SurfaceBind(SurfaceElementId::CH9_16, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH9_16));
+				config->SurfaceBind(SurfaceElementId::CH17_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH17_24));
+				config->SurfaceBind(SurfaceElementId::CH25_32, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::CH25_32));
+				config->SurfaceBind(SurfaceElementId::AUX_USB, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::AUX_USB));
+				config->SurfaceBind(SurfaceElementId::FX_RET, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::FX_RET));
+				config->SurfaceBind(SurfaceElementId::BUS1_8_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS1_8));
+				config->SurfaceBind(SurfaceElementId::BUS9_16_MASTER, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::BUS9_16));
+			}
+
+			// Banking of Bus Section
+			config->SurfaceBind(SurfaceElementId::DCA, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::DCA));
+			config->SurfaceBind(SurfaceElementId::BUS1_8, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS1_8));
+			config->SurfaceBind(SurfaceElementId::BUS9_16, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::BUS9_16));
+			config->SurfaceBind(SurfaceElementId::MATRIX_MAIN, MixerparameterAction::SET_TO_INDEX, BANKING_BUS, (uint)(OMCBankId::MATRIX_MAIN));
+
+			// Mute Groups
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_1, MixerparameterAction::TOGGLE, MUTE_GROUP_1_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_2, MixerparameterAction::TOGGLE, MUTE_GROUP_2_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_3, MixerparameterAction::TOGGLE, MUTE_GROUP_3_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_4, MixerparameterAction::TOGGLE, MUTE_GROUP_4_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_5, MixerparameterAction::TOGGLE, MUTE_GROUP_5_MUTE);
+			config->SurfaceBind(SurfaceElementId::MUTE_GROUP_6, MixerparameterAction::TOGGLE, MUTE_GROUP_6_MUTE);
+		}		
+
+		if (config->IsModelX32Rack())
+		{
+			config->SurfaceBind(SurfaceElementId::VIEW_SCENES, MixerparameterAction::SET_TO_INDEX, ACTIVE_PAGE, (uint)(X32_PAGE::SCENES));
+
+			config->SurfaceBind(SurfaceElementId::CHANNEL_ENCODER, MixerparameterAction::CHANGE, SELECTED_CHANNEL);
+
+			config->SurfaceBind(SurfaceElementId::CHANNEL_SOLO, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SOLO);
+			config->SurfaceBind(SurfaceElementId::CHANNEL_MUTE, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
+			config->SurfaceBind(SurfaceElementId::CHANNEL_LEVEL, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
+			config->SurfaceBind(SurfaceElementId::MAIN_LEVEL, MixerparameterAction::CHANGE, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
+		}
+
+        if (config->IsModelX32Core())
+		{
+            //config->SurfaceBind(SurfaceElementId::SCENE_SETUP, MixerparameterAction::, SELECTED_CHANNEL);
+
+            config->SurfaceBind(SurfaceElementId::CHANNEL_ENCODER, MixerparameterAction::CHANGE, SELECTED_CHANNEL);
+            config->SurfaceBind(SurfaceElementId::CORE_LCD, MixerparameterAction::LCD_Channel, NONE);
+            config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
+            config->SurfaceBind(SurfaceElementId::ASSIGN_ENCODER_2, MixerparameterAction::CHANGE, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
+
+            // DEBUG
+            config->SurfaceBind(SurfaceElementId::ASSIGN_3, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SOLO);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_4, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_MUTE);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_5, MixerparameterAction::CLEAR_SOLO, NONE);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::SET_TO_INDEX, LCD_CONTRAST, 40);
+        }
+	}
+
+	if (config->IsModelAnyWing())
+	{
+		if (config->IsModelWingCompact())
+		{
+			config->SurfaceBind(SurfaceElementId::WING_CH1_12, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_1_12));
+			config->SurfaceBind(SurfaceElementId::WING_CH13_24, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_13_24));
+			config->SurfaceBind(SurfaceElementId::WING_CH25_36, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_25_36));
+            config->SurfaceBind(SurfaceElementId::WING_CH37_40_AUX, MixerparameterAction::SET_TO_INDEX, BANKING_INPUT, (uint)(OMCBankId::WING_37_40_AUX));
+
+			config->SurfaceBind(SurfaceElementId::ASSIGN_1, MixerparameterAction::TOGGLE, DISPLAY_LEFT);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_2, MixerparameterAction::TOGGLE, DISPLAY_RIGHT);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_4, MixerparameterAction::TOGGLE, DISPLAY_UP);
+			config->SurfaceBind(SurfaceElementId::ASSIGN_6, MixerparameterAction::TOGGLE, DISPLAY_DOWN);
+		}
+	}
+}
+
+void Surface::LoadMainFaderSurfaceBinding()
+{
+    // Main Fader
+
+    if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32ROrRack())
+    {
+        config->SurfaceBind(SurfaceElementId::BOARD_R_SELECT_MAIN, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_SOLO_MAIN, MixerparameterAction::TOGGLE, CHANNEL_SOLO, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_LCD_MAIN, MixerparameterAction::LCD_Channel, NONE, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_MUTE_MAIN, MixerparameterAction::TOGGLE, CHANNEL_MUTE, int(X32_VCHANNEL_BLOCK::MAIN));
+        config->SurfaceBind(SurfaceElementId::BOARD_R_FADER_MAIN, MixerparameterAction::SET, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
+    } 
+    else if (config->IsModelAnyWing())
+    {
+        if (config->IsModelWingCompact())
+        {
+            config->SurfaceBind(SurfaceElementId::WING_LCD_13, MixerparameterAction::LCD_Channel, NONE, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_SELECT_13, MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_SOLO_13, MixerparameterAction::TOGGLE, CHANNEL_SOLO, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_MUTE_13, MixerparameterAction::TOGGLE, CHANNEL_MUTE, int(X32_VCHANNEL_BLOCK::MAIN));
+            config->SurfaceBind(SurfaceElementId::WING_FADER_13, MixerparameterAction::SET, CHANNEL_VOLUME, int(X32_VCHANNEL_BLOCK::MAIN));
+        }
+    }
+}
+
+//#####################################################################################################################
+//
+// ########     ###    ##    ## ##     ## #### ##    ##  ######   
+// ##     ##   ## ##   ###   ## ##    ##   ##  ###   ## ##    ##  
+// ##     ##  ##   ##  ####  ## ##   ##    ##  ####  ## ##        
+// ########  ##     ## ## ## ## #####      ##  ## ## ## ##   #### 
+// ##     ## ######### ##  #### ##   ##    ##  ##  #### ##    ##  
+// ##     ## ##     ## ##   ### ##    ##   ##  ##   ### ##    ##  
+// ########  ##     ## ##    ## ##     ## #### ##    ##  ######   
+//
+//#####################################################################################################################
+
+void Surface::InitBanks()
+{
+	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	{
+		uint channel_strip_size = 8;
+
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH1_8, "Channel 1-8", channel_strip_size), 0);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH9_16, "Channel 9-16", channel_strip_size), 8);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH17_24, "Channel 17-24", channel_strip_size), 16);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::CH25_32, "Channel 25-32", channel_strip_size), 24);
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::AUX_USB, "AUX/USB", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::AUX));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::FX_RET, "FX Return", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::FXRET));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::BUS1_8, "Bus 1-8", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::BUS));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::BUS9_16, "Bus 9-16", channel_strip_size), ((uint)(X32_VCHANNEL_BLOCK::BUS)) + 8);
+		InitBank_Channelstrip_DCA(new X32FaderBank(OMCBankId::DCA, "DCA", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::DCA));
+		InitBank_Channelstrip(new X32FaderBank(OMCBankId::MATRIX_MAIN, "Matrix/Main", channel_strip_size), (uint)(X32_VCHANNEL_BLOCK::MATRIX));
+		InitBank_DMX(new X32FaderBank(OMCBankId::REMOTE1, "Remote1", channel_strip_size), 0);
+		InitBank_DMX(new X32FaderBank(OMCBankId::REMOTE2, "Remote2", channel_strip_size), 8);
+		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX1, "Flex1", channel_strip_size));
+		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX2, "Flex2", channel_strip_size));
+		InitBank_Flex(new X32FaderBank(OMCBankId::FLEX3, "Flex3", channel_strip_size));
+	}
+	else if (config->IsModelWingCompact())
+	{
+		uint channel_strip_size = 12;
+
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_1_12, "Channel 1-12", channel_strip_size), 0);
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_13_24, "Channel 13-24", channel_strip_size), 12);
+		InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_25_36, "Channel 25-36", channel_strip_size), 24);
+        InitBank_Channelstrip_WING(new X32FaderBank(OMCBankId::WING_37_40_AUX, "Channel 37-40 + AUX", channel_strip_size), 36);
+	}
+}
+
+void Surface::InitBank_Channelstrip_WING(X32FaderBank* bank, uint offset)
+{
+    for (uint i = 0; i < 12; i++)
+    	{
+			bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Channel, NONE, i + offset);
+			bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, i + offset);
+			bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_SOLO, i + offset);
+			// bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::VUMETER, NONE, i + offset);
+			bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_MUTE, i + offset);
+			bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::SET, CHANNEL_VOLUME, i + offset);
+		}
+
+	banks[(uint)(bank->GetID())] = bank;
+}
+
+void Surface::InitBank_Channelstrip(X32FaderBank* bank, uint offset)
+{
+    for (uint i = 0; i < 8; i++)
+    {
+        SetChannelstripBinding(bank, i, i + offset);
+    }
+
+	banks[(uint)(bank->GetID())] = bank;
+}
+
+void Surface::SetChannelstripBinding(X32FaderBank *bank, uint i, uint chanIndex)
+{
+    bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, chanIndex);
+    bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::VUMETER, NONE, chanIndex);
+    bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_SOLO, chanIndex);
+    bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Channel, NONE, chanIndex);
+    bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_MUTE, chanIndex);
+    bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::SET, CHANNEL_VOLUME, chanIndex);
+}
+
+void Surface::InitBank_Channelstrip_DCA(X32FaderBank* bank, uint offset)
+{
+    for (uint i = 0; i < 8; i++)
+    {
+        bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::TOGGLE, config->MpCalcId(DCA_GROUP_1_MASTER, i), 0);
+		//bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::VUMETER, NONE, i + offset);
+        bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_SOLO, i + offset);
+		bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Channel, NONE, i + offset);
+        bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_MUTE, i + offset);
+        bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::SET, CHANNEL_VOLUME, i + offset);
+    }
+
+	banks[(uint)(bank->GetID())] = bank;
+}
+
+void Surface::InitBank_DMX(X32FaderBank* bank, uint offset)
+{
+    for (uint i = 0; i < 8; i++)
+    {
+        //bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::SET_TO_INDEX, SELECTED_CHANNEL, i + offset);
+		//bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::VUMETER, NONE, i + offset);
+        //bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_SOLO, i + offset);
+		bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::LCD_Artnet, DMX_ARTNET_VALUE, i + offset);
+        //bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::TOGGLE, CHANNEL_MUTE, i + offset);
+        bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::DMX, DMX_ARTNET_VALUE, i + offset);
+    }
+
+	banks[(uint)(bank->GetID())] = bank;
+}
+
+// create a empty bank for flexible use
+void Surface::InitBank_Flex(X32FaderBank* bank)
+{
+    for (uint i = 0; i < 8; i++)
+    {
+        bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+		bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+        bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+		bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+        bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+        bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+    }
+
+	banks[(uint)(bank->GetID())] = bank;
+}
+
+void Surface::LoadBank(OMCBankTarget target, OMCBankId id)
+{
+	if (id == OMCBankId::None)
+	{
+		return;
+	}
+
+	helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Load Bank %d to section %d", id, target);
+
+	X32FaderBank* bank_to_load = banks[(uint)id];
+
+	if (bank_to_load == 0)
+	{
+		return;
+	}
+
+	if (target == OMCBankTarget::InputSection)
+	{
+		for (uint i = 0; i < 8; i++)
+		{
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_SELECT_1 + i), bank_to_load->channelstrip[i]->select);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
+		}
+	}
+
+	if (target == OMCBankTarget::InputSection2)
+	{
+		for (uint i = 0; i < 8; i++)
+		{
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_SELECT_1 + i), bank_to_load->channelstrip[i]->select);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
+		}
+	}
+
+	if (target == OMCBankTarget::BusSection)
+	{
+		for (uint i = 0; i < 8; i++)
+		{
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_SELECT_1 + i), bank_to_load->channelstrip[i]->select);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
+		}
+	}
+
+	if (target == OMCBankTarget::WING_COMPACT)
+	{
+		for (uint i = 0; i < 12; i++)
+		{
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_LCD_1 + i), bank_to_load->channelstrip[i]->lcd);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_SELECT_1 + i), bank_to_load->channelstrip[i]->select);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_SOLO_1 + i), bank_to_load->channelstrip[i]->solo);
+			//config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_VUMETER_1 + i), bank_to_load->channelstrip[i]->vumeter);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_MUTE_1 + i), bank_to_load->channelstrip[i]->mute);
+			config->SurfaceBindParameter((SurfaceElementId)((uint)SurfaceElementId::WING_FADER_1 + i), bank_to_load->channelstrip[i]->fader);
+		}
+	}
+
+    bankloaded.insert({target, id});
+}
+
+void Surface::LoadAssignBank(X32AssignBankId bankId)
+{
+	OMCAssignBank* bank_to_load = config->GetAssignBank(bankId);
+
+	helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Load %s", bank_to_load->GetName().c_str());
+
+    for (auto const& [id, binding] : *(bank_to_load->bindingMap))
+    {
+		config->SurfaceBindParameter(id, binding);
+	}
+}
+
+OMCBankId Surface::GetLoadedBankId(OMCBankTarget target)
+{
+    if (bankloaded.count(target))
+    {
+        return bankloaded.at(target);
+    }
+
+    return OMCBankId::None;
+}
+
+X32FaderBank* Surface::GetLoadedBank(OMCBankTarget target)
+{
+    OMCBankId id = GetLoadedBankId(target);
+    return GetBank(id);
+}
+
+X32FaderBank* Surface::GetBank(OMCBankId id)
+{
+    return banks[(uint)id];
+}
+
+// reset the banks to default blank
+void Surface::ResetBank(OMCBankId id)
+{
+    banks[(uint)id]->Reset();
+}
 
 // bit 0=CCW, bit 6=center, bit 12 = CW, bit 15=encoder-backlight
 // CCW <- XXXXXX X XXXXXX -> CW
@@ -355,7 +954,7 @@ void Surface::SetBrightness(uint8_t boardId, uint8_t brightness) {
     message.AddDataByte('C'); // class: C = Controlmessage
     message.AddDataByte('B'); // index
     message.AddDataByte(brightness);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 void Surface::SetContrastAllBoards(uint8_t contrast) {
@@ -373,52 +972,12 @@ void Surface::SetContrast(uint8_t boardId, uint8_t contrast) {
     message.AddDataByte('C'); // class: C = Controlmessage
     message.AddDataByte('C'); // index
     message.AddDataByte(contrast & 0x3F);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
-void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn, bool blink)
-{
-    if(blink)
-    {
-        blinklist.insert(buttonOrLed);
-    }
-    else
-    {
-        if (!blinklist.empty())
-        {
-            set<SurfaceElementId>::iterator it = blinklist.find(buttonOrLed);
-            if (it != blinklist.end())
-            {
-                blinklist.erase(it);
-            }
-        }
-    }
 
-    SetLed(buttonOrLed, ledOn);
-}
 
-void Surface::SetLed(SurfaceElementId buttonOrLed, bool ledOn)
-{
-    SurfaceElement *element = config->GetSurfaceElement(buttonOrLed);
-    SetLedRaw((uint)element->GetBoard(), (uint)element->GetIndex(), ledOn);
-}
 
-void Surface::SetLedRaw(uint board, uint index, bool ledOn)
-{
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + board);
-    message.AddDataByte('L');  // class: L = LED
-    message.AddDataByte(0x80); // index - fixed at 0x80 for LEDs
-    if (ledOn)
-    {
-        message.AddDataByte(index + 0x80); // turn LED on
-    }
-    else
-    {
-        message.AddDataByte(index); // turn LED off
-    }
-    SendData(&message, true);
-}
 
 // set 7-Segment display on X32 Rack
 // dot = 128
@@ -429,7 +988,7 @@ void Surface::SetX32RackDisplayRaw(uint8_t p_value2, uint8_t p_value1){
     message.AddDataByte(0x80);
     message.AddDataByte(p_value2); 
     message.AddDataByte(p_value1);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 // set 7-Segment display on X32 Rack
@@ -504,20 +1063,12 @@ uint8_t Surface::int2segment(int8_t p_value){
     }
 }
 
-// boardId = 0, 1, 4, 5, 8
-// index = 0 ... 8
-// leds = 8-bit bitwise (bit 0=-60dB ... 4=-6dB, 5=Clip, 6=Gate, 7=Comp)
+
 void Surface::SetMeterLed(uint8_t boardId, uint8_t index, uint8_t leds)
 {
-  // 0xFE, 0x8i, class, index, data[], 0xFE, chksum
-  // 0x4C, index, leds.b[]
-  SurfaceMessage message;
-  message.AddDataByte(0x80 + boardId); // start message for specific boardId
-  message.AddDataByte('M'); // class: M = Meter
-  message.AddDataByte(index); // index
-  message.AddDataByte(leds);
-  SendData(&message, true);
+    surfaceController->SetMeterLed(boardId, index, leds);
 }
+
 
 // preamp = 8-bit bitwise (bit 0=Sig, 1=-30dB ... 6=-3dB, 7=Clip)
 // meter = 32-bit bitwise (bit 0=-45dB ... 15=-4, 16=-2, 19=Clip, 20+=unused)
@@ -546,7 +1097,7 @@ void Surface::SetMeterLedMain_Rack(uint8_t preamp, uint32_t meterL, uint32_t met
     message.AddDataByte((uint8_t)(meterSolo>>4));
     message.AddDataByte((((uint8_t)(meterSolo>>12))&0b10000111) | (((uint8_t)(meterSolo>>11))&0b00110000));
     message.AddDataByte(0x00);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 void Surface::SetMeterLedMain_Producer(uint8_t preamp, uint8_t dynamics, uint32_t meterL, uint32_t meterR, uint32_t meterSolo)  {
@@ -581,7 +1132,7 @@ void Surface::SetMeterLedMain_FullOrCompact(uint8_t preamp, uint8_t dynamics, ui
     message.AddDataByte((uint8_t)(meterSolo>>8));
     message.AddDataByte((uint8_t)(meterSolo>>16));
     message.AddDataByte(0x00);
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
 // boardId = 0, 1, 4, 5, 8
@@ -627,287 +1178,45 @@ void Surface::SetEncoderRing(uint8_t boardId, uint8_t index, uint8_t ledMode, ui
     }else{
         message.AddDataByte(((leds & 0x7F00) >> 8)); // turn backlight off
     }
-    SendData(&message, true);
+    surfaceController->SendData(&message, true);
 }
 
-void Surface::SetEncoderRingDbfs(uint8_t boardId, uint8_t index, float dbfs, bool muted, bool backlight) {
-    // 0xFE, 0x8i, class, index, data[], 0xFE, chksum
-    // 0x52, index, leds.w[]
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('R'); // class: R = Ring
-    message.AddDataByte(index); // index
-
-    uint16_t leds = CalcEncoderRingLedDbfs(dbfs, muted);
-
-    message.AddDataByte(leds & 0xFF);
-    if (backlight) {
-        message.AddDataByte(((leds & 0x7F00) >> 8) + 0x80); // turn backlight on
-    }else{
-        message.AddDataByte(((leds & 0x7F00) >> 8)); // turn backlight off
-    }
-    SendData(&message, true);
-}
-
-// boardId = 0, 4, 5, 8
-// index = 0 ... 8
-// color = 0=BLACK, 1=RED, 2=GREEN, 3=YELLOW, 4=BLUE, 5=PINK, 6=CYAN, 7=WHITE
-// icon = 0xA0 (none), 0xA1 ... 0xE9
-// sizeA/B = 0x00 (small) or 0x20 (large)
-// xA/B = horizontal position in pixel
-// yA/B = vertical position in pixel
-// strA/B = String of Text to be displayed
-void Surface::SetLcd(
-    uint8_t boardId, uint8_t index, uint8_t color,
-    uint8_t xicon, uint8_t yicon, uint8_t icon, 
-    uint8_t sizeA, uint8_t xA, uint8_t yA, const char* strA,
-    uint8_t sizeB, uint8_t xB, uint8_t yB, const char* strB
-    ) {
-    // 0xFE, 0x8i, class, index, data[], 0xFE, chksum
-    // 0x44, i, color.b, script[]
-
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('D'); // class: D = Display
-    message.AddDataByte(index); // index
-    message.AddDataByte(color & 0x0F); // use only 4 bits (bit 0=R, 1=G, 2=B, 3=Inverted)
-
-    // begin of script
-    // transmit icon
-    message.AddDataByte(icon);
-    message.AddDataByte(xicon);
-    message.AddDataByte(yicon);
-
-    // transmit first text
-    message.AddDataByte(sizeA + strlen(strA)); // size + textLength
-    message.AddDataByte(xA);
-    message.AddDataByte(yA);
-    message.AddString(strA); // this is ASCII, so we can omit byte-stuffing
-
-    message.AddDataByte(sizeB + strlen(strB)); // size + textLength
-    message.AddDataByte(xB);
-    message.AddDataByte(yB);
-    message.AddString(strB); // this is ASCII, so we can omit byte-stuffing
-    SendData(&message, true);
-}
-
-void Surface::SetLcdX(LcdData* p_data, uint8_t p_textCount) {
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + p_data->boardId);
-    message.AddDataByte('D'); // class: D = Display
-    message.AddDataByte(p_data->lcdIndex); 
-    message.AddDataByte((p_data->color) & 0x0F);
-    message.AddDataByte(p_data->icon.icon);
-    message.AddDataByte(p_data->icon.x);
-    message.AddDataByte(p_data->icon.y);
-    for (int i=0;i<p_textCount;i++){
-        message.AddDataByte(p_data->texts[i].size + strlen(p_data->texts[i].text.c_str())); // size + textLength
-        message.AddDataByte(p_data->texts[i].x);
-        message.AddDataByte(p_data->texts[i].y);
-        message.AddString(p_data->texts[i].text.c_str()); // this is ASCII, so we can omit byte-stuffing  
-    }
-    SendData(&message, true);
-}
-
-void Surface::Blink()
+void Surface::SetLcd(LcdData* p_data, uint textcount)
 {
-    if (blinkwait == 0)
-    {
-        blinkstate = !blinkstate;
-
-        for(SurfaceElementId button : blinklist) {
-            SetLed(button, blinkstate);
-        }
-
-        blinkwait = 5;
-    }
-
-    blinkwait--; 
+    surfaceController->SetLcd(p_data, textcount);
 }
 
-
-
-// ####################################################################
-// #
-// #
-// #        Touchcontrol
-// #
-// #
-// ####################################################################
-
-/// @brief Set All Faders to 0 (-Unlimited dBFS)
 void Surface::FaderReset()
 {
-    // Reset touchcontrol wait time
-    for(uint8_t faderindex=0; faderindex<MAX_FADERS; faderindex++){
-        faders[faderindex].wait = 0;
-    }
-
-    // Reset position of faders
-    uint8_t maxfaderindex = 0;
-    if (config->IsModelX32FullOrM32()){
-        maxfaderindex = MAX_FADERS;
-    }
-    if (config->IsModelX32CompactOrProducerOrM32R()){
-        maxfaderindex = MAX_FADERS-8;
-    }
-
-    for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
-    {
-        faders[faderindex].position_real = 0;
-        SetFaderRaw(GetBoardId(faderindex), GetFaderId(faderindex), 0);
+    if (surfaceController) {
+        surfaceController->FaderReset();
     }
 }
 
-// Want to move Fader to Position
-// position = 0x0000 ... 0x0FFF
 void Surface::SetFader(uint8_t boardId, uint8_t index, uint16_t position) {
-    uint8_t faderindex = GetChannelstripIndex(boardId, index);
-
-    //if (faders[faderindex].position_real != faders[faderindex].position_wanted) {
-        helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Want to move fader at index %d to %d", faderindex, position);
-        faders[faderindex].position_wanted = position;
-   // }
+    if (surfaceController) {
+        surfaceController->SetFader(boardId, index, position);
+    }
 }
 
-// Fader was physically moved (by us or by operator)
 void Surface::FaderMoved(uint8_t boardId, uint8_t index, uint16_t value)
 {
-    uint8_t faderindex = GetChannelstripIndex(boardId, index);
-    helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Fader at index %d moved to %d", faderindex, value);
-    faders[faderindex].position_wanted = value;
-    faders[faderindex].position_real = value;
-    faders[faderindex].wait = 10; // wait 100x 10ms
-}
-
-uint8_t Surface::GetChannelstripIndex(uint8_t boardId, uint8_t index)
-{
-    switch (boardId)
-    {
-        case X32_BOARD_L:
-            return index;
-        case X32_BOARD_M: // only X32 Full
-            return index + 8;
-        case X32_BOARD_R:
-            return index + (config->IsModelX32FullOrM32() ? 16 : 8);  // 16 - X32 Full, 8 - X32 Compact/Producer
-        default:
-            return 0;
+    if (surfaceController) {
+        surfaceController->FaderMoved(boardId, index, value);
     }
-}
-
-uint8_t Surface::GetBoardId(uint8_t faderindex) {
-    if(config->IsModelX32FullOrM32())
-    {
-        if (faderindex < 8){
-            return X32_BOARD_L;
-        }
-        if (faderindex < 16){
-            return X32_BOARD_M;
-        }
-        return X32_BOARD_R;
-    }
-
-    if(config->IsModelX32CompactOrProducerOrM32R())
-    {
-        if (faderindex < 8){
-            return X32_BOARD_L;
-        }
-        return X32_BOARD_R;
-    }
-
-    return 0;
-}
-
-uint8_t Surface::GetFaderId(uint8_t faderindex) {
-    if(config->IsModelX32FullOrM32())
-    {
-        if (faderindex < 8){
-            return faderindex;
-        }
-        if (faderindex < 16){
-            return faderindex-8;
-        }
-        return faderindex-16;
-    }
-
-    if(config->IsModelX32CompactOrProducerOrM32R())
-    {
-        if (faderindex < 8){
-            return faderindex;
-        }
-        return faderindex-8;
-    }
-
-    return 0;
 }
 
 void Surface::Touchcontrol() {
-
-    uint8_t maxfaderindex = 0;
-    if (config->IsModelX32FullOrM32()){
-        maxfaderindex = MAX_FADERS;
-    }
-    if (config->IsModelX32CompactOrProducerOrM32R()){
-        maxfaderindex = MAX_FADERS-8;
-    }
-
-    for(uint8_t faderindex=0; faderindex<maxfaderindex; faderindex++)
-    {
-        if (faders[faderindex].wait > 0)
-        {
-            faders[faderindex].wait--;
-            helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Reduced wait time on fader at index %d to %d", faderindex, faders[faderindex].wait);
-        }
-        else if (faders[faderindex].position_real != faders[faderindex].position_wanted)
-        {
-            helper->DEBUG_SURFACE(DEBUGLEVEL_VERBOSE, "Move fader at index %d from %d to %d", faderindex, faders[faderindex].position_real, faders[faderindex].position_wanted);
-            faders[faderindex].position_real = faders[faderindex].position_wanted;
-            SetFaderRaw(GetBoardId(faderindex), GetFaderId(faderindex), faders[faderindex].position_wanted);
-        }
+    if (surfaceController) {
+        surfaceController->Touchcontrol();
     }
 }
 
-// position = 0x0000 ... 0x0FFF
-void Surface::SetFaderRaw(uint8_t boardId, uint8_t index, uint16_t position) {
-    SurfaceMessage message;
-    message.AddDataByte(0x80 + boardId); // start message for specific boardId
-    message.AddDataByte('F'); // class: F = Fader
-    message.AddDataByte(index); // index
-    message.AddDataByte((position & 0xFF)); // LSB
-    message.AddDataByte((char)((position & 0x0F00) >> 8)); // MSB
-
-    helper->DEBUG_SURFACE(DEBUGLEVEL_TRACE, "Set fader position on board %d at index %d to %d", boardId, index, position);
-
-    SendData(&message, true);
-}
-
-// incoming message has the form: 0xFE 0x8i Class Index Data[] 0xFE
-// Checksum is calculated using the following equation:
-// chksum = ( 0xFE - i - class - index - sumof(data[]) - sizeof(data[]) ) and 0x7F
-uint8_t Surface::calculateChecksum(const char* data, uint16_t len) {
-  // a single message can contain up to max. 64 chars
-  int32_t sum = 0xFE;
-  for (uint8_t i = 0; i < (len-1); i++) {
-    sum -= data[i];
-  }
-  sum -= (len - 3); // remove 2-byte HEADER (0xFE 0x8i) and 1-byte end (0xFE)
-
-  // write the calculated sum to the last element of the array
-  return (sum & 0x7F);
-}
-
-int Surface::SendData(MessageBase* message, bool addChecksum) {
-    message->AddRawByte(0xFE); // Endbyte
-
-    if (addChecksum) {
-        char checksum = 0;
-        if (message->current_length >= 2) { // at least start- and end-byte
-            checksum = calculateChecksum(message->buffer, message->current_length);
-        }
-
-        // add checksum to message and send data via serial-port
-        message->AddRawByte(checksum);
+void Surface::SetLed(SurfaceElementId buttonOrLed, bool state, bool blink)
+{
+    if (surfaceController) {
+        surfaceController->SetLed(buttonOrLed, state, blink);
     }
+}
 
-    return uart->Tx(message);
 }

@@ -3,9 +3,13 @@
 #include "page.h"
 
 using namespace std;
+using enum MP_ID;
+
+namespace OMC
+{
+
 class PageRoutingDsp: public Page
 {
-	using enum MP_ID;
 	private:
 
 	 	int gui_selected_item = 0;
@@ -140,7 +144,6 @@ class PageRoutingDsp: public Page
             tabIndex0 = 2;
             tabLayer1 = objects.routingtab;
             tabIndex1 = 3;
-			led = X32_BTN_ROUTING;
         }
 
 	 	void OnInit() override {
@@ -177,7 +180,7 @@ class PageRoutingDsp: public Page
 	 		{
 	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 0, config->GetParameter(ROUTING_DSP_OUTPUT)->GetFormatedValue(i).c_str());
 	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 2, config->GetParameter(ROUTING_DSP_OUTPUT_TAPPOINT)->GetFormatedValue(i).c_str());
-	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 4, mixer->dsp->RoutingGetOutputNameByIndex(i+1).c_str());
+	 			lv_table_set_cell_value(objects.table_routing_dsp_output, i, 4, helper->RoutingGetOutputNameByIndex(i+1).c_str());
 
                 if (i < MAX_DSP1_TO_FPGA_CHANNELS) {
 	 			    lv_table_set_cell_value(objects.table_routing_dsp_output, i, 5, config->GetParameter(DELAY_DSP_OUTPUT)->GetFormatedValue(i).c_str());
@@ -276,3 +279,5 @@ class PageRoutingDsp: public Page
             }
         }
 };
+
+}

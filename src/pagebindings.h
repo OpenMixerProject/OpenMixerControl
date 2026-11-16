@@ -1,10 +1,12 @@
 #pragma once
 
 #include "mixerparameter.h"
+#include "../lib_ext/lvgl/lvgl.h"
 
 using namespace std;
 
-
+namespace OMC
+{
 
 class LVGLEncoderWidget {
     public:
@@ -20,3 +22,5 @@ class LVGLEncoderWidget {
             ButtonLabel = encoder_button_label;
         }
 };
+
+}

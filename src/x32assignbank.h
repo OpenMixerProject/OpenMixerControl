@@ -5,7 +5,10 @@
 #include "surfacebindingparameter.h"
 #include "mixerparameter.h"
 
-class X32AssignBank
+namespace OMC
+{
+
+class OMCAssignBank
 {
     private:
 
@@ -16,7 +19,7 @@ class X32AssignBank
 
         map<SurfaceElementId, SurfaceBindingParameter*>* bindingMap = new map<SurfaceElementId, SurfaceBindingParameter*>();
 
-        X32AssignBank(X32AssignBankId id, String name)
+        OMCAssignBank(X32AssignBankId id, String name)
         {
             _id = id;
             _name = name;
@@ -64,3 +67,4 @@ class X32AssignBank
         }
 };
 
+}

@@ -24,14 +24,27 @@
 
 #include "spi.h"
 
-#ifndef __APPLE__
+#include <string.h>
+#include <sys/stat.h>
+#ifndef TARGET_PC_SDL2
+#include <linux/spi/spidev.h>
+#include <linux/gpio.h>
+#endif
+#include <fcntl.h>
+
+#include "defines.h"
+
+namespace OMC
+{
+
+#ifndef TARGET_PC_SDL2
 SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
 
 // configures a Xilinx Spartan 3A via SPI
 // accepts path to bitstream-file
 // returns 0 if sucecssul, -1 on errors
 // Xilinx FPGAs do *not* use ChipSelect during SPI Slave Programming!
-int SPI::UploadBitstreamFpgaXilinx(void) {
+int SPI::UploadBitstreamFpgaXilinx() {
 
     string filename_xilinx = app->get_option("--X")->as<string>();
 
@@ -67,7 +80,7 @@ int SPI::UploadBitstreamFpgaXilinx(void) {
 
     if (spi_fd < 0)
     {
-        helper->Error("Could not open SPI-device\n");
+        helper->Error("Could not open SPI-device (Bitstream Xilinx)\n");
         free(tx_buffer);
         free(rx_buffer);
         free(file_buffer);
@@ -222,7 +235,7 @@ int SPI::UploadBitstreamFpgaXilinx(void) {
 
 // configures a Lattice ECP5 via SPI
 // returns 0 if successul, -1 on errors
-int SPI::UploadBitstreamFpgaLattice(void) {
+int SPI::UploadBitstreamFpgaLattice() {
 
     string filename_lattice = app->get_option("--L")->as<string>();
 
@@ -246,7 +259,7 @@ int SPI::UploadBitstreamFpgaLattice(void) {
     helper->DEBUG_SPI(DEBUGLEVEL_NORMAL, "Connecting to SPI...");
     spi_fd = open(SPI_DEVICE_FPGA, O_RDWR);
     if (spi_fd < 0) {
-        perror("Error: Could not open SPI-device\n");
+        perror("Error: Could not open SPI-device (Bitstream Lattice)\n");
         return -2; // Return Error-Code -2
     }
 
@@ -734,14 +747,14 @@ int SPI::UploadBitstreamDsps(bool useCli) {
     helper->DEBUG_SPI(DEBUGLEVEL_NORMAL, "Connecting to SPI for DSP1...\n");
     spi_fd[0] = open(SPI_DEVICE_DSP1, O_RDWR);
     if (spi_fd[0] < 0) {
-        helper->Error("Could not open SPI-device for DSP1\n");
+        helper->Error("Could not open SPI-device (DSP1)\n");
         return -1;
     }
     if (numStreams == 2) {
         helper->DEBUG_SPI(DEBUGLEVEL_NORMAL, "Connecting to SPI for DSP2...\n");
         spi_fd[1] = open(SPI_DEVICE_DSP2, O_RDWR);
         if (spi_fd[1] < 0) {
-            helper->Error("Could not open SPI-device for DSP2\n");
+            helper->Error("Could not open SPI-device (DSP2)\n");
             return -1;
         }
     }
@@ -853,23 +866,6 @@ int SPI::UploadBitstreamDsps(bool useCli) {
 
                     last_progress = current_progress;
                 }
-            }else{
-                /*
-                // use UI to show progress
-                totalBytesSent += bytesRead;
-                current_progress = (totalBytesSent * 100) / file_size[i];
-                if ((current_progress > (last_progress + 5)) || (totalBytesSent == file_size[i])) {
-                    int progress = (int)((float)totalBytesSent / file_size[i] * 100);
-
-					//pthread_mutex_lock(&lvgl_mutex);
-                    lv_bar_set_value(objects.testbar, progress, LV_ANIM_OFF);
-					//pthread_mutex_unlock(&lvgl_mutex);
-					lv_timer_handler(); // allow LVGL to handle UI (does not work under LVGL 9.5)
-                    lv_refr_now(); // force refresh of all displays
-
-                    last_progress = current_progress;
-                }
-                */
             }
         }
         
@@ -885,7 +881,8 @@ int SPI::UploadBitstreamDsps(bool useCli) {
     return 0;
 }
 
-bool SPI::OpenConnectionFpga() {
+bool SPI::OpenConnectionFpga()
+{
     uint8_t spiMode = SPI_MODE_0; // user-program uses SPI MODE 0
     uint8_t spiBitsPerWord = 8; // we are using standard 8-bit-mode here for communication
     uint32_t spiSpeed = SPI_FPGA_SPEED_HZ;
@@ -900,7 +897,7 @@ bool SPI::OpenConnectionFpga() {
     }
 
     if (spiFpgaHandle < 0) {
-        helper->Error("Error: Could not open SPI-device");
+        helper->Error("Error: Could not open SPI-device (FPGA)\n");
         return false;
     }
 
@@ -930,7 +927,7 @@ bool SPI::OpenConnectionDsps() {
         }
         if (spiDspHandle[i] < 0) {
             connected = false;
-            helper->Error("Error: Could not open SPI-device\n");            
+            helper->Error("Error: Could not open SPI-device (DSPs)\n");
             return false;
         }
 
@@ -1019,9 +1016,11 @@ uint32_t SPI::GetDspTxQueueLength(uint8_t dsp) {
     return spiTxRingBuffer[dsp].level;
 }
 
-void SPI::ProcessDspTxQueue(uint8_t dsp) {
+void SPI::ProcessDspTxQueue(uint8_t dsp)
+{
     // this function is called every 10ms, except once when we are reading from DSP via DMA-Access
-    if (spiTxRingBuffer[dsp].level == 0) {
+    if (spiTxRingBuffer[dsp].level == 0)
+    {
         // nothing to do here
         return;
     }
@@ -1035,8 +1034,10 @@ void SPI::ProcessDspTxQueue(uint8_t dsp) {
     // calculate how many messages we can transmit in 5ms
     // 1/5ms = 200
     // 8Mhz / 32bit / 50 Words = 5000 Hz -> 0.2ms per message -> max. 25 messages in 5ms
-    int maxMessages = (((SPI_DSP_SPEED_HZ / SPI_TX_MAX_WORD_COUNT) / 32) / 200);
-    if (messagesToSend > maxMessages) {
+    //int maxMessages = (((SPI_DSP_SPEED_HZ / SPI_TX_MAX_WORD_COUNT) / 32) / 200);
+    int maxMessages = 1000;
+    if (messagesToSend > maxMessages)
+    {
         messagesToSend = maxMessages;
     }
 
@@ -1056,7 +1057,7 @@ void SPI::ProcessDspTxQueue(uint8_t dsp) {
 
 bool SPI::SendDspData(uint8_t dsp, sSpiTxBufferElement* buffer) {
 
-    if (state->bodyless || state->raspi)
+    if (state->bodyless || state->raspi || config->IsModelAnyWing())
     {
         return false;
     }
@@ -1117,7 +1118,7 @@ void SPI::UpdateNumberOfExpectedReadBytes(uint8_t dsp, uint8_t classId, uint8_t 
     switch (channel) {
         case 'u': // update-packet
             if (dsp == 0) {
-                dataToRead[dsp] = (3 + 40 + 8 + 0 + 3); // DSP1: DspVersion, DspLoad, VolumeDspChan, VolumeFxReturn, VolumeMixBus, VolumeMainLRS
+                dataToRead[dsp] = SPI_DMA_COMMDATA_SIZE; // DSP1: DspVersion, DspLoad, VolumeDspChan, VolumeFxReturn, VolumeMixBus, VolumeMainLRS
             }else{
                 dataToRead[dsp] = 4 + 64; // DSP2: DspVersion, DspHeapSpace, DspLoad, audioGlitchCounter, RTA-Data
             }
@@ -1159,19 +1160,20 @@ bool SPI::ReadDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t ind
     memset(&spiTxData[2], 0, valueCount * sizeof(uint32_t)); // we are sending zeros, so set the buffer to zero
     spiTxData[(valueCount + 3) - 1] = SPI_END_MARKER; // add EndMarker = '#'
     memcpy(&spiTxDataRaw[0], &spiTxData[0], sizeof(spiTxDataRaw));
-    
+
+    int32_t bytesRead = ioctl(spiDspHandle[dsp], SPI_IOC_MESSAGE(1), &tr); // send via SPI
+
     if (helper->DEBUG_SPI(DEBUGLEVEL_TRACE)) {
-        printf("ReadDspData: ");
-        for(int v = 0; v < ((valueCount + 3) * sizeof(uint32_t)); v++) {
-            printf("0x%.2X ", spiTxDataRaw[v]);
+        printf("ReadDsp%dData: ", dsp+1);
+        int z = 0;
+        for(int v = 0; v < bytesRead; v++) {
+            printf("0x%.2X ", spiRxDataRaw[v]);
             if (!((v+1) % 4)) {
-                printf("| ");
+                printf(" [%d]| ", z++);
             }
         }
         printf("\n");
     }
-
-    int32_t bytesRead = ioctl(spiDspHandle[dsp], SPI_IOC_MESSAGE(1), &tr); // send via SPI
 
     //helper->DEBUG_SPI(DEBUGLEVEL_TRACE, "DSP%d, %d Bytes received", dsp+1, bytesRead);
     PushValuesToRxBuffer(dsp, bytesRead/sizeof(uint32_t), (uint32_t*)spiRxDataRaw);
@@ -1279,20 +1281,18 @@ void SPI::ProcessRxData(uint8_t dsp) {
     }
 }
 
-bool SPI::HasNextEvent(void){
+bool SPI::HasNextEvent(){
 //    if (!connected) return false; // this line prevents SPI-communication at the moment
 
     return eventBuffer.size() > 0;
 }
 
-SpiEvent* SPI::GetNextEvent(void){
+SpiEvent* SPI::GetNextEvent(){
     SpiEvent* event = eventBuffer.back();
     eventBuffer.pop_back();
     return event;
 }
-#endif
-
-#ifdef __APPLE__
+#else
 SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {
     connected = false;
 }
@@ -1315,3 +1315,5 @@ void SPI::ProcessRxData(uint8_t dsp) {}
 bool SPI::HasNextEvent(void) { return false; }
 SpiEvent* SPI::GetNextEvent(void) { return nullptr; }
 #endif
+
+}

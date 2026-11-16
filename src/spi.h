@@ -1,21 +1,10 @@
 #pragma once
 
-#ifndef __APPLE__
-#include <linux/spi/spidev.h>
-#include <linux/gpio.h>
-#endif
-#include <fcntl.h>
+#include <stdint.h>
 #include <list>
 
-#include "external.h"
-#include "defines.h"
-#include "types.h"
 #include "base.h"
-#include "state.h"
 #include "spi-event.h"
-
-#include "eez/src/ui/screens.h"
-
 
 // defines for FPGA-configuration via SPI
 #define PROG_B_GPIO_OFFSET      30
@@ -73,6 +62,9 @@ typedef struct {
   int head;
   int level; // tail will be calculated based on the level
 } sSpiTxRingBuffer;
+
+namespace OMC
+{
 
 class SPI : public X32Base {
 
@@ -133,6 +125,9 @@ class SPI : public X32Base {
     void PushValuesToRxBuffer(uint8_t dsp, uint32_t valueCount, uint32_t values[]);
     void ProcessRxData(uint8_t dsp);
 
-    bool HasNextEvent(void);
-    SpiEvent* GetNextEvent(void);
+    bool HasNextEvent();
+    SpiEvent* GetNextEvent();
 };
+
+
+}

@@ -2,6 +2,8 @@
 
 #include <map>
 
+#include "external.h"
+
 #include "defines.h"
 #include "enum.h"
 #include "base.h"
@@ -9,23 +11,24 @@
 #include "mixer.h"
 #include "pagebindings.h"
 
-#include "../lib/lv_port_linux/lvgl/lvgl.h"
-#include "eez/src/ui/screens.h"
-#include "eez/src/ui/images.h"
-#include "eez/src/ui/styles.h"
+#include "eez/screens.h"
+#include "eez/images.h"
+#include "eez/styles.h"
 
 using namespace std;
+using enum MP_ID;
+
+namespace OMC
+{
+
 class Page : public X32Base
 {
     protected:
-        using enum MP_ID;
-        Mixer* mixer;
         Surface* surface;
 
         X32_PAGE nextPage = X32_PAGE::NONE;
         X32_PAGE prevPage = X32_PAGE::NONE;
 
-        X32_BTN led = X32_BTN_NONE;
         bool noLedOnRack = false;
 
         lv_obj_t* tabLayer0 = nullptr; 
@@ -90,6 +93,6 @@ class Page : public X32Base
 
         X32_PAGE GetNextPage();
         X32_PAGE GetPrevPage();
-
-        X32_BTN GetLed();
 };
+
+}

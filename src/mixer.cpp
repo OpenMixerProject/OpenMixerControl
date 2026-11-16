@@ -24,6 +24,9 @@
 
 #include "mixer.h"
 
+namespace OMC
+{
+
 Mixer::Mixer(X32BaseParameter* basepar): X32Base(basepar) {
     fpga = new Fpga(basepar);
     dsp = new DSP1(basepar);
@@ -43,12 +46,11 @@ void Mixer::Init() {
 
     helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "card->Init()");
     card->Init();
+}
 
-    helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Load Default Channel Layout");
-    LoadVChannelLayout();
-
-    helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "Load Default Routing");
-    LoadRoutingDefault();
+void Mixer::Tick100ms()
+{
+    card->Tick100ms();
 }
 
 // #################################################################################################################################
@@ -73,182 +75,9 @@ void Mixer::Init() {
 // #################################################################################################################################
 
 
-void Mixer::LoadVChannelLayout()
-{
-    // Channel 1-32
-    for (int i=0; i<=31; i++)
-    {
-        config->Set(CHANNEL_COLOR, SURFACE_COLOR_YELLOW, i);
-    }
 
-    // AUX 1-6 / USB
-    for (uint8_t i=0; i<=7;i++)
-    {
-        uint8_t index = (uint)X32_VCHANNEL_BLOCK::AUX + i;
 
-        config->Set(CHANNEL_NAME, String("AUX") + String(i+1), index);
-        config->Set(CHANNEL_COLOR, SURFACE_COLOR_GREEN, index);
-    }
-
-    // FX Returns 1-8
-    for (uint i=0; i<=7;i++)
-    {
-        uint8_t index = (uint)X32_VCHANNEL_BLOCK::FXRET + i;
-        
-        config->Set(CHANNEL_NAME, String("FX RET") + String(i+1), index);
-        config->Set(CHANNEL_COLOR, SURFACE_COLOR_BLUE, index);
-    }
-
-    // Bus 1-16
-    for (uint8_t i=0; i<=15;i++)
-    {
-        uint8_t index = (uint)X32_VCHANNEL_BLOCK::BUS + i;
-    
-        config->Set(CHANNEL_NAME, String("BUS") + String(i+1), index);
-        config->Set(CHANNEL_COLOR, SURFACE_COLOR_CYAN, index);
-    }
-
-    // Matrix 1-6 / Special / SUB
-    for (uint8_t i=0; i<=7;i++)
-    {
-        uint8_t index = (uint)X32_VCHANNEL_BLOCK::MATRIX + i;
-        
-        if(i <=5)
-        {
-            config->Set(CHANNEL_NAME, String("MATRIX") + String(i+1), index);
-            config->Set(CHANNEL_COLOR, SURFACE_COLOR_PINK, index);
-        }
-        else if (i == 6)
-        {
-            config->Set(CHANNEL_NAME, String("SPECIAL"), index);
-            config->Set(CHANNEL_COLOR, SURFACE_COLOR_RED, index);
-        }
-        else if (i == 7)
-        {
-            config->Set(CHANNEL_NAME, String("M/C"), index);
-            config->Set(CHANNEL_COLOR, SURFACE_COLOR_RED, index);
-        };
-    }
-
-    // DCA 1-8
-    for (uint8_t i=0; i<=7;i++)
-    {
-        uint8_t index = (uint)X32_VCHANNEL_BLOCK::DCA + i;
-
-        config->Set(CHANNEL_NAME, String("DCA") + String(i+1), index);
-        config->Set(CHANNEL_COLOR, SURFACE_COLOR_PINK, index);
-    }
-
-    // Main Channel
-    {
-        config->Set(CHANNEL_NAME, String("Main"),(uint)X32_VCHANNEL_BLOCK::MAIN);
-        config->Set(CHANNEL_COLOR, SURFACE_COLOR_WHITE, (uint)X32_VCHANNEL_BLOCK::MAIN);
-    }
-}
-
-// #################################################################################################################################
-//
-// ########  ######## ########    ###    ##     ## ##       ######## 
-// ##     ## ##       ##         ## ##   ##     ## ##          ##    
-// ##     ## ##       ##        ##   ##  ##     ## ##          ##    
-// ##     ## ######   ######   ##     ## ##     ## ##          ##    
-// ##     ## ##       ##       ######### ##     ## ##          ##    
-// ##     ## ##       ##       ##     ## ##     ## ##          ##    
-// ########  ######## ##       ##     ##  #######  ########    ##    
-//
-//
-// ########   #######  ##     ## ######## #### ##    ##  ######   
-// ##     ## ##     ## ##     ##    ##     ##  ###   ## ##    ##  
-// ##     ## ##     ## ##     ##    ##     ##  ####  ## ##        
-// ########  ##     ## ##     ##    ##     ##  ## ## ## ##   #### 
-// ##   ##   ##     ## ##     ##    ##     ##  ##  #### ##    ##  
-// ##    ##  ##     ## ##     ##    ##     ##  ##   ### ##    ##  
-// ##     ##  #######   #######     ##    #### ##    ##  ######   
-//
-// #################################################################################################################################
-
-void Mixer::LoadRoutingDefault()
-{
-    // FPGA	
-
-	// XLR-inputs 1-32 -> DSP-inputs 1-32
-	for (uint8_t ch = 0; ch < 32; ch++) {
-		config->Set(ROUTING_FPGA, ch + 1, ch + 72);
-	}
-	// AUX-inputs 1-8 -> DSP-inputs 33-40
-	for (uint8_t ch = 0; ch < 8; ch++) {
-		config->Set(ROUTING_FPGA, ch + 65, ch + 104);
-	}
-
-	// ---------------------------------------------
-
-	// DSP Return 1-16 -> XLR-outputs 1-16
-	for (uint8_t ch = 0; ch < 16; ch++) {
-		config->Set(ROUTING_FPGA, ch + 72 + 1, ch);
-	}
-	// DSP Return 17-32 -> P16-output 1-16
-	for (uint8_t ch = 0; ch < 16; ch++) {
-		config->Set(ROUTING_FPGA, ch + 72 + 16 + 1, ch + 16);
-	}
-	// DSP Return 33-40 -> AUX-outputs 1-6 + ControlRoom L/R
-	for (uint8_t ch = 0; ch < 8 ; ch++) {
-		config->Set(ROUTING_FPGA, ch + 72 + 32 + 1, ch + 64);
-	}
-
-	// ---------------------------------------------
-
-	// XLR-inputs 1-32 -> Card 1-32
-	for (uint8_t ch = 0; ch < 32; ch++) {
-		config->Set(ROUTING_FPGA, ch + 1, ch + 32);
-	}
-
-    // DSP1
-
-    for (uint8_t i = 0; i < 40; i++)
-    {
-        // DSP1 Routing Sources
-        //
-        // 0:       OFF
-        // 1..32:   Input 1-32 (from FPGA)
-        // 33..38:  AuxIn 1-6 (from FPGA)
-        // 39:      Talkback intern (from FPGA)
-        // 40:      Talkback extern (from FPGA)
-        // 41..56:  MixBus 1-16
-        // 57..62:  Matrix 1-6
-        // 63:      MainL
-        // 64:      MainR
-        // 65:      MainSub
-        // 66:      Monitor L
-        // 67:      Monitor R
-        // 68:      TalkBack
-        // 69..92:  DSP2 Return 1-24 (from DSP2)
-
-        // connect FPGA2DSP-Source 1-40 to all 40 Mixing Channels (1-32 + AUX 1-8)
-        config->Set(ROUTING_DSP_INPUT, DSP_BUF_IDX_DSPCHANNEL + i, i);
-        config->Set(ROUTING_DSP_INPUT_TAPPOINT, to_underlying(DSP_TAP::INPUT), i);
-    }
-
-    // connect MainLeft on even and MainRight on odd channels as PostFader
-    for (uint8_t i = 0; i < 40; i++)
-    {
-        // connect MainLeft on even and MainRight on odd channels as PostFader
-        config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINLEFT + (i % 2), i);
-        config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), i);
-    }
-	// connect mixbus-channels 1-8 to DSP2-FX-Channels 1-8 as PostFader
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MIXBUS + i, 40 + i);
-        config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), 40 + i);
-    }
-
-    // connect MainLeft to RTA
-    uint indexRTA = (MAX_DSP1_TO_FPGA_CHANNELS + MAX_DSP1_TO_DSP2_CHANNELS) - 1;
-    config->Set(ROUTING_DSP_OUTPUT, DSP_BUF_IDX_MAINLEFT, indexRTA) ;
-    config->Set(ROUTING_DSP_OUTPUT_TAPPOINT, to_underlying(DSP_TAP::POST_FADER), indexRTA);
-}
-
-void Mixer::ClearSolo(void)
+void Mixer::ClearSolo()
 {
     if (IsSoloActivated())
     {
@@ -259,7 +88,7 @@ void Mixer::ClearSolo(void)
     }
 }
 
-bool Mixer::IsSoloActivated(void)
+bool Mixer::IsSoloActivated()
 {
     for (uint8_t i=0; i < MAX_VCHANNELS; i++)
     {
@@ -287,8 +116,10 @@ String Mixer::GetCardModelString(){
 //#
 //#########################################
 
-void Mixer::Sync(void)
+void Mixer::Sync()
 {
+    helper->DEBUG_X32CTRL(DEBUGLEVEL_NORMAL, "------------------- mixer->Sync() ----------------");
+
     if (helper->DEBUG_MIXER(DEBUGLEVEL_NORMAL))
     {
         uint changedParameterCount = 0;
@@ -392,7 +223,8 @@ void Mixer::Sync(void)
         }
     }
 
-    filter = {CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB};
+    // Volume
+    filter = {CHANNEL_GAIN, CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB};
     if (config->HasParametersChanged(filter))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter);
@@ -450,9 +282,14 @@ void Mixer::Sync(void)
         }
     }
 
+    // Solo
     filter = {CHANNEL_SOLO};
     if (config->HasParametersChanged(filter))
     {
+        // first set state of solo (it's needed to activate the solo bus in DSP1)
+        config->Set(SOLO_ACTIVE, IsSoloActivated());
+
+        // then set the solo
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter);
         for (auto const& changedIndex : changedIndexes)
         {
@@ -461,21 +298,23 @@ void Mixer::Sync(void)
                 helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::FXRET) ||
                 helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::BUS) )
             {
-                dsp->SendChannelSolo(changedIndex, IsSoloActivated());
+                dsp->SendChannelSolo(changedIndex);
             }
             else if (helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::MATRIX))
             {
-                dsp->SendMatrixSolo(changedIndex, IsSoloActivated());
+                dsp->SendMatrixSolo(changedIndex);
             }
             else if (helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::MAINSUB)) {
-                dsp->SendMainSolo(IsSoloActivated());
+                // TODO
+                //dsp->SendMainSolo();
             }
             else if (helper->IsInChannelBlock(changedIndex, X32_VCHANNEL_BLOCK::MAIN)) {
-                dsp->SendMainSolo(IsSoloActivated());
+                dsp->SendMainSolo();
             }  
         }
     }
 
+    // Sends
     if (config->HasParametersChanged(MP_CAT::CHANNEL_SENDS))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_SENDS);
@@ -486,6 +325,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Routing FPGA
     if (config->HasParameterChanged(ROUTING_FPGA))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({ROUTING_FPGA});
@@ -495,6 +335,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Output Delay
     if (config->HasParametersChanged({DELAY_DSP_OUTPUT}))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({DELAY_DSP_OUTPUT});
@@ -504,6 +345,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Input Delay
     if (config->HasParametersChanged({DELAY_DSP_INPUT}))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({DELAY_DSP_INPUT});
@@ -513,6 +355,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // DSP Routing
     if (config->HasParametersChanged({ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT}))
     { 
         vector<uint> changedIndexes = config->GetChangedParameterIndexes({ROUTING_DSP_OUTPUT, ROUTING_DSP_OUTPUT_TAPPOINT});
@@ -531,15 +374,7 @@ void Mixer::Sync(void)
         }
     }
 
-    if (config->HasParametersChanged(MP_CAT::CHANNEL_SENDS))
-    { 
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_SENDS);
-        for (auto const& changedIndex : changedIndexes)
-        {
-            dsp->SendChannelSend(changedIndex);
-        }
-    }
-
+    // Gate
     if (config->HasParametersChanged(MP_CAT::CHANNEL_GATE))
     {        
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_GATE);
@@ -549,24 +384,17 @@ void Mixer::Sync(void)
         }
     }
 
-    if (config->HasParameterChanged(CHANNEL_PHANTOM))
+    // Phantom / Gain
+    if (config->HasParameterChanged (CHANNEL_PHANTOM) || config->HasParameterChanged(CHANNEL_GAIN))
     {
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes({CHANNEL_PHANTOM});
-        for (auto const& changedIndex : changedIndexes)
-        {
-            halSendPhantomPower(changedIndex);
-        }
-    }
-
-    if (config->HasParameterChanged(CHANNEL_GAIN))
-    {
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes({CHANNEL_GAIN});
+        vector<uint> changedIndexes = config->GetChangedParameterIndexes({CHANNEL_PHANTOM, CHANNEL_GAIN});
         for (auto const& changedIndex : changedIndexes)
         {
             halSendGain(changedIndex);
         }
     }
 
+    // EQ
     if (config->HasParametersChanged(MP_CAT::CHANNEL_EQ))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_EQ);
@@ -582,10 +410,10 @@ void Mixer::Sync(void)
             // copy values fromm Mixerparameter
             for (uint8_t peq = 0; peq < MAX_CHAN_EQS; peq++)
             {
-                dsp->rChannel[changedIndex].peq[peq].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peq), changedIndex);
-                dsp->rChannel[changedIndex].peq[peq].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peq), changedIndex);
-                dsp->rChannel[changedIndex].peq[peq].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peq), changedIndex);
-                dsp->rChannel[changedIndex].peq[peq].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].type = config->GetUint(config->MpCalcId(CHANNEL_EQ_TYPE1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].fc = config->GetFloat(config->MpCalcId(CHANNEL_EQ_FREQ1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].Q = config->GetFloat(config->MpCalcId(CHANNEL_EQ_Q1, peq), changedIndex);
+                state->rChannel[changedIndex].peq[peq].gain = config->GetFloat(config->MpCalcId(CHANNEL_EQ_GAIN1, peq), changedIndex);
             }
     
             dsp->SendEQ(changedIndex);
@@ -593,6 +421,7 @@ void Mixer::Sync(void)
         }
     }
 
+    // Dynamics
     if (config->HasParametersChanged(MP_CAT::CHANNEL_DYNAMICS))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::CHANNEL_DYNAMICS);
@@ -600,16 +429,40 @@ void Mixer::Sync(void)
         {
             dsp->SendCompressor(changedIndex);
         }
-    }
+    }   
 
-    if (config->HasParametersChanged(MP_CAT::FX))
+    // FX Settings
+    if (config->HasParameterChanged(FX_TYPE))
     {
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes(MP_CAT::FX);
-        for (auto const& fxSlot : changedIndexes)
+        vector<uint> changedIndexes = config->GetChangedParameterIndexes({FX_TYPE});
+        for (auto const& changedIndex : changedIndexes)
         {
-            dsp->DSP2_SendFxParameter(fxSlot);
+            // TODO: Select mode!
+            dsp->DSP2_SetFx(changedIndex, (enum FX_TYPE)config->GetUint(FX_TYPE, changedIndex), 2);
         }
     }
+
+    // FX Parameter
+    vector<MP_CAT> filter_cat = {
+        MP_CAT::FX_PARAMETER_REVERB,
+        MP_CAT::FX_PARAMETER_CHORUS,
+        MP_CAT::FX_PARAMETER_DELAY,
+        MP_CAT::FX_PARAMETER_TRANSIENTSHAPER,
+        MP_CAT::FX_PARAMETER_OVERDRIVE,
+        MP_CAT::FX_PARAMETER_MULTIBANDCOMPRESOR,
+        MP_CAT::FX_PARAMETER_DYNAMICEQ
+    };
+    vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter_cat);
+    for (auto const& fxSlot : changedIndexes)
+    {
+        dsp->DSP2_SendFxParameter(fxSlot);
+    }
+
+    // CLEAR SOLO
+    if(config->HasParameterChanged(CLEAR_SOLO_COMMAND))
+	{
+		ClearSolo();
+	}
 
     helper->DEBUG_MIXER(DEBUGLEVEL_NORMAL, "sync done");
 }
@@ -625,9 +478,10 @@ void Mixer::halSendGain(uint8_t dspChannel) {
 
         // check if we are connected to a channel with gain
         uint8_t externalDspSourceIndex = config->GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (internalDspSourceIndex - 1));
-        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32))) {
-            // XLR-input
 
+        // XLR-input
+        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32)))
+        {
             // send value to adda-board
             uint8_t boardId = adda->GetXlrInBoardId(externalDspSourceIndex);
             if (boardId < 4) {
@@ -641,53 +495,21 @@ void Mixer::halSendGain(uint8_t dspChannel) {
                 // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
                 dsp->SendChannelVolume(dspChannel);
             }
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48))) {
-            // AES50A input (never thought that we get this far in the reverse-engineering process, but here we are... :) )
+        }
+        // AES50A input
+        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48)))
+        {
             fpga->AES50SetHeadampGain(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_GAIN,  dspChannel));
 
             // update channel-volume for virtual gain-resolution-increment
             // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
             dsp->SendChannelVolume(dspChannel);
-
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        }
+        // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48)))
+        {    
         }
     }
 }
 
-
-// enable or disable phatom-power of local XLR-inputs
-void Mixer::halSendPhantomPower(uint8_t dspChannel) {
-    // get the channel-number of the internal DSP-routing
-    uint8_t internalDspSourceIndex = config->GetUint(ROUTING_DSP_INPUT, dspChannel);
-
-    // check if we are using an external signal (possibly with gain) or DSP-internal (no gain)
-    if ((internalDspSourceIndex >= 1) && (internalDspSourceIndex <= MAX_FPGA_TO_DSP1_CHANNELS)) {
-        // we are connected to one of the DSP-inputs
-
-        // check if we are connected to a channel with gain
-        uint8_t externalDspSourceIndex = config->GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (internalDspSourceIndex - 1));
-
-        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32))) {
-            // XLR-input
-
-            // send value to adda-board
-            uint8_t boardId = adda->GetXlrInBoardId(externalDspSourceIndex);
-
-            if (boardId < 4) {
-                uint8_t addaChannel = externalDspSourceIndex;
-                while (addaChannel > 8) {
-                    addaChannel -= 8;
-                }
-                adda->SetGain(boardId, addaChannel, config->GetFloat(CHANNEL_GAIN,  dspChannel), config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-            }
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48))) {
-            // AES50A input
-            fpga->AES50SetPhantomPowerState(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
-        }
-    }
 }
-

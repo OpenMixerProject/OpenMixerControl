@@ -24,13 +24,17 @@
 
 #include "fpga.h"
 
+namespace OMC
+{
+
 Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 	uart = new Uart(basepar);
-
 	spi = new SPI(basepar);
 
-	if (!state->bodyless) {
-    	if (spi->UploadBitstreamFpgaLattice() == -1) {
+	if (!(state->bodyless || config->IsModelAnyWing()))
+	{
+    	if (spi->UploadBitstreamFpgaLattice() == -1)
+		{
 			// uploading the Lattice-Bitstream was not successful (or not set), so try to upload the Xilinx-bitstream
 	        spi->UploadBitstreamFpgaXilinx();
 	    }
@@ -39,13 +43,17 @@ Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 
 	// configData -> at the moment all bits are unused
 	configData = 0b00000000;
-	SendConfig();
+	if (!config->IsModelAnyWing())
+	{
+		SendConfig();
+	}
 
 	AES50Counter = 0;
 	AES50Device = 'C'; // X32Fullsize
 }
 
-void Fpga::Init() {
+void Fpga::Init()
+{
 	const uint speed = 115200;
 	String serial;
 	
@@ -59,11 +67,22 @@ void Fpga::Init() {
 	}
 	else
 	{
-		serial = "/dev/ttymxc3";
+		if (config->IsModelAnyXM32())
+		{
+			serial = "/dev/ttymxc3";
+		}
+		else if (config->IsModelAnyWing())
+		{
+			// TODO
+			return;
+		}
 	}
 
 	helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "opening %s with %d baud", serial.c_str(), speed);
 	uart->Open(serial.c_str(), speed, true);
+
+	// Send all Routing config to FPGA
+	SendRoutingToFpga(0);
 }
 
 // get the absolute input-source (global channel-number)
@@ -318,7 +337,7 @@ String Fpga::GetOutputNameByIndex(uint8_t index) {
 
 // helper-function to send the audio-routing to the fpga
 void Fpga::SendRoutingToFpga(int channel) {
-	if (state->bodyless) {
+	if (state->bodyless || config->IsModelAnyWing()) {
 		return;
 	}
 
@@ -388,7 +407,7 @@ void Fpga::SetConfigBit(uint8_t bitNumber, bool value) {
 	SendConfig();
 }
 
-void Fpga::SendConfig(void) {
+void Fpga::SendConfig() {
 	uint8_t txData[2];
 	uint8_t rxData[2];
 	txData[0] = configData;
@@ -435,7 +454,7 @@ void Fpga::AES50SetHeadampGain(uint8_t aes50Port, uint8_t channel, float gain) {
 }
 
 
-void Fpga::AES50Receive(void)
+void Fpga::AES50Receive()
 {
 	//bool messageHandled = false;
 	uint readBytes = uart->Rx(&fpgaRxBufferUart[0], sizeof(fpgaRxBufferUart));
@@ -458,7 +477,9 @@ void Fpga::AES50Receive(void)
 
 				// take the name of the connected device and display it in X32CTRL
 				memcpy(&tmpName[0], &fpgaRxBufferUart[8], 16);
-				lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", String(tmpName).c_str());
+				
+				// TODO: Implement with Mixerparameter
+				//lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", String(tmpName).c_str());
 
 				break;
 			default:
@@ -680,4 +701,6 @@ int Fpga::wrapRingBufferIndex(int index, int bufLen) {
 	}else{
 		return index;
 	}
+}
+
 }

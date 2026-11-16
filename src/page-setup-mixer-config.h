@@ -1,8 +1,10 @@
 #pragma once
 #include "page.h"
-#include "ctrl.h"
 
 using namespace std;
+
+namespace OMC
+{
 
 class PageSetupMixerConfig: public Page
 {
@@ -219,7 +221,6 @@ class PageSetupMixerConfig: public Page
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
             tabIndex1 = 3;
-            led = X32_BTN_SETUP;
         }
 
         void OnInit() override
@@ -402,3 +403,5 @@ class PageSetupMixerConfig: public Page
             }
         }
 };
+
+}

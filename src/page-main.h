@@ -3,6 +3,9 @@
 #include "page.h"
 using namespace std;
 
+namespace OMC
+{
+
 class PageMain : public Page
 {
     using enum MP_ID;
@@ -49,7 +52,6 @@ class PageMain : public Page
             tabIndex0 = 0;
             tabLayer1 = objects.hometab;
             tabIndex1 = 6;
-            led = X32_BTN_VIEW_MAIN;
             noLedOnRack = true;
         }
 
@@ -67,3 +69,5 @@ class PageMain : public Page
             }
         }
 };
+
+}

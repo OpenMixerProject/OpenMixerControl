@@ -6,8 +6,6 @@
 #include "enum.h"
 #include "../lib/WString.h"
 
-#include "mixerparameter.h"
-
 using namespace std;
 
 typedef unsigned int uint;
@@ -42,16 +40,11 @@ typedef union {
     int8_t s8[2];
 } data_16b;
 
-typedef struct{
-    X32_ENC encoder;
-    uint16_t encoderNr;
-} sEncoderInfo;
-
 
 // TouchControl Basic Plus - one fader at a time is touchcontrolled
 typedef struct{
     uint8_t value;
-    X32_BOARD board;
+    OMC_BOARD board;
     uint8_t faderIndex;
 } sTouchControl;
 
@@ -87,15 +80,11 @@ typedef struct {
 	float b[3];
 } sPEQ;
 
-typedef struct {
+typedef struct
+{
 	float meterPu[2]; // meter information in p.u.
 	uint32_t meter[2];
 	uint32_t meterDecay[2]; // meter information with decay
-	uint8_t meterPeakIndex[2];
-	uint8_t meterPeakHoldTimer[2]; // will be updated every 100ms. On 0 the current value will be used
-	uint8_t meterPeakDecayTimer[2];
-	uint32_t meterInfo[2];
-	uint8_t meter6Info;
 } sMainChannel;
 
 // values only for runtime use
@@ -103,20 +92,8 @@ typedef struct
 {
 	sPEQ peq[MAX_CHAN_EQS];
 
-	float meterPu; // meter information in p.u.
 	uint32_t meter;
-
 	uint32_t meterDecay; // meter information with decay
-
-	uint8_t meterPeak6Index;
-	uint8_t meterPeak6HoldTimer; // will be updated every 100ms. On 0 the current value will be used
-	uint8_t meterPeak6DecayTimer;
-	uint8_t meter6Info; // compatible to MeterLED on surface: 8-bit bitwise (bit 0=-60dB ... 4=-6dB, 5=Clip, 6=Gate, 7=Comp)
-
-	uint8_t meterPeak8Index;
-	uint8_t meterPeak8HoldTimer; // will be updated every 100ms. On 0 the current value will be used
-	uint8_t meterPeak8DecayTimer;
-	uint8_t meter8Info; // compatible to MeterLED on surface
 } srDspChannel;
 
 typedef struct {
@@ -125,6 +102,13 @@ typedef struct {
 } sDsp2Oscillator;
 
 typedef struct {
-	String label;
-	String value;
+	WString::String label;
+	WString::String value;
 } sDisplayEncoder;
+
+typedef void (*SurfaceCallback)(void* arg, OMC_BOARD board, char command, uint8_t index, uint16_t value);
+
+typedef void (*OscSendToServerCallbackSet)(void* arg, MP_ID parameterId, WString::String strValue, float floatValue, uint index);
+typedef void (*OscSendToServerCallbackChange)(void* arg, MP_ID parameterId, int amount, uint index);
+typedef void (*OscSendToServerCallbackToogle)(void* arg, MP_ID parameterId, uint index);
+typedef void (*OscSendToServerCallbackReset)(void* arg, MP_ID parameterId, uint index);

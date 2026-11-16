@@ -1,23 +1,23 @@
 #pragma once
 
-#include "x32config.h"
+#include "config.h"
 #include "state.h"
 #include "helper.h"
 #include "base-parameter.h"
 
-// The string class
+namespace OMC
+{
+
 class X32Base
 {
     protected:
         CLI::App* app;
-        X32Config* config;
+        Config* config;
         State* state;
         Helper* helper;
-
-#ifdef BODYLESS_SDL2
-        friend class SimulatorGUI;
-#endif
 
     public:
         X32Base(X32BaseParameter* basepar);
 };
+
+}

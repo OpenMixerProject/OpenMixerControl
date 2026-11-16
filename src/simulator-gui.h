@@ -1,20 +1,21 @@
 #pragma once
 
-#ifdef BODYLESS_SDL2
+#ifdef TARGET_PC_SDL2
 
-#include <lvgl/lvgl.h>
+#include "../lib_ext/lvgl/lvgl.h"
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "ctrl.h"
+#include "config.h"
+#include "uart.h"
 
-// Forward declaration of X32Ctrl
-class X32Ctrl;
 union SDL_Event;
+
+namespace OMC {
 
 class SimulatorGUI {
 public:
-    static void Init(X32Ctrl* ctrl_inst);
+    static void Init(Config* config_inst, Uart* surface_uart);
     static void Tick();
 
 private:
@@ -41,7 +42,6 @@ private:
 
     // Protocol helper
     static void TurnEncoder(uintptr_t encoder_idx, int amount);
-    static void PressSurfaceButton(SurfaceElementId elementId, bool pressed);
     static void SendEmulatedEvent(uint8_t boardId, uint8_t classId, uint8_t index, uint16_t value);
     static void ParseEmulatedTxData();
     static void ProcessEmulatedOutput(uint8_t boardId, uint8_t classId, uint8_t index, const std::vector<uint8_t>& data);
@@ -78,7 +78,8 @@ private:
         bool showFeedback;
     };
 
-    static X32Ctrl* ctrl;
+    static Config* config;
+    static Uart* uart;
 
     static lv_display_t* nav_disp;
     static lv_display_t* display_encoders_disp;
@@ -95,5 +96,7 @@ private:
     static std::vector<VirtualButton> virtual_buttons;
     static std::vector<VirtualEncoder> virtual_display_encoders;
 };
+
+}
 
 #endif

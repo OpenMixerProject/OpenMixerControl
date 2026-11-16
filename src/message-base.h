@@ -6,6 +6,9 @@
 
 #include "defines.h"
 
+namespace OMC
+{
+
 class MessageBase{
     public:
         MessageBase();
@@ -19,3 +22,5 @@ class MessageBase{
         int AddDataArray(const char* data, uint8_t len);
         int AddRawDataArray(const char* data, uint8_t len);
 };
+
+}
