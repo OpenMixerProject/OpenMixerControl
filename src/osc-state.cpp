@@ -98,7 +98,7 @@ namespace OMC
 {"name":"Monitor output","start":70,"count":2},
 {"name":"DSP Input","start":72,"count":40},{"name":"AES50 A","start":112,"count":48},
 {"name":"AES50 B","start":160,"count":48}],
-"fx_slots":8,"eq_bands":["1","2","3","4"],"sends":16,"matrices":6,
+"fx_slots":8,"eq_bands":["1","2","3","4"],"sends":16,"matrices":6,"fanout":true,
 "colors":["#000000","#ff0000","#00ff00","#ffff00","#0000ff","#ff00ff","#00ffff","#ffffff"],
 "capabilities":["topology","metadata","state_snapshot","state_subscription")";
         for (const auto& [name, id] : *paths) { json += "," + JsonString(name.c_str()); }
