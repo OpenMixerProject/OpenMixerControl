@@ -18,6 +18,9 @@ UDP snapshots are neither reliable nor atomic; completion is not a transaction
 or a DSP acknowledgement. Re-request to repair packet loss. Listen before
 requesting. Renewing a subscription does not restart its initial snapshot.
 State queries have no arguments, not a dummy float.
+Explicit state queries restart the snapshot cursor; do not send them on each
+lease renewal. A UI may renew every four seconds and wait sixty seconds before
+retrying an incomplete snapshot rather than starving a slow transfer.
 Metadata and state use independent cursors: requesting both preserves both
 completion markers, with metadata sent first under the same pacing budget.
 
@@ -44,6 +47,9 @@ virtual strip IDs. sockets route_fpga sources are 1..160; destinations 0..207.
 The stored destination catalog includes AES50 B but the source catalog does
 not. Require `osc` in capabilities before writing: descriptors alone do not
 create OSC registrations absent from the build. Source value 0 disconnects.
+Top-level `fanout:true` explicitly permits repeated sources across destinations;
+each destination still selects one source. Writing a route never unpatches other
+destinations using that source.
 
 Capabilities list actual exposed OSC names plus implemented API feature names.
 Other modules may register API capabilities in Config::oscCapabilities.

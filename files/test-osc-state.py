@@ -55,6 +55,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     send("/get/topology/1")
     topology = json.loads(until("/set/topology/1")["/set/topology/1"])
     assert topology["dcas"] == 8 and topology["mute_groups"] == 6
+    assert topology["fanout"] is True
     assert topology["colors"] == ["#000000", "#ff0000", "#00ff00", "#ffff00",
                                    "#0000ff", "#ff00ff", "#00ffff", "#ffffff"]
     assert next(g for g in topology["strips"] if g["kind"] == "aux")["start"] == 32
