@@ -194,8 +194,17 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", floatValue);
-        SendUdpPacket(TxMessage, len);
+        String path = String("/set/") + parameter->GetOSC() + "/" + String(index + 1);
+        int len;
+        if (parameter->GetType() == MP_VALUE_TYPE::STRING)
+        {
+            len = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "s", strValue.c_str());
+        }
+        else
+        {
+            len = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "f", floatValue);
+        }
+        if (len > 0) { SendUdpPacket(TxMessage, len); }
     }
 
     void OscClient::UdpSendToServerChange(MP_ID parameterId, int amount, uint index)
