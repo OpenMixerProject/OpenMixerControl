@@ -1,5 +1,6 @@
 #include "config.h"
 #include "enum.h"
+#include "fx-osc.h"
 
 namespace OMC
 {
@@ -814,7 +815,7 @@ namespace OMC
         // global
 
         DefParameter(FX_TYPE, cat, "FX Type", MAX_FX_SLOTS)
-        ->DefMinMaxStandard_Uint((uint)FX_TYPE::NONE, (uint)FX_TYPE::__ELEMENT_COUNTER_DO_NOT_MOVE, (uint)FX_TYPE::NONE)
+        ->DefMinMaxStandard_Uint((uint)FX_TYPE::NONE, (uint)FX_TYPE::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)FX_TYPE::NONE)
         ->DefUOM(MP_UOM::FX_TYPE);
 
 
@@ -1428,6 +1429,17 @@ namespace OMC
         DefParameter(DMX_ARTNET_VALUE, cat, "ArtNet Value", MAX_ARTNET_CHANNELS)
         ->DefMinMaxStandard_Float(0, 255, 0);
 
+        DefParameter(OSC_FREQUENCY, MP_CAT::FX, "Osc Frequency", 2)
+        ->DefUOM(MP_UOM::HZ)
+        ->DefStepmode(1)
+        ->DefMinMaxStandard_Float(20.0f, 20000.0f, 1000.0f)
+        ->DefOSC("osc_frequency");
+
+        DefParameter(OSC_LEVEL, MP_CAT::FX, "Osc Level", 2)
+        ->DefUOM(MP_UOM::DB)
+        ->DefMinMaxStandard_Float(-120.0f, 0.0f, -120.0f, 1)
+        ->DefOSC("osc_level");
+
         //#####################################################
         //#  fill all empty parameter indexes with MP_ID::NONE
         //#####################################################
@@ -1437,6 +1449,7 @@ namespace OMC
             {
                 mpm[i] = mpm[(uint)MP_ID::NONE];
             }
+            DefineFxOsc(mpm[i]);
         }
     }
 

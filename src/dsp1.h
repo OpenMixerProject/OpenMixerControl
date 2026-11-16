@@ -24,7 +24,7 @@ class DSP1 : X32Base {
         float volumeSpecial;
         float monitorVolume;
         float rtaData[64];
-        sDsp2Oscillator dsp2Oscillator[2];
+        sDsp2Oscillator dsp2Oscillator[2] = {{1000.0f, 0.000001f}, {1000.0f, 0.000001f}};
 
         FxMath* fxmath;
         SPI* spi;
