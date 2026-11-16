@@ -57,10 +57,12 @@ namespace OMC
 
         public:
 
+            std::set<std::string> oscCapabilities;
+
             Config(String model, Helper* h, bool runAsClient);
 
             bool Load(uint scene);
-            void Save(uint scene);
+            bool Save(uint scene);
 
             void DefineMixerparameters();
             Mixerparameter* DefParameter(MP_ID mp_type, MP_CAT category, String name, uint count = 1);
@@ -188,4 +190,3 @@ namespace OMC
             vector<X32ConfigFileEntry> entries;
     };
 }
-

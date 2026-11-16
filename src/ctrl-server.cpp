@@ -50,6 +50,7 @@ void CtrlServer::Init()
 	mixer->Init();
 
 	helper->Log("Init OSC Server\n");
+	osc_server->SetRecorder(mixer->card);
 	osc_server->Init();
 
 	helper->Log("Init WSM\n");
