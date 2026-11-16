@@ -30,6 +30,7 @@
 #include "enum.h"
 #include "mixerparameter.h"
 #include "card.h"
+#include "osc-packet.h"
 #include <cstddef>
 
 namespace OMC
@@ -38,6 +39,7 @@ namespace OMC
 
     OscServer::OscServer(X32BaseParameter* basepar) : X32Base(basepar) 
     {
+        baseParameters = basepar;
     }
 
     int8_t OscServer::Init()
@@ -75,6 +77,8 @@ namespace OMC
         {
             ObserveSurface(element, action, value);
         };
+
+        remoteState = new OscState(baseParameters, UdpHandle, oscPaths);
         
         return 0;
     }
@@ -82,6 +86,7 @@ namespace OMC
     void OscServer::UdpHandleCommunication() 
     {
         ExpireObservers();
+        if (remoteState) { remoteState->Pump(); }
         char rxData[500];
         int bytes_available = 0;
         
@@ -113,13 +118,11 @@ namespace OMC
             rxData[len] = '\0';
 
             tosc_message osc;
-            if (!tosc_parseMessage(&osc, rxData, static_cast<int>(len)))
+            if (ParseControlPacket(&osc, rxData, static_cast<size_t>(len)))
             {
-                // Client has send data: remember it as the target for Sync().
-                // Only valid OSC messages update the client address, so a stray
-                // UDP packet can not redirect the parameter updates.
+                // Client has send data. Only valid OSC messages update the
+                // client address, so a stray UDP packet can not redirect replies.
                 ClientAddr = senderAddr;
-                hasClients = true;
 
                 char str[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(ClientAddr.sin_addr), str, INET_ADDRSTRLEN);
@@ -148,6 +151,7 @@ namespace OMC
 
                 helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Path: %s Format: %s", adrPath.c_str(), osc_format.c_str());
 
+                if (remoteState->Handle(address, &osc, ClientAddr.sin_addr.s_addr)) { return; }
                 if (HandleCommand(address, osc_format.c_str(), &osc)) { return; }
                 if (address.size() == 3 && address[0] == "subscribe" && address[1] == "surface" && address[2] == "1")
                 {
@@ -161,13 +165,27 @@ namespace OMC
                     SendUdpPacket(TxMessage, size);
                     return;
                 }
-                if (address.size() != 3) { return; }
+                // Queries and malformed indices must not reach unchecked stoi
+                // or Mixerparameter setters (which throw on bad input).
+                if (address.size() != 3 || address[2].empty() ||
+                    address[2].find_first_not_of("0123456789") != string::npos) { return; }
+                char* end = nullptr;
+                unsigned long wireIndex = strtoul(address[2].c_str(), &end, 10);
+                if (*end || wireIndex == 0 || wireIndex > UINT16_MAX) { return; }
 
                 // Find matching Mixerparameter
                 uint found = oscPaths->count(String(address[1].c_str()));
                 if (found == 1) 
                 {
                     Mixerparameter* parameter = config->GetParameter(oscPaths->at(String(address[1].c_str())));
+                    if (wireIndex > parameter->GetInstances() || parameter->IsReadonly()) { return; }
+                    if (address[0] == "set" &&
+                        ((parameter->GetType() == MP_VALUE_TYPE::STRING) != (osc_format == "s"))) { return; }
+                    if (osc_format == "f")
+                    {
+                        tosc_message copy = osc;
+                        if (!std::isfinite(tosc_getNextFloat(&copy))) { return; }
+                    }
 
                     if (address[0] == "set")
                     {
@@ -338,42 +356,7 @@ namespace OMC
 
     void OscServer::Sync()
     {
-        if (!hasClients)
-        {
-            return;
-        }
-
-        for (auto const& [parameter_id, indexSet] : *(config->GetChangedParameterList()))
-        {
-            // loop parameter_id
-            Mixerparameter* parameter = config->GetParameter(parameter_id);
-
-            // only parameters with an OSC path are part of the protocol
-            if (!parameter->IsOSC())
-            {
-                continue;
-            }
-
-            // for (indexes)
-            for (uint index : indexSet)
-            {
-                // for (clients)
-                // for (auto const& [client, timeoutvalue] : clients)
-                // {
-                    int len = 0;
-                    if (parameter->GetType() == MP_VALUE_TYPE::STRING)
-                    {
-                        len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "s", parameter->GetString(index).c_str());
-                    }
-                    else
-                    {
-                        len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", parameter->GetFloat(index));
-                    }
-                
-                    SendUdpPacket(TxMessage, len);
-                //}
-            }
-        }
+        if (remoteState) { remoteState->Sync(); }
     }
 
 

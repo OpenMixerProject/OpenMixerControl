@@ -13,6 +13,7 @@
 #include "base.h"
 #include "WString.h"
 #include "../lib_ext/small-osc/small-osc.h"
+#include "osc-state.h"
 
 namespace OMC
 {
@@ -24,9 +25,9 @@ namespace OMC
             char TxMessage[450]; // the largest binary blob will take up to 20+(70+1))*4 bytes = 408 bytes
             int counter = 0;
 
-            bool hasClients = false;
-
             std::map<WString::String, MP_ID>* oscPaths;
+            X32BaseParameter* baseParameters;
+            OscState* remoteState = nullptr;
             //std::map<WString::String, uint> clients;
             Card* recorder = nullptr;
             bool HandleCommand(const std::vector<std::string>& address, const char* format, tosc_message* message);
