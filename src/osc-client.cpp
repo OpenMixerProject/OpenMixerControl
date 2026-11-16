@@ -198,7 +198,13 @@ namespace OMC
         int len;
         if (parameter->GetType() == MP_VALUE_TYPE::STRING)
         {
-            len = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "s", strValue.c_str());
+            // SmallOSC's string copy helper needs twice the string length as
+            // headroom, even though only one copy is sent on the wire.
+            if (strValue.length() + path.length() + 16 > 65507) { return; }
+            std::vector<char> packet(2 * strValue.length() + path.length() + 32);
+            len = tosc_writeMessage(packet.data(), packet.size(), path.c_str(), "s", strValue.c_str());
+            if (len > 0) { SendUdpPacket(packet.data(), len); }
+            return;
         }
         else
         {
