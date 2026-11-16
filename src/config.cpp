@@ -582,7 +582,8 @@ namespace OMC
         ->DefReadonly();
         
         DefParameter(CHANNEL_NAME, cat, "Ch Name", MAX_VCHANNELS)
-        ->DefStandard_String("Kanal");    
+        ->DefStandard_String("Kanal")
+        ->DefOSC("ch_name");    
 
         DefParameter(CHANNEL_COLOR, cat, "Ch Color", MAX_VCHANNELS)
         ->DefNameShort("Color")
@@ -619,7 +620,8 @@ namespace OMC
         DefParameter(CHANNEL_VOLUME_SUB, cat, "Volume Sub", MAX_VCHANNELS)
         ->DefNameShort("Sub")
         ->DefUOM(MP_UOM::DB)
-        ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1);
+        ->DefMinMaxStandard_Float(CHANNEL_VOLUME_MIN, CHANNEL_VOLUME_MAX, CHANNEL_VOLUME_MIN, 1)
+        ->DefOSC("ch_send_sub_lvl");
         
         DefParameter(CHANNEL_SOLO, cat, "Solo", MAX_VCHANNELS)
         ->DefStandard_Bool(false)
@@ -649,10 +651,12 @@ namespace OMC
         ->DefStepsize(2);
 
         DefParameter(CHANNEL_SEND_LR, cat, "Send LR", MAX_VCHANNELS)
-        ->DefStandard_Bool(true);
+        ->DefStandard_Bool(true)
+        ->DefOSC("ch_send_lr");
 
         DefParameter(CHANNEL_SEND_SUB, cat, "Send Sub", MAX_VCHANNELS)
-        ->DefStandard_Bool(false);
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_send_sub");
 
         // Sends
         cat = MP_CAT::CHANNEL_SENDS;
