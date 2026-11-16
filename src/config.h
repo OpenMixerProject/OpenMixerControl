@@ -57,6 +57,8 @@ namespace OMC
 
         public:
 
+            std::set<std::string> oscCapabilities;
+
             Config(String model, Helper* h, bool runAsClient);
 
             bool Load(uint scene);
@@ -188,4 +190,3 @@ namespace OMC
             vector<X32ConfigFileEntry> entries;
     };
 }
-

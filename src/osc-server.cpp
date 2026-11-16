@@ -29,6 +29,7 @@
 
 #include "enum.h"
 #include "mixerparameter.h"
+#include "osc-packet.h"
 #include <cstddef>
 
 namespace OMC
@@ -37,6 +38,7 @@ namespace OMC
 
     OscServer::OscServer(X32BaseParameter* basepar) : X32Base(basepar) 
     {
+        baseParameters = basepar;
     }
 
     int8_t OscServer::Init()
@@ -62,12 +64,14 @@ namespace OMC
 
         // Build map of osc-paths from Mixerparameters
         oscPaths = config->GetOscPaths();
+        remoteState = new OscState(baseParameters, UdpHandle, oscPaths);
         
         return 0;
     }
 
     void OscServer::UdpHandleCommunication() 
     {
+        if (remoteState) { remoteState->Pump(); }
         char rxData[500];
         int bytes_available = 0;
         
@@ -78,10 +82,11 @@ namespace OMC
         {
             socklen_t xremoteClientAddrLen = sizeof(ClientAddr);
         
-            size_t len = recvfrom(UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
+            ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
+            if (len <= 0 || len >= sizeof(rxData)) { return; }
 
             tosc_message osc;
-            if (!tosc_parseMessage(&osc, rxData, len))
+            if (ParseControlPacket(&osc, rxData, len))
             {
                 // Client has send data
 
@@ -112,11 +117,28 @@ namespace OMC
 
                 helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Path: %s Format: %s", adrPath.c_str(), osc_format.c_str());
 
+                if (remoteState->Handle(address, &osc, ClientAddr.sin_addr.s_addr)) { return; }
+                // Queries and malformed indices must not reach unchecked stoi
+                // or Mixerparameter setters (which throw on bad input).
+                if (address.size() != 3 || address[2].empty() ||
+                    address[2].find_first_not_of("0123456789") != string::npos) { return; }
+                char* end = nullptr;
+                unsigned long wireIndex = strtoul(address[2].c_str(), &end, 10);
+                if (*end || wireIndex == 0 || wireIndex > UINT16_MAX) { return; }
+
                 // Find matching Mixerparameter
                 uint found = oscPaths->count(String(address[1].c_str()));
                 if (found == 1) 
                 {
                     Mixerparameter* parameter = config->GetParameter(oscPaths->at(String(address[1].c_str())));
+                    if (wireIndex > parameter->GetInstances() || parameter->IsReadonly()) { return; }
+                    if (address[0] == "set" &&
+                        ((parameter->GetType() == MP_VALUE_TYPE::STRING) != (osc_format == "s"))) { return; }
+                    if (osc_format == "f")
+                    {
+                        tosc_message copy = osc;
+                        if (!std::isfinite(tosc_getNextFloat(&copy))) { return; }
+                    }
 
                     if (address[0] == "set")
                     {
@@ -203,36 +225,7 @@ namespace OMC
 
     void OscServer::Sync()
     {
-        if (!hasClients)
-        {
-            return;
-        }
-
-        for (auto const& [parameter_id, indexSet] : *(config->GetChangedParameterList()))
-        {
-            // loop parameter_id
-            Mixerparameter* parameter = config->GetParameter(parameter_id);
-
-            // for (indexes)
-            for (uint index : indexSet)
-            {
-                // for (clients)
-                // for (auto const& [client, timeoutvalue] : clients)
-                // {
-                    int len = 0;
-                    if (parameter->GetType() == MP_VALUE_TYPE::STRING)
-                    {
-                        len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "s", parameter->GetString(index).c_str());
-                    }
-                    else
-                    {
-                        len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", parameter->GetFloat(index));
-                    }
-                
-                    SendUdpPacket(TxMessage, len);
-                //}
-            }
-        }
+        if (remoteState) { remoteState->Sync(); }
     }
 
 
