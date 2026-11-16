@@ -18,6 +18,8 @@ UDP snapshots are neither reliable nor atomic; completion is not a transaction
 or a DSP acknowledgement. Re-request to repair packet loss. Listen before
 requesting. Renewing a subscription does not restart its initial snapshot.
 State queries have no arguments, not a dummy float.
+Metadata and state use independent cursors: requesting both preserves both
+completion markers, with metadata sent first under the same pacing budget.
 
 Topology describes the controller catalog, not attached/working audio hardware.
 `strips` entries are `{kind,name,start,count,eq_bands}`. Starts are zero-based
@@ -26,6 +28,10 @@ mono/sub=71/1, dca=72/8, main LR=80/1. Index 70 is reserved. Four EQ bands
 (`1`..`4`) are advertised only for input/aux. Counts: fx_slots=8, sends=16,
 matrices=6, dcas=8, mute_groups=6. Top-level sources/outputs describe zero-based
 port groups; these are NOT native DSP routing selectors or strip IDs.
+`colors` advertises the CHANNEL_COLOR enum palette in order: black, red,
+green, yellow, blue, magenta, cyan, white (hex RGB strings). These are eight
+OMC colors, not twelve WING colors. Send the palette index without translation
+only when rendering from this advertised palette.
 
 `routing` describes authoritative native index spaces. Each of channels,
 outputs, effects, sockets has `{osc,sources:[{name,start,count}],dests:[...]}`.
