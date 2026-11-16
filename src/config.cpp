@@ -178,8 +178,10 @@ namespace OMC
 
         // Read file
         ifstream ifs(loadFile.c_str());
+        if (!ifs) { return false; }
         ostringstream oss;
         oss << ifs.rdbuf();
+        if (ifs.bad()) { return false; }
         std::string entireFile = oss.str();
         ifs.close();  
 
@@ -190,6 +192,20 @@ namespace OMC
         {
             std::string error_msg = glz::format_error(error, entireFile);
             std::cout << "ERROR: " << error_msg << std::endl;
+            return false;
+        }
+
+        // Validate all array lengths before changing any live parameter. A bad
+        // scene must not shrink arrays and cause later reads to access past end.
+        for (const auto& entry : entries)
+        {
+            if ((int)entry.MixerparameterId < 0) { return false; }
+            if (entry.MixerparameterId >= MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE) { continue; }
+            auto* parameter = GetParameter(entry.MixerparameterId);
+            if (parameter->GetId() == NONE) { continue; }
+            size_t size = parameter->GetType() == MP_VALUE_TYPE::STRING ? entry.string_value.size() : entry.value.size();
+            if (size != parameter->GetInstances()) { return false; }
+            for (float value : entry.value) { if (!std::isfinite(value)) { return false; } }
         }
         
         // Fill Mixerparameter
@@ -205,6 +221,7 @@ namespace OMC
             }
 
             Mixerparameter* parameter = GetParameter(parameter_id);
+            if (parameter->GetId() == NONE) { continue; }
 
             uint entrysize = 0;
             switch(parameter->GetType())
@@ -241,7 +258,7 @@ namespace OMC
     //
     //#####################################################################################################################
 
-    void Config::Save(uint scene)
+    bool Config::Save(uint scene)
     {
         String saveFile = String("scene") + String(scene) + String(".json");
         helper->DEBUG_INI(DEBUGLEVEL_NORMAL, "Save config to %s", saveFile.c_str());
@@ -279,11 +296,20 @@ namespace OMC
         if (error) {
         std::string error_msg = glz::format_error(error, json);
         std::cout << error_msg << std::endl;
+        return false;
         }
 
-        std::ofstream out(saveFile.c_str());
+        String temporary = saveFile + ".tmp";
+        std::ofstream out(temporary.c_str());
+        if (!out) { return false; }
         out << json;
         out.close();
+        if (!out || rename(temporary.c_str(), saveFile.c_str()) != 0)
+        {
+            remove(temporary.c_str());
+            return false;
+        }
+        return true;
     }
 
 
