@@ -192,12 +192,16 @@ namespace OMC
             auto& client = clients[ip];
             client.renewed = Clock::now();
             if (subscribe) { client.subscribed = true; }
-            if (snapshot || metadata || (subscribe && fresh))
+            if (metadata)
+            {
+                client.metadataNext = paths->begin();
+                client.metadata = true;
+            }
+            if (snapshot || (subscribe && fresh))
             {
                 client.next = paths->begin();
                 client.index = 0;
                 client.snapshot = true;
-                client.metadata = metadata;
             }
         }
         else if (subscribe) { clients.erase(ip); }
@@ -217,31 +221,38 @@ namespace OMC
         {
             auto& [ip, client] = *it;
             if (now - client.renewed >= std::chrono::seconds(10)) { it = clients.erase(it); continue; }
-            for (uint budget = 0; client.snapshot && budget < 32; ++budget)
+            for (uint budget = 0; (client.snapshot || client.metadata) && budget < 32; ++budget)
             {
+                if (client.metadata)
+                {
+                    if (client.metadataNext == paths->end())
+                    {
+                        char packet[64];
+                        int size = tosc_writeMessage(packet, sizeof(packet), "/metadata/complete/1", "f", 1.0f);
+                        Packet(socket, ip, packet, size);
+                        client.metadata = false;
+                    }
+                    else
+                    {
+                        const auto& [name, id] = *client.metadataNext++;
+                        Send(ip, (String("/set/metadata/") + name + "/1").c_str(), Metadata(name, config->GetParameter(id)));
+                    }
+                    continue;
+                }
                 if (client.next == paths->end())
                 {
                     char packet[64];
-                    const char* path = client.metadata ? "/metadata/complete/1" : "/state/complete/1";
-                    int size = tosc_writeMessage(packet, sizeof(packet), path, "f", 1.0f);
+                    int size = tosc_writeMessage(packet, sizeof(packet), "/state/complete/1", "f", 1.0f);
                     Packet(socket, ip, packet, size);
                     client.snapshot = false;
                     break;
                 }
                 const auto& [name, id] = *client.next;
                 auto* parameter = config->GetParameter(id);
-                if (client.metadata)
-                {
-                    Send(ip, (String("/set/metadata/") + name + "/1").c_str(), Metadata(name, parameter));
-                    ++client.next;
-                }
-                else
-                {
-                    SendValue(ip, name, parameter, client.index);
-                    if (++client.index >= parameter->GetInstances()) { ++client.next; client.index = 0; }
-                }
+                SendValue(ip, name, parameter, client.index);
+                if (++client.index >= parameter->GetInstances()) { ++client.next; client.index = 0; }
             }
-            if (!client.subscribed && !client.snapshot) { it = clients.erase(it); }
+            if (!client.subscribed && !client.snapshot && !client.metadata) { it = clients.erase(it); }
             else { ++it; }
         }
     }

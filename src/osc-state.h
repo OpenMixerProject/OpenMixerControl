@@ -16,6 +16,7 @@ namespace OMC
             Clock::time_point renewed;
             bool subscribed = false;
             std::map<String, MP_ID>::iterator next;
+            std::map<String, MP_ID>::iterator metadataNext;
             uint index = 0;
             bool snapshot = false;
             bool metadata = false;

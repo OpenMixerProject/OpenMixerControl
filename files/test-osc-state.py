@@ -66,11 +66,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     assert routing["effects"]["dests"][0]["start"] == 40
     assert routing["channels"]["sources"] != topology["strips"]
 
+    # Metadata and snapshot requests must coexist, even when issued together.
     send("/get/metadata/1")
-    metadata = until("/metadata/complete/1")
-    assert json.loads(metadata["/set/metadata/ch_phase/1"])["audio_status"] == "state_only_no_dispatch"
     send("/subscribe/state/1", 1)
     initial = until("/state/complete/1")
+    assert "/metadata/complete/1" in initial
+    assert json.loads(initial["/set/metadata/ch_phase/1"])["audio_status"] == "state_only_no_dispatch"
     assert initial["/subscribe/state/1"] == 1
     assert "/set/ch_gain/1" in initial and "/set/ch_gain/81" in initial
     send("/set/debug/1", 17)
