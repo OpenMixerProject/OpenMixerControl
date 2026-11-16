@@ -675,27 +675,33 @@ namespace OMC
 
         DefParameter(CHANNEL_GATE_ENABLE, cat, "Gate Enable", MAX_VCHANNELS)
         ->DefNameShort("Gate")
-        ->DefStandard_Bool(false);
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_gate");
     
         DefParameter(CHANNEL_GATE_TRESHOLD, cat, "Threshold", MAX_VCHANNELS)
         ->DefUOM(MP_UOM::DB)
-        ->DefMinMaxStandard_Float(GATE_THRESHOLD_MIN, GATE_THRESHOLD_MAX, GATE_THRESHOLD_MIN, 0);
+        ->DefMinMaxStandard_Float(GATE_THRESHOLD_MIN, GATE_THRESHOLD_MAX, GATE_THRESHOLD_MIN, 0)
+        ->DefOSC("ch_gate_thr");
         
         DefParameter(CHANNEL_GATE_RANGE, cat, "Range", MAX_VCHANNELS)
         ->DefUOM(MP_UOM::DB)
-        ->DefMinMaxStandard_Float(GATE_RANGE_MIN, GATE_RANGE_MAX, GATE_RANGE_MAX, 1);
+        ->DefMinMaxStandard_Float(GATE_RANGE_MIN, GATE_RANGE_MAX, GATE_RANGE_MAX, 1)
+        ->DefOSC("ch_gate_range");
         
         DefParameter(CHANNEL_GATE_ATTACK, cat, "Attack", MAX_VCHANNELS)
         ->DefUOM(MP_UOM::MS)
-        ->DefMinMaxStandard_Float(GATE_ATTACK_MIN, GATE_ATTACK_MAX, 10.0f, 0);
+        ->DefMinMaxStandard_Float(GATE_ATTACK_MIN, GATE_ATTACK_MAX, 10.0f, 0)
+        ->DefOSC("ch_gate_attack");
         
         DefParameter(CHANNEL_GATE_HOLD, cat, "Hold", MAX_VCHANNELS)
         ->DefUOM(MP_UOM::MS)
-        ->DefMinMaxStandard_Float(GATE_HOLD_MIN, GATE_HOLD_MAX, 50.0f, 0);
+        ->DefMinMaxStandard_Float(GATE_HOLD_MIN, GATE_HOLD_MAX, 50.0f, 0)
+        ->DefOSC("ch_gate_hold");
         
         DefParameter(CHANNEL_GATE_RELEASE, cat, "Release", MAX_VCHANNELS)
         ->DefUOM(MP_UOM::MS)
-        ->DefMinMaxStandard_Float(GATE_RELEASE_MIN, GATE_RELEASE_MAX, 250.0f, 0);
+        ->DefMinMaxStandard_Float(GATE_RELEASE_MIN, GATE_RELEASE_MAX, 250.0f, 0)
+        ->DefOSC("ch_gate_release");
 
         // dynamics
         cat = MP_CAT::CHANNEL_DYNAMICS;
