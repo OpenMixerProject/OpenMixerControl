@@ -51,7 +51,9 @@ namespace OMC
     void OscState::Send(in_addr_t ip, const char* path, const std::string& json)
     {
         // Topology is larger than the old fixed 450-byte value buffer.
-        std::vector<char> packet(json.size() + strlen(path) + 32);
+        // SmallOSC's string writer reserves the string length a second time
+        // when passing a limit to its copy helper. Give it that headroom.
+        std::vector<char> packet(2 * json.size() + strlen(path) + 32);
         int size = tosc_writeMessage(packet.data(), packet.size(), path, "s", json.c_str());
         Packet(socket, ip, packet.data(), size);
     }
@@ -62,7 +64,7 @@ namespace OMC
         if (parameter->GetType() == MP_VALUE_TYPE::STRING)
         {
             String value = parameter->GetString(index);
-            std::vector<char> packet(value.length() + path.length() + 32);
+            std::vector<char> packet(2 * value.length() + path.length() + 32);
             int size = tosc_writeMessage(packet.data(), packet.size(), path.c_str(), "s", value.c_str());
             Packet(socket, ip, packet.data(), size);
         }
