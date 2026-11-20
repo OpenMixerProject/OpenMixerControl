@@ -46,6 +46,10 @@ class SurfaceControllerXM32 : public SurfaceController
         SurfaceControllerXM32(X32BaseParameter* basepar);
         ~SurfaceControllerXM32() override = default;
 
+#ifdef TARGET_PC_SDL2
+        void InitSimulator();
+#endif
+
         void Reset() override;
         void ProcessUartData() override;
 

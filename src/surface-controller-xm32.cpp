@@ -1,6 +1,9 @@
 #include "surface-controller-xm32.h"
 #include "helper.h"
 #include "surfaceelement.h"
+#ifdef TARGET_PC_SDL2
+#include "simulator-gui.h"
+#endif
 
 namespace OMC
 {
@@ -52,6 +55,13 @@ SurfaceControllerXM32::SurfaceControllerXM32(X32BaseParameter* basepar) : Surfac
         uart->Open("/dev/ttymxc1", 115200, true);
     }
 }
+
+#ifdef TARGET_PC_SDL2
+void SurfaceControllerXM32::InitSimulator()
+{
+    SimulatorGUI::Init(config, uart);
+}
+#endif
 
 void SurfaceControllerXM32::ProcessUartData()
 {

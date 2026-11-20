@@ -53,13 +53,19 @@ class Surface : public X32Base
         void InitBank_Channelstrip_DCA(X32FaderBank* bank, uint offset);
         void InitBank_Flex(X32FaderBank* bank);
         void InitBank_DMX(X32FaderBank* bank, uint offset);
+        vector<uint> GetActiveChannels(X32_VCHANNEL_BLOCK blockType);
+        void PopulateBankWithActive(X32FaderBank* bank, X32_VCHANNEL_BLOCK blockType, uint activeOffset);
 
     public:
         
         Surface(X32BaseParameter* basepar);
 
         void Init(SurfaceCallback callback, void* arg);
+#ifdef TARGET_PC_SDL2
+        void InitSimulator();
+#endif
         void Reset();
+        void UpdateFaderBanks();
 
         void Tick10ms();
         void Tick100ms();

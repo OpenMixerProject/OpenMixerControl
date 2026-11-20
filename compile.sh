@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 if [ $# -eq 0 ]; then
     echo "No arguments supplied!"
     echo "Possible Arguments: $0 [TARGET_XM32, TARGET_WING, TARGET_PC_SDL2]"
-    exit
+    exit 1
 fi
 BUILD_TARGET=$1
+case "$BUILD_TARGET" in
+    TARGET_XM32|TARGET_WING|TARGET_PC_SDL2) ;;
+    *) echo "Unknown build target: $BUILD_TARGET" >&2; exit 1 ;;
+esac
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${ROOT_DIR}/build"
@@ -26,10 +31,25 @@ if [ ! -d "$LIB_EXT_DIR" ]; then
 fi
 
 # acquire external libraries
-git clone --depth 1 --single-branch --branch v9.5.0 https://github.com/lvgl/lvgl.git ${LVGL_DIR} || git -C ${LVGL_DIR} reset --hard HEAD
-git clone --depth 1 --single-branch --branch v7.7.1 https://github.com/stephenberry/glaze.git ${GLAZE_DIR} || git -C ${GLAZE_DIR} reset --hard HEAD
-git clone --depth 1 --single-branch https://github.com/OpenLightingProject/libartnet.git ${LIBARTNET_DIR} || git -C ${LIBARTNET_DIR} reset --hard HEAD
-git clone --depth 1 --single-branch --branch v2.5.2 https://github.com/doctest/doctest.git ${DOCTEST_DIR} || git -C ${DOCTEST_DIR} reset --hard HEAD
-git clone --depth 1 --single-branch https://github.com/OpenMixerProject/SmallOSC.git ${OSC_DIR} || git -C ${OSC_DIR} reset --hard HEAD
+if [ ! -d "$LVGL_DIR" ]; then
+    git clone --depth 1 --single-branch --branch v9.5.0 https://github.com/lvgl/lvgl.git "$LVGL_DIR"
+fi
+if [ ! -d "$GLAZE_DIR" ]; then
+    git clone --depth 1 --single-branch --branch v7.7.1 https://github.com/stephenberry/glaze.git "$GLAZE_DIR"
+fi
+if [ ! -d "$LIBARTNET_DIR" ]; then
+    git clone --depth 1 --single-branch https://github.com/OpenLightingProject/libartnet.git "$LIBARTNET_DIR"
+fi
+if [ ! -d "$DOCTEST_DIR" ]; then
+    git clone --depth 1 --single-branch --branch v2.5.2 https://github.com/doctest/doctest.git "$DOCTEST_DIR"
+fi
+if [ ! -d "$OSC_DIR" ]; then
+    git clone --depth 1 --single-branch https://github.com/OpenMixerProject/SmallOSC.git "$OSC_DIR"
+fi
 
-make ROOT_DIR=${ROOT_DIR} BUILD_TARGET=${BUILD_TARGET} -j$(nproc)
+if command -v nproc >/dev/null 2>&1; then
+    jobs=$(nproc)
+else
+    jobs=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+fi
+make -C "$ROOT_DIR" ROOT_DIR="$ROOT_DIR" BUILD_TARGET="$BUILD_TARGET" -j"$jobs"

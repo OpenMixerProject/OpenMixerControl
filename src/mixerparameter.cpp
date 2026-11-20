@@ -32,6 +32,16 @@ namespace OMC
     {
         using enum MP_UOM;
 
+        if (parameter_id == MP_ID::CHANNEL_STEREO_WIDTH)
+        {
+            uint width_percent = (uint)(value_float * 100.0f + 0.5f);
+            if (width_percent == 0)
+            {
+                return String("Mono");
+            }
+            return String(width_percent) + String("%");
+        }
+
         if (unitOfMeasurement == PERCENT) {
             value_float *= 100.0f;
         }

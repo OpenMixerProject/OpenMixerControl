@@ -4,6 +4,14 @@
 
 GITREF = $(shell git describe --abbrev=10 --dirty --always --tags)
 DEPFLAGS = -MMD -MP
+ROOT_DIR ?= $(CURDIR)
+UNAME_S := $(shell uname -s)
+PLATFORM_LIBS = -lrt
+ifeq ($(UNAME_S),Darwin)
+ifeq ($(BUILD_TARGET),TARGET_PC_SDL2)
+    PLATFORM_LIBS =
+endif
+endif
 
 ifeq "$(BUILD_TARGET)" "TARGET_XM32"
 
@@ -48,7 +56,10 @@ ifeq "$(BUILD_TARGET)" "TARGET_PC_SDL2"
 	FLTO            =
 	C_STD           = 
 	LVGL_CONF       = files/lv_conf_SDL2.h
-	LDFLAGS_EXTRA   = -lSDL2
+	SDL_CFLAGS      ?= $(shell sdl2-config --cflags 2>/dev/null || pkg-config --cflags sdl2)
+	SDL_LIBS        ?= $(shell sdl2-config --libs 2>/dev/null || pkg-config --libs sdl2)
+	DEPFLAGS        += $(SDL_CFLAGS)
+	LDFLAGS_EXTRA   = $(SDL_LIBS)
 
 endif
 
@@ -72,6 +83,12 @@ WARNINGS        := -Wall -Wshadow -Wundef -Wextra -Wno-unused-function -Wno-erro
                    -Wno-ignored-qualifiers -Wno-error=pedantic -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body \
                    -Wshift-negative-value -Wstack-usage=2048 -Wno-unused-value
 
+ifeq ($(UNAME_S),Darwin)
+ifeq ($(BUILD_TARGET),TARGET_PC_SDL2)
+    WARNINGS := $(filter-out -Wmaybe-uninitialized -Wclobbered -Wstack-usage=2048,$(WARNINGS))
+endif
+endif
+
 ifeq ($(DEBUG), 1)
 
 	# debug build
@@ -87,7 +104,7 @@ else
 endif
 
 
-LDFLAGS         ?= $(FLTO) -lm -lrt -lpthread -L$(BUILD_OBJ_DIR) $(LDFLAGS_EXTRA)
+LDFLAGS         ?= $(FLTO) -lm $(PLATFORM_LIBS) -lpthread -L$(BUILD_OBJ_DIR) $(LDFLAGS_EXTRA)
 
 # Collect source files recursively
 CSRCS           := $(shell find src -type f -name '*.c' -print) \
@@ -102,6 +119,10 @@ CXXSRCS         := $(shell find src -type f -name '*.cpp' -print) \
 				   $(shell find $(LIBARTNET_DIR)/artnet -type f -name '*.cpp' -print) \
 				   $(shell find $(OSC_DIR) -type f -name '*.cpp' -print)
 
+ifeq ($(BUILD_TARGET),TARGET_PC_SDL2)
+CSRCS := $(filter-out $(LIBARTNET_DIR)/%,$(CSRCS))
+CXXSRCS := $(filter-out $(LIBARTNET_DIR)/%,$(CXXSRCS))
+endif
 
 
 all: versionfile copy default

@@ -26,6 +26,7 @@ namespace OMC
             string serverIp = "127.0.0.1";
 
             Helper* helper;
+            bool isSyncingStereoLink = false;
 
             // Mixerparameter
 
@@ -58,6 +59,12 @@ namespace OMC
         public:
 
             Config(String model, Helper* h, bool runAsClient);
+
+            bool GetPeerVChannel(uint index, uint& peerIndex);
+            bool IsRightChannelOfLinkedPair(uint index);
+            bool IsStereoLinkedMainRouted(uint index);
+            void ApplyStereoPanWidth(uint index);
+            void GetLinkChannels(MP_ID mp, uint index, uint& leftChan, uint& rightChan);
 
             bool Load(uint scene);
             void Save(uint scene);

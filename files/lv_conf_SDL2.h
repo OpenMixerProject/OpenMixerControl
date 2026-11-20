@@ -1151,7 +1151,7 @@
 /** Use SDL to open window on PC and handle mouse and keyboard. */
 #define LV_USE_SDL              1
 #if LV_USE_SDL
-    #define LV_SDL_INCLUDE_PATH     <SDL2/SDL.h>
+    #define LV_SDL_INCLUDE_PATH     <SDL.h>
     #define LV_SDL_RENDER_MODE      LV_DISPLAY_RENDER_MODE_DIRECT   /**< LV_DISPLAY_RENDER_MODE_DIRECT is recommended for best performance */
     #define LV_SDL_BUF_COUNT        1    /**< 1 or 2 */
     #define LV_SDL_ACCELERATED      0    /**< 1: Use hardware acceleration*/
@@ -1179,7 +1179,11 @@
 #endif
 
 /** Driver for /dev/fb */
+#ifdef __APPLE__
+#define LV_USE_LINUX_FBDEV      0
+#else
 #define LV_USE_LINUX_FBDEV      1
+#endif
 #if LV_USE_LINUX_FBDEV
     #define LV_LINUX_FBDEV_BSD           0
     #define LV_LINUX_FBDEV_RENDER_MODE   LV_DISPLAY_RENDER_MODE_PARTIAL

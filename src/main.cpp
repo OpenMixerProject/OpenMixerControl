@@ -72,9 +72,11 @@ namespace OMC
 	State* state;
 	CLI::App* app;
 
+#ifndef __APPLE__
 	timer_t timerid_10ms;
 	struct sigevent sev_10ms;
 	struct itimerspec trigger_10ms;
+#endif
 	uint8_t vtimercounter = 0;
 
 	void timer1000msCallbackLvgl(_lv_timer_t* lv_timer) { 
@@ -114,6 +116,9 @@ namespace OMC
 	}
 
 	void init10msTimer_NonGUI() {
+#ifdef __APPLE__
+		fprintf(stderr, "Non-GUI timers are not supported on macOS.\n");
+#else
 		// Set up the signal handler
 		struct sigaction sa;
 		sa.sa_handler = timer10msCallbackLinux;
@@ -142,6 +147,7 @@ namespace OMC
 		if (timer_settime(timerid_10ms, 0, &trigger_10ms, NULL) == -1) {
 			perror("timer_settime");
 		}
+#endif
 	}
 
 	void LoadRoutingDefault(Config* config)
@@ -325,6 +331,10 @@ namespace OMC
 
 		srand(time(NULL));
 		state = new State();
+#ifdef TARGET_PC_SDL2
+		state->bodyless = true;
+		state->bodyless_with_surface_and_adda = false;
+#endif
 		Helper* helper = new Helper();
 
 		app = new CLI::App();
@@ -488,6 +498,9 @@ namespace OMC
 		// helper->ReadConfig("/etc/wing.conf", "SN=", serial, 15);
 		// helper->ReadConfig("/etc/wing.conf", "DATE=", date, 16);
 		// helper->ReadConfig("/etc/wing.conf", "CFG", cfg, 5);
+
+		#elifdef TARGET_PC_SDL2
+		strcpy(model, "X32C");
 
 		#endif
 

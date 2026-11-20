@@ -30,6 +30,7 @@
 #include "enum.h"
 #include "mixerparameter.h"
 #include <cstddef>
+#include <sys/ioctl.h>
 
 namespace OMC
 {
@@ -53,7 +54,7 @@ namespace OMC
         ServerAddr.sin_addr.s_addr = INADDR_ANY;
         ServerAddr.sin_port = htons(10032);
         
-        if (bind(UdpHandle, (const struct sockaddr *)&ServerAddr, sizeof(ServerAddr)) < 0)
+        if (::bind(UdpHandle, (const struct sockaddr *)&ServerAddr, sizeof(ServerAddr)) < 0)
         {
             helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "Error on binding UDP-socket!");
             close(UdpHandle);

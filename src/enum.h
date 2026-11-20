@@ -51,6 +51,7 @@ enum class X32_PAGE :int
         // sub-pages of setup
         SETUP_CARD,
         SETUP_SURFACE,
+        SETUP_MIXER_CONFIG,
         ABOUT,
         DEBUG,
         PROTOTYPEGUI,
@@ -499,8 +500,14 @@ enum class MP_ID {
     DMX_ARTNET_VALUE = 279,
     //DMX_ARTNET_OFFSET,
 
+    CHANNEL_LINKED = 280,
+    BUS_LINKED = 281,
+    MATRIX_LINKED = 282,
+    CHANNEL_STEREO_PAN = 283,
+    CHANNEL_STEREO_WIDTH = 284,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 280
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 285
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

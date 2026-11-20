@@ -92,6 +92,7 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
     } else if (baudrate == 115200) {
         cfsetispeed(&tty, B115200);
         cfsetospeed(&tty, B115200);
+#ifndef __APPLE__
     } else if (baudrate == 500000) {
         cfsetispeed(&tty, B500000);
         cfsetospeed(&tty, B500000);
@@ -119,6 +120,7 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
     } else if (baudrate == 4000000) {
         cfsetispeed(&tty, B4000000);
         cfsetospeed(&tty, B4000000);
+#endif
     } else {
         helper->DEBUG_UART(DEBUGLEVEL_NORMAL, "Error: unsupported baudrate!");
         return 1;
@@ -133,8 +135,23 @@ int Uart::Open(const char* ttydev, uint32_t baudrate, bool raw) {
     return 0;
 }
 
-int Uart::Tx(MessageBase* message)
-{
+int Uart::Tx(MessageBase* message) {
+    if (message == nullptr) return -1;
+#ifdef TARGET_PC_SDL2
+    if (state->bodyless && !state->bodyless_with_surface_and_adda)
+    {
+        emulated_tx_buffer.insert(emulated_tx_buffer.end(), message->buffer, message->buffer + message->current_length);
+        if (helper->DEBUG_UART(DEBUGLEVEL_TRACE)) {
+            printf("DEBUG_UART (EMULATED): TransmitRaw: ");
+            for (uint8_t i=0; i < message->current_length; i++){
+                printf("%.2X ", (uint8_t)message->buffer[i]);
+            }
+            printf("\n");
+        }
+        return message->current_length;
+    }
+#endif
+
     if (fd < 1) {
         helper->DEBUG_UART(DEBUGLEVEL_NORMAL, "serial port not opened");
         return -1;
@@ -170,6 +187,27 @@ int Uart::Tx(MessageBase* message)
 }
 
 int Uart::Rx(char* buf, uint16_t bufLen) {
+#ifdef TARGET_PC_SDL2
+    if (state->bodyless && !state->bodyless_with_surface_and_adda)
+    {
+        if (emulated_rx_buffer.empty()) {
+            return 0;
+        }
+        int to_read = std::min((size_t)bufLen, emulated_rx_buffer.size());
+        std::copy(emulated_rx_buffer.begin(), emulated_rx_buffer.begin() + to_read, buf);
+        emulated_rx_buffer.erase(emulated_rx_buffer.begin(), emulated_rx_buffer.begin() + to_read);
+
+        if (helper->DEBUG_UART(DEBUGLEVEL_TRACE)){
+            printf("DEBUG_UART (EMULATED): Receive: ");
+            for (uint8_t i=0; i < to_read; i++){
+                printf("%.2X ", (uint8_t)buf[i]);
+            }
+            printf("\n");
+        }
+        return to_read;
+    }
+#endif
+
     int bytesRead;
     int bytesAvailable;
     int bytesToRead;
@@ -227,13 +265,31 @@ void Uart::FlushRxBuffer() {
 	while (Rx(&buf, 1) > 0);
 }
 
-// ######## ########  ######  ########  ######  
-//    ##    ##       ##    ##    ##    ##    ## 
-//    ##    ##       ##          ##    ##       
-//    ##    ######    ######     ##     ######  
-//    ##    ##             ##    ##          ## 
-//    ##    ##       ##    ##    ##    ##    ## 
-//    ##    ########  ######     ##     ######  
+#ifdef TARGET_PC_SDL2
+void Uart::WriteEmulatedRx(const char* data, size_t len) {
+    emulated_rx_buffer.insert(emulated_rx_buffer.end(), data, data + len);
+}
+
+size_t Uart::ReadEmulatedTx(char* buf, size_t max_len) {
+    if (emulated_tx_buffer.empty()) return 0;
+    size_t to_read = std::min(max_len, emulated_tx_buffer.size());
+    std::copy(emulated_tx_buffer.begin(), emulated_tx_buffer.begin() + to_read, buf);
+    emulated_tx_buffer.erase(emulated_tx_buffer.begin(), emulated_tx_buffer.begin() + to_read);
+    return to_read;
+}
+
+bool Uart::HasEmulatedTx() const {
+    return !emulated_tx_buffer.empty();
+}
+#endif
+
+// ######## ########  ######  ########  ######
+//    ##    ##       ##    ##    ##    ##    ##
+//    ##    ##       ##          ##    ##
+//    ##    ######    ######     ##     ######
+//    ##    ##             ##    ##          ##
+//    ##    ##       ##    ##    ##    ##    ##
+//    ##    ########  ######     ##     ######
 
 
 TEST_CASE("UART")
@@ -271,7 +327,11 @@ TEST_CASE("UART")
         SUBCASE("receive")
         {
             int result = u->Rx(buf, bufLen);
+#ifdef TARGET_PC_SDL2
+            CHECK(result == (state->bodyless && !state->bodyless_with_surface_and_adda ? 0 : -1));
+#else
             CHECK(result == -1);
+#endif
         }
 
         SUBCASE("send")
@@ -280,7 +340,36 @@ TEST_CASE("UART")
             CHECK(result == -1);
         }
     }
-    
+
+#ifdef TARGET_PC_SDL2
+    SUBCASE("emulated surface UART")
+    {
+        state->bodyless = true;
+        state->bodyless_with_surface_and_adda = false;
+        const char bytes[] = {char(0xFE), char(0x81), 'b', 0};
+        char received[sizeof(bytes)] = {};
+
+        u->WriteEmulatedRx(bytes, sizeof(bytes));
+        REQUIRE(u->Rx(received, 2) == 2);
+        REQUIRE(u->Rx(received + 2, 2) == 2);
+        CHECK(memcmp(received, bytes, sizeof(bytes)) == 0);
+        CHECK(u->Rx(received, sizeof(received)) == 0);
+
+        u->WriteEmulatedRx(bytes, sizeof(bytes));
+        u->FlushRxBuffer();
+        CHECK(u->Rx(received, sizeof(received)) == 0);
+
+        MessageBase message;
+        message.AddRawDataArray(bytes, sizeof(bytes));
+        CHECK(u->Tx(&message) == sizeof(bytes));
+        CHECK(u->HasEmulatedTx());
+        REQUIRE(u->ReadEmulatedTx(received, 2) == 2);
+        CHECK(u->HasEmulatedTx());
+        REQUIRE(u->ReadEmulatedTx(received + 2, 2) == 2);
+        CHECK(memcmp(received, bytes, sizeof(bytes)) == 0);
+        CHECK_FALSE(u->HasEmulatedTx());
+    }
+#endif
 }
 
 }

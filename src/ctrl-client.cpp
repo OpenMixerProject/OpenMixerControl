@@ -24,6 +24,7 @@
 #include "page-setup.h"
 #include "page-setup-card.h"
 #include "page-setup-surface.h"
+#include "page-setup-mixer-config.h"
 #include "page-debug.h"
 #include "page-about.h"
 #include "page-scenes.h"
@@ -37,6 +38,10 @@
 #include "eez/ui.h"
 
 #include "artnet.h"
+
+#ifdef TARGET_PC_SDL2
+#include "simulator-gui.h"
+#endif
 
 namespace OMC
 {
@@ -176,6 +181,11 @@ void CtrlClient::Init()
 		#endif
 		InitPagesAndGUI();
 
+#ifdef TARGET_PC_SDL2
+		surface->InitSimulator();
+		lv_display_set_default(display);
+#endif
+
 		// trigger first update of display header
 		#ifdef BUILD_DEBUG
 		helper->Log("Refresh Selected Channel\n");
@@ -207,6 +217,9 @@ void CtrlClient::Init()
 		while (1)
 		{
 			idle_time = lv_timer_handler();
+#ifdef TARGET_PC_SDL2
+			SimulatorGUI::Tick();
+#endif
 			usleep(idle_time * 1000);
 		}
 	}
@@ -361,6 +374,7 @@ void CtrlClient::InitPagesAndGUI()
 	pages[X32_PAGE::SETUP] = new PageSetup(pagebasepar);
 	pages[X32_PAGE::SETUP_CARD] = new PageSetupCard(pagebasepar);
 	pages[X32_PAGE::SETUP_SURFACE] = new PageSetupSurface(pagebasepar);
+	pages[X32_PAGE::SETUP_MIXER_CONFIG] = new PageSetupMixerConfig(pagebasepar);
 	pages[X32_PAGE::ABOUT] = new PageAbout(pagebasepar);
 	pages[X32_PAGE::DEBUG] = new PageDebug(pagebasepar);
 	pages[X32_PAGE::PROTOTYPEGUI] = new PagePrototypeGui(pagebasepar);
@@ -501,6 +515,12 @@ void CtrlClient::syncGuiOrLcd() {
 // sync mixer state to Surface
 void CtrlClient::syncSurface(bool fullSync)
 {
+	bool stereoLinkChanged = config->HasParametersChanged({CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED});
+	if (stereoLinkChanged)
+	{
+		surface->UpdateFaderBanks();
+	}
+
 	// ######################################
 	//
 	// Check, if banking has changed
@@ -511,7 +531,7 @@ void CtrlClient::syncSurface(bool fullSync)
 	{
 		bool faderBankChanged = false;
 
-		if (config->HasParameterChanged(BANKING_INPUT))
+		if (config->HasParameterChanged(BANKING_INPUT) || stereoLinkChanged)
 		{
 			OMCBankId bankToSwitchTo = (OMCBankId)(config->GetUint(BANKING_INPUT));
  
@@ -569,7 +589,7 @@ void CtrlClient::syncSurface(bool fullSync)
 			faderBankChanged = true;
 		}
 
-		if (config->HasParameterChanged(BANKING_BUS))
+		if (config->HasParameterChanged(BANKING_BUS) || stereoLinkChanged)
 		{
 			OMCBankId bank = (OMCBankId)(config->GetUint(BANKING_BUS));
 
@@ -911,7 +931,7 @@ void CtrlClient::syncSurface(bool fullSync)
 					switch(config->GetUint(CHANNEL_LCD_MODE))
 					{
 						case 0:
-							if (config->HasParametersChanged({CHANNEL_PANORAMA, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED	}, binding_parameter->mp_index) ||
+							if (config->HasParametersChanged({CHANNEL_PANORAMA, CHANNEL_STEREO_PAN, CHANNEL_STEREO_WIDTH, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED	}, binding_parameter->mp_index) ||
 								config->HasParameterChanged(CHANNEL_LCD_MODE)
 							)
 							{
@@ -919,7 +939,7 @@ void CtrlClient::syncSurface(bool fullSync)
 							}
 							break;
 						case 1:
-							if (config->HasParametersChanged({CHANNEL_PHASE_INVERT, CHANNEL_VOLUME, CHANNEL_PANORAMA, CHANNEL_GAIN,	CHANNEL_GATE_TRESHOLD,
+							if (config->HasParametersChanged({CHANNEL_PHASE_INVERT, CHANNEL_VOLUME, CHANNEL_PANORAMA, CHANNEL_STEREO_PAN, CHANNEL_STEREO_WIDTH, CHANNEL_GAIN,	CHANNEL_GATE_TRESHOLD,
 									CHANNEL_DYNAMICS_TRESHOLD, CHANNEL_PHANTOM, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED }, binding_parameter->mp_index) ||
 								config->HasParametersChanged({MP_CAT::CHANNEL_EQ}, binding_parameter->mp_index) || 
 								config->HasParameterChanged(CHANNEL_LCD_MODE)
@@ -1282,6 +1302,43 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 
     LcdData* data = new LcdData();
 	uint textcount = 0;
+	auto getBalanceTextIndex = [](float balance) -> uint8_t
+	{
+		if (balance < -70){ return 0; }
+		else if (balance < -40){ return 1; }
+		else if (balance < -10){ return 2; }
+		else if (balance > 70){ return 6; }
+		else if (balance > 40){ return 5; }
+		else if (balance > 10){ return 4; }
+		return 3;
+	};
+	auto setBalanceText = [&](char* balanceText, uint8_t channelIndex)
+	{
+		uint peerIdx = 0;
+		bool isStereo = config->GetPeerVChannel(channelIndex, peerIdx);
+		float balance = config->GetFloat(isStereo ? CHANNEL_STEREO_PAN : CHANNEL_PANORAMA, channelIndex);
+		uint8_t balanceIndex = getBalanceTextIndex(balance);
+		if (isStereo)
+		{
+			float width = config->GetFloat(CHANNEL_STEREO_WIDTH, channelIndex);
+			if (width < 0.995f)
+			{
+				float widthPan = width * CHANNEL_PANORAMA_MAX;
+				uint8_t leftIndex = getBalanceTextIndex(helper->Saturate(balance - widthPan, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX));
+				uint8_t rightIndex = getBalanceTextIndex(helper->Saturate(balance + widthPan, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX));
+				if (leftIndex == rightIndex)
+				{
+					if (balanceIndex > 0) { leftIndex = balanceIndex - 1; }
+					if (balanceIndex < 6) { rightIndex = balanceIndex + 1; }
+				}
+				if (leftIndex == balanceIndex && leftIndex > 0) { leftIndex--; }
+				if (rightIndex == balanceIndex && rightIndex < 6) { rightIndex++; }
+				balanceText[leftIndex] = ':';
+				balanceText[rightIndex] = ':';
+			}
+		}
+		balanceText[balanceIndex] = '|';
+	};
 
 	if (config->IsModelAnyWing() && lcdIndex == 12) // Fader 13 (zero based index)
 	{
@@ -1303,24 +1360,8 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 
 				// Volume / Panorama
 
-				float balance = config->GetFloat(CHANNEL_PANORAMA, channelIndex);
-				
 				char balanceText[8] = "-------";
-				if (balance < -70){
-					balanceText[0] = '|';
-				} else if (balance < -40){
-					balanceText[1] = '|';
-				} else if (balance < -10){
-					balanceText[2] = '|';
-				} else if (balance > 70){
-					balanceText[6] = '|';
-				} else if (balance > 40){
-					balanceText[5] = '|';
-				} else if (balance > 10){
-					balanceText[4] = '|';
-				} else {
-					balanceText[3] = '|';
-				}
+				setBalanceText(balanceText, channelIndex);
 				data->texts[textIndex].text = balanceText;    
 				data->texts[textIndex].size = 0;
 				data->texts[textIndex].x = 0;
@@ -1337,7 +1378,16 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 				textIndex++;
 
 				// Channel Internal Name
-				data->texts[textIndex].text = config->GetString(CHANNEL_NAME_INTERN, channelIndex);
+				String displayInternName = config->GetString(CHANNEL_NAME_INTERN, channelIndex);
+				uint peerIdx = 0;
+				if (config->GetPeerVChannel(channelIndex, peerIdx))
+				{
+					uint left = channelIndex & ~1U;
+					uint first = left < 32 ? left + 1 : left < 40 ? left - 31 : left < 64 ? left - 47 : left - 63;
+					String prefix = left < 32 ? "Ch " : left < 40 ? "Aux " : left < 64 ? "Bus " : "Mtx ";
+					displayInternName = prefix + String(first) + "/" + String(first + 1);
+				}
+				data->texts[textIndex].text = displayInternName;
 				data->texts[textIndex].size = 0;
 				data->texts[textIndex].x = 35;
 				data->texts[textIndex].y = 51;
@@ -1361,7 +1411,10 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 				data->texts[0].y = 0;
 
 				// Phanton / Invert / Gate / Dynamics / EQ active
+				uint peerIdx = 0;
+				String stereoText = config->GetPeerVChannel(channelIndex, peerIdx) ? "ST " : "";
 				data->texts[1].text =
+					stereoText +
 					String(config->GetBool(CHANNEL_PHANTOM, channelIndex) ? "48V " : "    ") +
 					String(config->GetBool(CHANNEL_PHASE_INVERT, channelIndex) ? "@ " : "  ") +
 					String(config->GetFloat(CHANNEL_GATE_TRESHOLD, channelIndex) > -80.0f ? "G " : "  ") +
@@ -1374,24 +1427,8 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 
 				// Volume / Panorama
 
-				float balance = config->GetFloat(CHANNEL_PANORAMA, channelIndex);
-				
 				char balanceText[8] = "-------";
-				if (balance < -70){
-					balanceText[0] = '|';
-				} else if (balance < -40){
-					balanceText[1] = '|';
-				} else if (balance < -10){
-					balanceText[2] = '|';
-				} else if (balance > 70){
-					balanceText[6] = '|';
-				} else if (balance > 40){
-					balanceText[5] = '|';
-				} else if (balance > 10){
-					balanceText[4] = '|';
-				} else {
-					balanceText[3] = '|';
-				}
+				setBalanceText(balanceText, channelIndex);
 
 				float volume = config->GetFloat(CHANNEL_VOLUME, channelIndex);
 				if (volume > -100) {

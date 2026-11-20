@@ -62,6 +62,101 @@ namespace OMC
         InitAssignBanks();
     }
 
+    bool Config::GetPeerVChannel(uint index, uint& peerIndex)
+    {
+        if (index < 40)
+        {
+            uint pairIdx = index < 32 ? index / 2 : 16 + (index - 32) / 2;
+            if (GetBool(CHANNEL_LINKED, pairIdx))
+            {
+                peerIndex = index ^ 1;
+                return true;
+            }
+        }
+        else if (index >= 48 && index < 64)
+        {
+            if (GetBool(BUS_LINKED, (index - 48) / 2))
+            {
+                peerIndex = index ^ 1;
+                return true;
+            }
+        }
+        else if (index >= 64 && index < 70)
+        {
+            if (GetBool(MATRIX_LINKED, (index - 64) / 2))
+            {
+                peerIndex = index ^ 1;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool Config::IsRightChannelOfLinkedPair(uint index)
+    {
+        uint peerIndex = 0;
+        return index % 2 == 1 && GetPeerVChannel(index, peerIndex);
+    }
+
+    bool Config::IsStereoLinkedMainRouted(uint index)
+    {
+        uint peerIndex = 0;
+        if (!GetPeerVChannel(index, peerIndex))
+        {
+            return false;
+        }
+        if (index < 40)
+        {
+            return true;
+        }
+        if (index >= 48 && index < 64)
+        {
+            return GetBool(CHANNEL_SEND_LR, index) || GetBool(CHANNEL_SEND_LR, peerIndex);
+        }
+        return false;
+    }
+
+    void Config::ApplyStereoPanWidth(uint index)
+    {
+        uint peerIndex = 0;
+        if (!IsStereoLinkedMainRouted(index) || !GetPeerVChannel(index, peerIndex))
+        {
+            return;
+        }
+        uint leftChan = index < peerIndex ? index : peerIndex;
+        uint rightChan = index < peerIndex ? peerIndex : index;
+        float center = GetFloat(CHANNEL_STEREO_PAN, index);
+        float width = GetFloat(CHANNEL_STEREO_WIDTH, index) * CHANNEL_PANORAMA_MAX;
+        float leftPan = helper->Saturate(center - width, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX);
+        float rightPan = helper->Saturate(center + width, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX);
+
+        isSyncingStereoLink = true;
+        Set(CHANNEL_STEREO_PAN, center, leftChan);
+        Set(CHANNEL_STEREO_PAN, center, rightChan);
+        Set(CHANNEL_STEREO_WIDTH, GetFloat(CHANNEL_STEREO_WIDTH, index), leftChan);
+        Set(CHANNEL_STEREO_WIDTH, GetFloat(CHANNEL_STEREO_WIDTH, index), rightChan);
+        Set(CHANNEL_PANORAMA, leftPan, leftChan);
+        Set(CHANNEL_PANORAMA, rightPan, rightChan);
+        isSyncingStereoLink = false;
+    }
+
+    void Config::GetLinkChannels(MP_ID mp, uint index, uint& leftChan, uint& rightChan)
+    {
+        if (mp == CHANNEL_LINKED)
+        {
+            leftChan = index * 2;
+        }
+        else if (mp == BUS_LINKED)
+        {
+            leftChan = 48 + index * 2;
+        }
+        else if (mp == MATRIX_LINKED)
+        {
+            leftChan = 64 + index * 2;
+        }
+        rightChan = leftChan + 1;
+    }
+
     bool Config::IsClientMode()
     {
         return runAsClient;
@@ -372,6 +467,15 @@ namespace OMC
         ->DefCycleMode(1, 1)
         ->DefUOM(MP_UOM::CARD_TYPE);
 
+        DefParameter(CHANNEL_LINKED, cat, "Ch Link", 20)
+        ->DefStandard_Bool(false);
+
+        DefParameter(BUS_LINKED, cat, "Bus Link", 8)
+        ->DefStandard_Bool(false);
+
+        DefParameter(MATRIX_LINKED, cat, "Mtx Link", 3)
+        ->DefStandard_Bool(false);
+
         DefParameter(CARD_SDCARD_STATE, cat, "Card SD-Card State", CARD_SDCARDS)
         ->DefMinMaxStandard_Uint(0, (uint)CARD_STATE::__ELEMENT_COUNTER_DO_NOT_MOVE, (uint)CARD_STATE::REMOVED)
         ->DefUOM(MP_UOM::CARD_SDCARD_STATE)
@@ -657,6 +761,18 @@ namespace OMC
         ->DefMinMaxStandard_Float(CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX, 0.0f)
         ->DefStepsize(2)
         ->DefOSC("ch_pan");
+
+        DefParameter(CHANNEL_STEREO_PAN, cat, "Stereo Pan", MAX_VCHANNELS)
+        ->DefNameShort("StPan")
+        ->DefUOM(MP_UOM::PANORAMA)
+        ->DefMinMaxStandard_Float(CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX, 0.0f)
+        ->DefStepsize(2);
+
+        DefParameter(CHANNEL_STEREO_WIDTH, cat, "Width", MAX_VCHANNELS)
+        ->DefNameShort("Width")
+        ->DefUOM(MP_UOM::PERCENT)
+        ->DefMinMaxStandard_Float(0.0f, 1.0f, 1.0f)
+        ->DefStepsize(0.02f);
 
         DefParameter(CHANNEL_SEND_LR, cat, "Send LR", MAX_VCHANNELS)
         ->DefStandard_Bool(true)
@@ -1776,6 +1892,104 @@ namespace OMC
 
     void Config::Set(MP_ID mp, float value, uint index)
     {
+        if ((mp == CHANNEL_STEREO_PAN || mp == CHANNEL_STEREO_WIDTH) && !isSyncingStereoLink)
+        {
+            mpm[(uint)mp]->Set(value, index);
+            SetParameterChanged(mp, index);
+            ApplyStereoPanWidth(index);
+            return;
+        }
+
+        if ((mp == CHANNEL_LINKED || mp == BUS_LINKED || mp == MATRIX_LINKED) && !isSyncingStereoLink)
+        {
+            float oldValue = GetFloat(mp, index);
+            if (value != oldValue)
+            {
+                mpm[(uint)mp]->Set(value, index);
+                SetParameterChanged(mp, index);
+
+                uint left = 0, right = 0;
+                GetLinkChannels(mp, index, left, right);
+
+                if (value > 0.5f)
+                {
+                    isSyncingStereoLink = true;
+                    for (uint i = 0; i < (uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE; i++)
+                    {
+                        MP_ID parId = (MP_ID)i;
+                        Mixerparameter* par = mpm[i];
+                        if (par == nullptr || parId == NONE || par->IsReadonly() || parId == CHANNEL_PANORAMA)
+                        {
+                            continue;
+                        }
+
+                        MP_CAT category = par->GetCategory();
+                        bool shouldCopy = false;
+                        if (category == MP_CAT::CHANNEL ||
+                            category == MP_CAT::CHANNEL_GATE ||
+                            category == MP_CAT::CHANNEL_EQ ||
+                            category == MP_CAT::CHANNEL_DYNAMICS ||
+                            category == MP_CAT::CHANNEL_SENDS)
+                        {
+                            shouldCopy = true;
+                        }
+                        else if (parId == ROUTING_DSP_INPUT ||
+                                 parId == ROUTING_DSP_INPUT_TAPPOINT ||
+                                 parId == ROUTING_DSP_OUTPUT ||
+                                 parId == ROUTING_DSP_OUTPUT_TAPPOINT)
+                        {
+                            shouldCopy = true;
+                        }
+
+                        if (shouldCopy)
+                        {
+                            if (left < par->GetInstances() && right < par->GetInstances())
+                            {
+                                if (parId == ROUTING_DSP_INPUT || parId == ROUTING_DSP_OUTPUT)
+                                {
+                                    float val = GetFloat(parId, left);
+                                    if (val > 0) { Set(parId, val + 1, right); }
+                                    else { Set(parId, val, right); }
+                                }
+                                else if (par->GetType() == MP_VALUE_TYPE::STRING)
+                                {
+                                    Set(parId, GetString(parId, left), right);
+                                }
+                                else
+                                {
+                                    Set(parId, GetFloat(parId, left), right);
+                                }
+                            }
+                        }
+                    }
+
+                    Set(CHANNEL_STEREO_PAN, 0.0f, left);
+                    Set(CHANNEL_STEREO_PAN, 0.0f, right);
+                    Set(CHANNEL_STEREO_WIDTH, 1.0f, left);
+                    Set(CHANNEL_STEREO_WIDTH, 1.0f, right);
+                    Set(CHANNEL_VOLUME, CHANNEL_VOLUME_MIN, left);
+                    Set(CHANNEL_VOLUME, CHANNEL_VOLUME_MIN, right);
+                    Set(CHANNEL_PANORAMA, 0.0f, left);
+                    Set(CHANNEL_PANORAMA, 0.0f, right);
+                    isSyncingStereoLink = false;
+                }
+                else
+                {
+                    isSyncingStereoLink = true;
+                    Set(CHANNEL_STEREO_PAN, 0.0f, left);
+                    Set(CHANNEL_STEREO_PAN, 0.0f, right);
+                    Set(CHANNEL_STEREO_WIDTH, 1.0f, left);
+                    Set(CHANNEL_STEREO_WIDTH, 1.0f, right);
+                    Set(CHANNEL_VOLUME, CHANNEL_VOLUME_MIN, left);
+                    Set(CHANNEL_VOLUME, CHANNEL_VOLUME_MIN, right);
+                    Set(CHANNEL_PANORAMA, 0.0f, left);
+                    Set(CHANNEL_PANORAMA, 0.0f, right);
+                    isSyncingStereoLink = false;
+                }
+                return;
+            }
+        }
+
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
         {
             // Send Parameter to Server via Callback
@@ -1871,10 +2085,57 @@ namespace OMC
 
             helper->Log(message.c_str());
         }
+
+        // Preserve the branch's linked-channel mirroring in the new Config class.
+        if (!isSyncingStereoLink)
+        {
+            uint peerIndex = 0;
+            if (GetPeerVChannel(index, peerIndex))
+            {
+                isSyncingStereoLink = true;
+                Mixerparameter* parameter = GetParameter(mp);
+                if (parameter != nullptr && mp != NONE)
+                {
+                    MP_CAT category = parameter->GetCategory();
+                    bool shouldSync = category == MP_CAT::CHANNEL ||
+                        category == MP_CAT::CHANNEL_GATE ||
+                        category == MP_CAT::CHANNEL_EQ ||
+                        category == MP_CAT::CHANNEL_DYNAMICS ||
+                        category == MP_CAT::CHANNEL_SENDS ||
+                        mp == ROUTING_DSP_INPUT || mp == ROUTING_DSP_INPUT_TAPPOINT ||
+                        mp == ROUTING_DSP_OUTPUT || mp == ROUTING_DSP_OUTPUT_TAPPOINT;
+
+                    if (shouldSync && mp != CHANNEL_PANORAMA &&
+                        index < parameter->GetInstances() && peerIndex < parameter->GetInstances())
+                    {
+                        if (mp == ROUTING_DSP_INPUT || mp == ROUTING_DSP_OUTPUT)
+                        {
+                            float val = GetFloat(mp, index);
+                            Set(mp, val > 0 ? val + (index % 2 == 0 ? 1.0f : -1.0f) : val, peerIndex);
+                        }
+                        else if (parameter->GetType() == MP_VALUE_TYPE::STRING)
+                        {
+                            Set(mp, GetString(mp, index), peerIndex);
+                        }
+                        else
+                        {
+                            Set(mp, GetFloat(mp, index), peerIndex);
+                        }
+                    }
+                }
+                isSyncingStereoLink = false;
+            }
+        }
     }
 
     void Config::Change(MP_ID mp, int amount, uint index)
     {
+        if (mp == CHANNEL_PANORAMA && IsStereoLinkedMainRouted(index))
+        {
+            Change(CHANNEL_STEREO_PAN, amount, index);
+            return;
+        }
+
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
         {
             // Send Parameter to Server via Callback
@@ -1888,11 +2149,21 @@ namespace OMC
             // Process Parameter localy
             mpm[(uint)mp]->Change(amount, index);
             SetParameterChanged(mp, index);
+            if (mp == CHANNEL_STEREO_PAN || mp == CHANNEL_STEREO_WIDTH)
+            {
+                ApplyStereoPanWidth(index);
+            }
         }
     }
 
     void Config::Toggle(MP_ID mp, uint index)
     {
+        if (mp == CHANNEL_LINKED || mp == BUS_LINKED || mp == MATRIX_LINKED)
+        {
+            Set(mp, GetBool(mp, index) ? 0.0f : 1.0f, index);
+            return;
+        }
+
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
         {
             // Send Parameter to Server via Callback
@@ -1917,6 +2188,12 @@ namespace OMC
 
     void Config::Reset(MP_ID mp, uint index)
     {
+        if (mp == CHANNEL_PANORAMA && IsStereoLinkedMainRouted(index))
+        {
+            Reset(CHANNEL_STEREO_PAN, index);
+            return;
+        }
+
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
         {
             // Send Parameter to Server via Callback
@@ -1930,6 +2207,10 @@ namespace OMC
             // Process Parameter localy
             mpm[(uint)mp]->Reset(index);
             SetParameterChanged(mp, index);
+            if (mp == CHANNEL_STEREO_PAN || mp == CHANNEL_STEREO_WIDTH)
+            {
+                ApplyStereoPanWidth(index);
+            }
         }
     }
 

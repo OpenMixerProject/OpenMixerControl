@@ -47,8 +47,19 @@ void Surface::Init(SurfaceCallback callback, void* arg)
     Reset();
 
     InitBanks();
+	UpdateFaderBanks();
 	LoadDefaultSurfaceBinding();
 }
+
+#ifdef TARGET_PC_SDL2
+void Surface::InitSimulator()
+{
+    if (!config->IsModelAnyWing())
+    {
+        static_cast<SurfaceControllerXM32*>(surfaceController)->InitSimulator();
+    }
+}
+#endif
 
 void Surface::Reset()
 {
@@ -96,6 +107,99 @@ void Surface::Tick100ms()
 void Surface::ProcessUartDataSurface()
 {
     surfaceController->ProcessUartData();
+}
+
+void Surface::UpdateFaderBanks()
+{
+    if (!config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+    {
+        return;
+    }
+
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH1_8], X32_VCHANNEL_BLOCK::NORMAL, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH9_16], X32_VCHANNEL_BLOCK::NORMAL, 8);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH17_24], X32_VCHANNEL_BLOCK::NORMAL, 16);
+    PopulateBankWithActive(banks[(uint)OMCBankId::CH25_32], X32_VCHANNEL_BLOCK::NORMAL, 24);
+    PopulateBankWithActive(banks[(uint)OMCBankId::AUX_USB], X32_VCHANNEL_BLOCK::AUX, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::FX_RET], X32_VCHANNEL_BLOCK::FXRET, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::BUS1_8], X32_VCHANNEL_BLOCK::BUS, 0);
+    PopulateBankWithActive(banks[(uint)OMCBankId::BUS9_16], X32_VCHANNEL_BLOCK::BUS, 8);
+
+    vector<uint> activeMatrix = GetActiveChannels(X32_VCHANNEL_BLOCK::MATRIX);
+    X32FaderBank* matrixBank = banks[(uint)OMCBankId::MATRIX_MAIN];
+    for (uint i = 0; i < 8; i++)
+    {
+        if (i < activeMatrix.size())
+        {
+            SetChannelstripBinding(matrixBank, i, activeMatrix[i]);
+        }
+        else
+        {
+            uint extraIdx = i - activeMatrix.size();
+            if (extraIdx == 0)
+            {
+                SetChannelstripBinding(matrixBank, i, 70);
+            }
+            else if (extraIdx == 1)
+            {
+                SetChannelstripBinding(matrixBank, i, 71);
+            }
+            else
+            {
+                matrixBank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+                matrixBank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            }
+        }
+    }
+}
+
+vector<uint> Surface::GetActiveChannels(X32_VCHANNEL_BLOCK blockType)
+{
+    vector<uint> list;
+    uint start = 0;
+    uint size = 0;
+    if (blockType == X32_VCHANNEL_BLOCK::NORMAL) { start = 0; size = 32; }
+    else if (blockType == X32_VCHANNEL_BLOCK::AUX) { start = 32; size = 8; }
+    else if (blockType == X32_VCHANNEL_BLOCK::FXRET) { start = 40; size = 8; }
+    else if (blockType == X32_VCHANNEL_BLOCK::BUS) { start = 48; size = 16; }
+    else if (blockType == X32_VCHANNEL_BLOCK::MATRIX) { start = 64; size = 6; }
+    else { return list; }
+
+    for (uint i = 0; i < size; i++)
+    {
+        uint chanIdx = start + i;
+        if (!config->IsRightChannelOfLinkedPair(chanIdx))
+        {
+            list.push_back(chanIdx);
+        }
+    }
+    return list;
+}
+
+void Surface::PopulateBankWithActive(X32FaderBank* bank, X32_VCHANNEL_BLOCK blockType, uint activeOffset)
+{
+    vector<uint> active = GetActiveChannels(blockType);
+    for (uint i = 0; i < 8; i++)
+    {
+        uint activeIdx = activeOffset + i;
+        if (activeIdx < active.size())
+        {
+            SetChannelstripBinding(bank, i, active[activeIdx]);
+        }
+        else
+        {
+            bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+            bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::NONE, MP_ID::NONE, 0);
+        }
+    }
 }
 
 

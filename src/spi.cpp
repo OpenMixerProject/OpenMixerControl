@@ -26,8 +26,10 @@
 
 #include <string.h>
 #include <sys/stat.h>
+#ifndef TARGET_PC_SDL2
 #include <linux/spi/spidev.h>
 #include <linux/gpio.h>
+#endif
 #include <fcntl.h>
 
 #include "defines.h"
@@ -35,6 +37,7 @@
 namespace OMC
 {
 
+#ifndef TARGET_PC_SDL2
 SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
 
 // configures a Xilinx Spartan 3A via SPI
@@ -924,7 +927,7 @@ bool SPI::OpenConnectionDsps() {
         }
         if (spiDspHandle[i] < 0) {
             connected = false;
-            helper->Error("Error: Could not open SPI-device (DSPs)\n");            
+            helper->Error("Error: Could not open SPI-device (DSPs)\n");
             return false;
         }
 
@@ -1289,5 +1292,28 @@ SpiEvent* SPI::GetNextEvent(){
     eventBuffer.pop_back();
     return event;
 }
+#else
+SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {
+    connected = false;
+}
+int SPI::UploadBitstreamFpgaXilinx() { return 0; }
+int SPI::UploadBitstreamFpgaLattice() { return 0; }
+int SPI::UploadBitstreamDsps(bool useCli) { return 0; }
+bool SPI::OpenConnectionFpga() { return false; }
+bool SPI::CloseConnectionFpga() { return true; }
+bool SPI::OpenConnectionDsps() { return false; }
+bool SPI::CloseConnectionDsps() { return true; }
+bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) { return false; }
+void SPI::QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]) {}
+void SPI::ProcessDspTxQueue(uint8_t dsp) {}
+uint32_t SPI::GetDspTxQueueLength(uint8_t dsp) { return 0; }
+bool SPI::SendDspData(uint8_t dsp, sSpiTxBufferElement* buffer) { return false; }
+void SPI::UpdateNumberOfExpectedReadBytes(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index) {}
+bool SPI::ReadDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index) { return false; }
+void SPI::PushValuesToRxBuffer(uint8_t dsp, uint32_t valueCount, uint32_t values[]) {}
+void SPI::ProcessRxData(uint8_t dsp) {}
+bool SPI::HasNextEvent(void) { return false; }
+SpiEvent* SPI::GetNextEvent(void) { return nullptr; }
+#endif
 
 }

@@ -33,6 +33,7 @@ namespace OMC
 
     void Artnet::Init()
     {
+#ifndef TARGET_PC_SDL2
         node = artnet_new("0.0.0.0", false); // preferred IP (unsupported for now), verbose
         artnet_set_short_name(node, "OpenX32"); // ShortName
         artnet_set_long_name(node, "OpenX32 ArtNet Node"); // LongName
@@ -56,11 +57,13 @@ namespace OMC
         {
             helper->DEBUG_DMX(DEBUGLEVEL_NORMAL, "ArtNet Node startet");
         }
+#endif
     }
 
     // this function is called every 50ms and calculates the DMX values to be sent to ArtNet, based on the current channel values and the fade times
     void Artnet::Tick()
     {
+#ifndef TARGET_PC_SDL2
         if (config->GetBool(MP_ID::DMX_ARTNET_ENABLE))
         {
             for (uint16_t i = 0; i < MAX_ARTNET_CHANNELS; i++)
@@ -87,6 +90,7 @@ namespace OMC
             // read incoming data and answer to ArtPollRequest with an ArtPollReply
             artnet_read(node, 0);
         }
+#endif
     }
 
     void Artnet::Sync()

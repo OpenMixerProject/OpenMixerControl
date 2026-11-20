@@ -26,6 +26,7 @@
 #include "osc-client.h"
 #include "../lib_ext/small-osc/small-osc.h"
 #include "mixerparameter.h"
+#include <sys/ioctl.h>
 
 namespace OMC
 {
@@ -54,7 +55,7 @@ namespace OMC
         MyAddr.sin_addr.s_addr = INADDR_ANY;
         MyAddr.sin_port = htons(10033);
         
-        if (bind(UdpHandle, (const struct sockaddr *)&MyAddr, sizeof(MyAddr)) < 0)
+        if (::bind(UdpHandle, (const struct sockaddr *)&MyAddr, sizeof(MyAddr)) < 0)
         {
             helper->DEBUG_OSC(DEBUGLEVEL_NORMAL, "Error on binding UDP-socket!");
             close(UdpHandle);

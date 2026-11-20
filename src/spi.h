@@ -1,8 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-
-
 #include <list>
 
 #include "base.h"
