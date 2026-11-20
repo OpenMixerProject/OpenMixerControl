@@ -445,7 +445,8 @@ namespace OMC
         DefParameter(DELAY_DSP_INPUT, cat, "Delay", MAX_FPGA_TO_DSP1_CHANNELS) // 40 routable DSP-input channels from FPGA
         ->DefUOM(MP_UOM::MS)
         ->DefStepsize(0.33334f)
-        ->DefMinMaxStandard_Float(0, 500, 0, 1); // 0...500ms, Default: 0ms
+        ->DefMinMaxStandard_Float(0, 500, 0, 1) // 0...500ms, Default: 0ms
+        ->DefOSC("ch_delay");
 
         DefParameter(DELAY_DSP_OUTPUT, cat, "Delay", MAX_DSP1_TO_FPGA_CHANNELS) // 40 routable DSP-output-channels with delay
         ->DefUOM(MP_UOM::MS)
@@ -646,7 +647,8 @@ namespace OMC
         DefParameter(CHANNEL_PANORAMA, cat, "Pan/Bal", MAX_VCHANNELS)
         ->DefUOM(MP_UOM::PANORAMA)
         ->DefMinMaxStandard_Float(CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX, 0.0f)
-        ->DefStepsize(2);
+        ->DefStepsize(2)
+        ->DefOSC("ch_pan");
 
         DefParameter(CHANNEL_SEND_LR, cat, "Send LR", MAX_VCHANNELS)
         ->DefStandard_Bool(true);
@@ -740,14 +742,16 @@ namespace OMC
 
         DefParameter(CHANNEL_LOWCUT_ENABLE, cat, "Lowcut Enable", MAX_VCHANNELS)
         ->DefNameShort("LC En")
-        ->DefStandard_Bool(false);
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_locut");
 
         DefParameter(CHANNEL_LOWCUT_FREQ, cat, "Lowcut", MAX_VCHANNELS)
         ->DefNameShort("LC Fr")
         ->DefUOM(MP_UOM::HZ)
         ->DefStepmode(1) // frequency mode
         ->DefStepsize(1)
-        ->DefMinMaxStandard_Float(20.0f, 400.0f, 0.0f);
+        ->DefMinMaxStandard_Float(20.0f, 400.0f, 0.0f)
+        ->DefOSC("ch_locut_freq");
 
         DefParameter(CHANNEL_EQ_ENABLE, cat, "EQ Enable", MAX_VCHANNELS)
         ->DefNameShort("EQ En")
