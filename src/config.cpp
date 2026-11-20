@@ -761,7 +761,8 @@ namespace OMC
 
         DefParameter(CHANNEL_EQ_ENABLE, cat, "EQ Enable", MAX_VCHANNELS)
         ->DefNameShort("EQ En")
-        ->DefStandard_Bool(false);
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_eq");
 
         uint channel_eq_count = 4;
         float channel_eq_freq[4] = {125.0f, 500.0f, 2000.0f, 10000.0f};
@@ -772,23 +773,27 @@ namespace OMC
             ->DefUOM(MP_UOM::EQ_TYPE)
             ->DefHideEncoderReset()
             ->DefMinMaxStandard_Uint(0, 7, 1)
-            ->DefCycleMode(1, 1);
+            ->DefCycleMode(1, 1)
+            ->DefOSC(String("ch_eq_") + String(i + 1) + String("t"));
 
             DefParameter(MpCalcId(CHANNEL_EQ_FREQ1, i), cat, String("EQ Freg[") + String(i) + String("]"), MAX_VCHANNELS)
             ->DefNameShort(String("EQFr") + String(i))
             ->DefUOM(MP_UOM::HZ)
             ->DefStepmode(1) // frequency mode
-            ->DefMinMaxStandard_Float(20.0f, 20000.0f, channel_eq_freq[i]);
+            ->DefMinMaxStandard_Float(20.0f, 20000.0f, channel_eq_freq[i])
+            ->DefOSC(String("ch_eq_") + String(i + 1) + String("f"));
 
             DefParameter(MpCalcId(CHANNEL_EQ_GAIN1, i), cat, String("EQ Gain[") + String(i) + String("]"), MAX_VCHANNELS)
             ->DefNameShort(String("EQGa") + String(i))
             ->DefUOM(MP_UOM::DB)
-            ->DefMinMaxStandard_Float(-15.0f, 15.0f, 0.0f, 1);
+            ->DefMinMaxStandard_Float(-15.0f, 15.0f, 0.0f, 1)
+            ->DefOSC(String("ch_eq_") + String(i + 1) + String("g"));
     
             DefParameter(MpCalcId(CHANNEL_EQ_Q1, i), cat, String("EQ Q[") + String(i) + String("]"), MAX_VCHANNELS)
             ->DefNameShort(String("EQ Q") + String(i))
             ->DefStepsize(0.1f)
-            ->DefMinMaxStandard_Float(0.3f, 10.0f, 2.0f, 1);
+            ->DefMinMaxStandard_Float(0.3f, 10.0f, 2.0f, 1)
+            ->DefOSC(String("ch_eq_") + String(i + 1) + String("q"));
         }
 
         // ###########
