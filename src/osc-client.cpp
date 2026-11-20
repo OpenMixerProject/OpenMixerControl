@@ -194,8 +194,23 @@ namespace OMC
     {
         Mixerparameter* parameter = config->GetParameter(parameterId);
         
-        int len = tosc_writeMessage(TxMessage, 450, (String("/set/") + parameter->GetOSC() + "/" + String(index + 1)).c_str(), "f", floatValue);
-        SendUdpPacket(TxMessage, len);
+        String path = String("/set/") + parameter->GetOSC() + "/" + String(index + 1);
+        int len;
+        if (parameter->GetType() == MP_VALUE_TYPE::STRING)
+        {
+            // SmallOSC's string copy helper needs twice the string length as
+            // headroom, even though only one copy is sent on the wire.
+            if (strValue.length() + path.length() + 16 > 65507) { return; }
+            std::vector<char> packet(2 * strValue.length() + path.length() + 32);
+            len = tosc_writeMessage(packet.data(), packet.size(), path.c_str(), "s", strValue.c_str());
+            if (len > 0) { SendUdpPacket(packet.data(), len); }
+            return;
+        }
+        else
+        {
+            len = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "f", floatValue);
+        }
+        if (len > 0) { SendUdpPacket(TxMessage, len); }
     }
 
     void OscClient::UdpSendToServerChange(MP_ID parameterId, int amount, uint index)
