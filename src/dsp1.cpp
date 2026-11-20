@@ -979,6 +979,7 @@ void DSP1::DSP2_SendFxParameter(int slotIdx)
 }
 
 void DSP1::DSP2_SetOscillator(uint8_t oscIndex, float frequency, float volumedB) {
+    if (oscIndex >= 2) { return; }
     dsp2Oscillator[oscIndex].frequency = frequency;
     dsp2Oscillator[oscIndex].volume = pow(10.0f, volumedB / 20.0f);
     DSP2_SendOscillatorValues();
