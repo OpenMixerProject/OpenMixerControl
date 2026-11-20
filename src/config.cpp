@@ -710,38 +710,45 @@ namespace OMC
 
         DefParameter(CHANNEL_COMPRESSOR_ENABLE, cat, "Dynamics Enable", MAX_VCHANNELS)
         ->DefNameShort("DyEn")
-        ->DefStandard_Bool(false);
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_dyn");
 
         DefParameter(CHANNEL_DYNAMICS_TRESHOLD, cat, "Threshold", MAX_VCHANNELS)
         ->DefNameShort("DyThr")
         ->DefUOM(MP_UOM::DB)
-        ->DefMinMaxStandard_Float(DYNAMICS_THRESHOLD_MIN, DYNAMICS_THRESHOLD_MAX, DYNAMICS_THRESHOLD_MAX, 0);
+        ->DefMinMaxStandard_Float(DYNAMICS_THRESHOLD_MIN, DYNAMICS_THRESHOLD_MAX, DYNAMICS_THRESHOLD_MAX, 0)
+        ->DefOSC("ch_dyn_thr");
         
         DefParameter(CHANNEL_DYNAMICS_RATIO, cat, "Ratio", MAX_VCHANNELS)
         ->DefNameShort("DyRat")
         ->DefUOM(MP_UOM::NONE)
         ->DefStepmode(1)
-        ->DefMinMaxStandard_Float(DYNAMICS_RATIO_MIN, DYNAMICS_RATIO_MAX, 3, 1);
+        ->DefMinMaxStandard_Float(DYNAMICS_RATIO_MIN, DYNAMICS_RATIO_MAX, 3, 1)
+        ->DefOSC("ch_dyn_ratio");
         
         DefParameter(CHANNEL_DYNAMICS_MAKEUP, cat, "Makeup", MAX_VCHANNELS)
         ->DefNameShort("DyMUp")
         ->DefUOM(MP_UOM::DB)
-        ->DefMinMaxStandard_Float(DYNAMICS_MAKEUP_MIN, DYNAMICS_MAKEUP_MAX, DYNAMICS_MAKEUP_MIN, 1);
+        ->DefMinMaxStandard_Float(DYNAMICS_MAKEUP_MIN, DYNAMICS_MAKEUP_MAX, DYNAMICS_MAKEUP_MIN, 1)
+        ->DefOSC("ch_dyn_gain");
         
         DefParameter(CHANNEL_DYNAMICS_ATTACK, cat, "Attack", MAX_VCHANNELS)
         ->DefNameShort("DyAtt")
         ->DefUOM(MP_UOM::MS)
-        ->DefMinMaxStandard_Float(DYNAMICS_ATTACK_MIN, DYNAMICS_ATTACK_MAX, 10.0f, 0);
+        ->DefMinMaxStandard_Float(DYNAMICS_ATTACK_MIN, DYNAMICS_ATTACK_MAX, 10.0f, 0)
+        ->DefOSC("ch_dyn_attack");
         
         DefParameter(CHANNEL_DYNAMICS_HOLD, cat, "Hold", MAX_VCHANNELS)
         ->DefNameShort("DyHol")
         ->DefUOM(MP_UOM::MS)
-        ->DefMinMaxStandard_Float(DYNAMICS_HOLD_MIN, DYNAMICS_HOLD_MAX, 10.0f, 0);
+        ->DefMinMaxStandard_Float(DYNAMICS_HOLD_MIN, DYNAMICS_HOLD_MAX, 10.0f, 0)
+        ->DefOSC("ch_dyn_hold");
         
         DefParameter(CHANNEL_DYNAMICS_RELEASE, cat, "Release", MAX_VCHANNELS)
         ->DefNameShort("DyRel")
         ->DefUOM(MP_UOM::MS)
-        ->DefMinMaxStandard_Float(DYNAMICS_RELEASE_MIN, DYNAMICS_RELEASE_MAX, 150.0f, 0);
+        ->DefMinMaxStandard_Float(DYNAMICS_RELEASE_MIN, DYNAMICS_RELEASE_MAX, 150.0f, 0)
+        ->DefOSC("ch_dyn_release");
 
         // EQ
         cat = MP_CAT::CHANNEL_EQ;
