@@ -26,16 +26,26 @@
 
 #include <string.h>
 #include <sys/stat.h>
+#include <linux/ioctl.h>
 #include <linux/spi/spidev.h>
 #include <linux/gpio.h>
 #include <fcntl.h>
 
 #include "defines.h"
 
+#define SPIBONE_DEVICE_PATH "/dev/spibone0"
+#define SPIBONE_IOC_MAGIC   0xB5
+struct spibone_wb_xfer {
+    uint32_t addr;
+    uint32_t val;
+};
+#define SPIBONE_IOC_PEEK    _IOWR(SPIBONE_IOC_MAGIC, 1, struct spibone_wb_xfer)
+#define SPIBONE_IOC_POKE    _IOW(SPIBONE_IOC_MAGIC,  2, struct spibone_wb_xfer)
+
 namespace OMC
 {
 
-SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
+SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar), spiFpgaHandle(-1), spiboneHandle(-1) {}
 
 // configures a Xilinx Spartan 3A via SPI
 // accepts path to bitstream-file
@@ -890,6 +900,11 @@ bool SPI::OpenConnectionFpga()
     }
     else
     {
+        // Prefer OpenAudioFPGA's kernel SPIBone Wishbone bus driver when present
+        spiboneHandle = open(SPIBONE_DEVICE_PATH, O_RDWR);
+        if (spiboneHandle >= 0) {
+            return true;
+        }
         spiFpgaHandle = open(SPI_DEVICE_FPGA, O_RDWR);
     }
 
@@ -905,8 +920,13 @@ bool SPI::OpenConnectionFpga()
 }
 
 bool SPI::CloseConnectionFpga() {
+    if (spiboneHandle >= 0) {
+        close(spiboneHandle);
+        spiboneHandle = -1;
+    }
     if (spiFpgaHandle >= 0) {
         close(spiFpgaHandle);
+        spiFpgaHandle = -1;
     }
     return true;
 }
@@ -958,7 +978,7 @@ bool SPI::CloseConnectionDsps() {
 }
 
 bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) {
-//    if (!connected) return false; // this line prevents SPI-communication at the moment
+    if (spiFpgaHandle < 0) return false;
 
     struct spi_ioc_transfer tr = {0};
 
@@ -973,9 +993,23 @@ bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) {
 
     setFpgaChipSelectPin(true); // assert ChipSelect
     int ret = ioctl(spiFpgaHandle, SPI_IOC_MESSAGE(1), &tr); // send via SPI
-	setFpgaChipSelectPin(false); // deassert ChipSelect
+    setFpgaChipSelectPin(false); // deassert ChipSelect
 
     return (ret >= 0);
+}
+
+bool SPI::FpgaWbWrite32(uint32_t addr, uint32_t value) {
+    if (spiboneHandle < 0) return false;
+    struct spibone_wb_xfer xfer = { addr, value };
+    return ioctl(spiboneHandle, SPIBONE_IOC_POKE, &xfer) >= 0;
+}
+
+bool SPI::FpgaWbRead32(uint32_t addr, uint32_t* value) {
+    if (spiboneHandle < 0 || !value) return false;
+    struct spibone_wb_xfer xfer = { addr, 0 };
+    if (ioctl(spiboneHandle, SPIBONE_IOC_PEEK, &xfer) < 0) return false;
+    *value = xfer.val;
+    return true;
 }
 
 void SPI::QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]) {

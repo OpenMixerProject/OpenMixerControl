@@ -30,6 +30,18 @@ namespace OMC
 Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 	uart = new Uart(basepar);
 	spi = new SPI(basepar);
+	fpgaWbRegsAvailable = false;
+	clkCtrlAvailable = false;
+	aes50SrcAvailable = false;
+	aes50PortCount = 1;
+	activeClkSrc = FPGA_CLK_INTERNAL;
+	pllUnlockTicks = 0;
+	memset(aes50WbRxLen, 0, sizeof(aes50WbRxLen));
+	for (uint8_t p = 0; p < FPGA_MAX_AES50_PORTS; p++) {
+		aes50PortCtrl[p] = 0x00000002u; // Master ("01" << 1), 48 kHz
+	}
+	memset(AES50PhantomPowerState, 0, sizeof(AES50PhantomPowerState));
+	memset(AES50HeadampGains, 0, sizeof(AES50HeadampGains));
 
 	if (!(state->bodyless || config->IsModelAnyWing()))
 	{
@@ -39,11 +51,35 @@ Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 	        spi->UploadBitstreamFpgaXilinx();
 	    }
 	    spi->OpenConnectionFpga();
+
+	    uint32_t info = 0;
+	    if (spi->HasSpibone() && spi->FpgaWbRead32(FPGA_WB_AES50_BASE + FPGA_AES50_OFF_INFO, &info)
+	        && ((info >> 16) == FPGA_AES50_MAGIC)) {
+	        fpgaWbRegsAvailable = true;
+	        aes50PortCount = (uint8_t)((info >> 8) & 0xFFu);
+	        if (aes50PortCount > FPGA_MAX_AES50_PORTS) aes50PortCount = FPGA_MAX_AES50_PORTS;
+	        aes50SrcAvailable = (info & 1u) != 0;
+	        for (uint8_t p = 0; p < aes50PortCount; p++) {
+	            spi->FpgaWbRead32(FPGA_WB_AES50_BASE + p * FPGA_AES50_PORT_STRIDE + FPGA_AES50_OFF_CTRL, &aes50PortCtrl[p]);
+	        }
+
+	        uint32_t clkMagic = 0;
+	        if (spi->FpgaWbRead32(FPGA_CLK_REG_MAGIC, &clkMagic) && clkMagic == FPGA_CLK_MAGIC_CS2K) {
+	            clkCtrlAvailable = true;
+	            uint32_t clkCtrl = 0;
+	            if (spi->FpgaWbRead32(FPGA_CLK_REG_CTRL, &clkCtrl)) {
+	                activeClkSrc = (uint8_t)(clkCtrl & 0x7u);
+	            }
+	        }
+	        helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL,
+	            "OpenAudioFPGA modular Wishbone bridge detected (AES50 ports=%u, SRC=%u, CS2K=%u)",
+	            aes50PortCount, aes50SrcAvailable ? 1u : 0u, clkCtrlAvailable ? 1u : 0u);
+	    }
 	}
 
 	// configData -> at the moment all bits are unused
 	configData = 0b00000000;
-	if (!config->IsModelAnyWing())
+	if (!config->IsModelAnyWing() && !fpgaWbRegsAvailable)
 	{
 		SendConfig();
 	}
@@ -54,32 +90,35 @@ Fpga::Fpga(X32BaseParameter* basepar): X32Base(basepar) {
 
 void Fpga::Init()
 {
-	const uint speed = 115200;
-	String serial;
-	
-	if (state->bodyless) {
-		serial = "/tmp/ttyLocalFpga";
-	}
-	else if (state->raspi)
+	if (!fpgaWbRegsAvailable)
 	{
-		//serial = "/dev/ttymxc3";
-		return;
-	}
-	else
-	{
-		if (config->IsModelAnyXM32())
-		{
-			serial = "/dev/ttymxc3";
+		const uint speed = 115200;
+		String serial;
+
+		if (state->bodyless) {
+			serial = "/tmp/ttyLocalFpga";
 		}
-		else if (config->IsModelAnyWing())
+		else if (state->raspi)
 		{
-			// TODO
+			//serial = "/dev/ttymxc3";
 			return;
 		}
-	}
+		else
+		{
+			if (config->IsModelAnyXM32())
+			{
+				serial = "/dev/ttymxc3";
+			}
+			else if (config->IsModelAnyWing())
+			{
+				// TODO
+				return;
+			}
+		}
 
-	helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "opening %s with %d baud", serial.c_str(), speed);
-	uart->Open(serial.c_str(), speed, true);
+		helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "opening %s with %d baud", serial.c_str(), speed);
+		uart->Open(serial.c_str(), speed, true);
+	}
 
 	// Send all Routing config to FPGA
 	SendRoutingToFpga(0);
@@ -341,10 +380,27 @@ void Fpga::SendRoutingToFpga(int channel) {
 		return;
 	}
 
+	if (spi->HasSpibone()) {
+		if ((channel >= 0) && (channel < 208)) {
+			uint32_t src = (uint32_t)config->GetUint(ROUTING_FPGA, channel);
+			helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "SendRoutingToFpga() %s -> %s",
+				config->GetParameter(ROUTING_FPGA)->GetFormatedValue(channel).c_str(),
+				GetOutputNameByIndex(channel+1).c_str()
+			);
+			spi->FpgaWbWrite32(FPGA_WB_ROUTING_BASE + ((uint32_t)channel * 4u), src);
+		} else {
+			for (uint32_t i = 0; i < 208; i++) {
+				uint32_t src = (uint32_t)config->GetUint(ROUTING_FPGA, i);
+				spi->FpgaWbWrite32(FPGA_WB_ROUTING_BASE + (i * 4u), src);
+			}
+		}
+		return;
+	}
+
 	uint8_t txData[2];
 	uint8_t rxData[2];
 
-	// FPGA expects data in this format:
+	// Legacy FPGA expects data in this format:
 	// 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
 	// |------- DATA ------||---- ADDR ----|
 
@@ -408,6 +464,11 @@ void Fpga::SetConfigBit(uint8_t bitNumber, bool value) {
 }
 
 void Fpga::SendConfig() {
+	if (spi->HasSpibone()) {
+		// OpenAudioFPGA CSR core_config (bank 1, offset 0x08 after info/version)
+		spi->FpgaWbWrite32(0x00000808u, (uint32_t)configData);
+		return;
+	}
 	uint8_t txData[2];
 	uint8_t rxData[2];
 	txData[0] = configData;
@@ -422,7 +483,7 @@ void Fpga::SendConfig() {
 }
 
 void Fpga::AES50SetPhantomPowerState(uint8_t aes50Port, uint8_t channel, bool phantomState) {
-	if (aes50Port > 0 || channel == 0 || channel > 48) {
+	if (aes50Port >= FPGA_MAX_AES50_PORTS || channel == 0 || channel > 48) {
 		helper->Error("AES50SetPhantomPowerState: Invalid AES50 port (%d) or channel (%d)!", aes50Port, channel);
 		return;
 	}
@@ -436,7 +497,7 @@ void Fpga::AES50SetPhantomPowerState(uint8_t aes50Port, uint8_t channel, bool ph
 
 
 void Fpga::AES50SetHeadampGain(uint8_t aes50Port, uint8_t channel, float gain) {
-	if (aes50Port > 0 || channel == 0 || channel > 48) {
+	if (aes50Port >= FPGA_MAX_AES50_PORTS || channel == 0 || channel > 48) {
 		helper->Error("AES50SetHeadampGain: Invalid AES50 port (%d) or channel (%d)", aes50Port, channel);
 		return;
 	}
@@ -454,44 +515,60 @@ void Fpga::AES50SetHeadampGain(uint8_t aes50Port, uint8_t channel, float gain) {
 }
 
 
-void Fpga::AES50Receive()
+void Fpga::AES50ProcessRxBuffer(uint8_t aes50Port, char* buf, uint readBytes)
 {
-	//bool messageHandled = false;
-	uint readBytes = uart->Rx(&fpgaRxBufferUart[0], sizeof(fpgaRxBufferUart));
-	char tmpName[16];
+	char tmpName[17];
 
 	// check the checksum of the read message
-	if ((readBytes > 2) && (readBytes >= (fpgaRxBufferUart[1] * 4)) && (AES50CalcChecksum(&fpgaRxBufferUart[0], false))) {
-		// checksum is valid -> process message
-
-		switch (fpgaRxBufferUart[0]) {
+	if ((readBytes > 2) && (readBytes >= (uint)((uint8_t)buf[1] * 4u)) && (AES50CalcChecksum(buf, false))) {
+		switch ((uint8_t)buf[0]) {
 			case 0x01:
 				// headamp-configuration-message
-
 				break;
 			case 0x05:
 				// device-type and properties-message
 				break;
 			case 0x10:
 				// device- and channelname-message
-
-				// take the name of the connected device and display it in X32CTRL
-				memcpy(&tmpName[0], &fpgaRxBufferUart[8], 16);
-				
-				// TODO: Implement with Mixerparameter
-				//lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", String(tmpName).c_str());
-
+				memcpy(&tmpName[0], &buf[8], 16);
+				tmpName[16] = '\0';
+				helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "AES50 %c device: %s", aes50Port == 0 ? 'A' : 'B', tmpName);
 				break;
 			default:
-				// unknown message
 				break;
 		}
-	}else{
-		// checksum failed
+	}
+}
+
+void Fpga::AES50Receive()
+{
+	if (fpgaWbRegsAvailable) {
+		for (uint8_t port = 0; port < aes50PortCount; port++) {
+			uint32_t rxReg = FPGA_WB_AES50_BASE + port * FPGA_AES50_PORT_STRIDE + FPGA_AES50_OFF_AUX_RX;
+			for (int iter = 0; iter < 64; iter++) {
+				uint32_t v = 0;
+				if (!spi->FpgaWbRead32(rxReg, &v) || !(v & 0x0100u)) {
+					break;
+				}
+				if (aes50WbRxLen[port] < FPGA_UART_BUFFER_SIZE) {
+					aes50WbRxBuf[port][aes50WbRxLen[port]++] = (char)(v & 0xFFu);
+				}
+				if (aes50WbRxLen[port] >= 4) {
+					uint expected = (uint)((uint8_t)aes50WbRxBuf[port][1]) * 4u;
+					if (expected < 4 || expected > FPGA_UART_BUFFER_SIZE) {
+						aes50WbRxLen[port] = 0;
+					} else if (aes50WbRxLen[port] >= expected) {
+						AES50ProcessRxBuffer(port, aes50WbRxBuf[port], expected);
+						aes50WbRxLen[port] = 0;
+					}
+				}
+			}
+		}
+		return;
 	}
 
-	// send data right back to the AES50-device
-	//AES50Send(&fpgaRxBufferUart[0], readBytes);
+	uint readBytes = uart->Rx(&fpgaRxBufferUart[0], sizeof(fpgaRxBufferUart));
+	AES50ProcessRxBuffer(0, &fpgaRxBufferUart[0], readBytes);
 }
 
 // this function is called every 100ms
@@ -500,27 +577,39 @@ void Fpga::AES50Tick() {
 		AES50Device = 65;
 	}
 
+	// PLL unlock auto-fallback: if slaved to AES50 and CS2000-CP stays unlocked >500ms, revert to Internal
+	if (clkCtrlAvailable && (activeClkSrc != FPGA_CLK_INTERNAL)) {
+		uint32_t status = 0;
+		if (spi->FpgaWbRead32(FPGA_CLK_REG_STATUS, &status)) {
+			if (status & 1u) {
+				pllUnlockTicks = 0;
+			} else if (++pllUnlockTicks >= 5) {
+				helper->Error("CS2000-CP PLL unlocked for >500ms while slaved to AES50; reverting to Internal clock");
+				pllUnlockTicks = 0;
+				SetClockSource(FPGA_CLK_INTERNAL);
+			}
+		}
+	} else {
+		pllUnlockTicks = 0;
+	}
+
+	uint8_t numPorts = fpgaWbRegsAvailable ? aes50PortCount : 1;
+
 	AES50Counter++;
 	if (AES50Counter == 10) {
 		// send device-properties every 2 seconds
-		AES50SendDeviceTypeAndProperty();
+		for (uint8_t port = 0; port < numPorts; port++) {
+			AES50SendDeviceTypeAndProperty(port);
+		}
 	}else if (AES50Counter >= 20) {
 		// send headamp-controls every 2 seconds
 		AES50Counter = 0;
 
-		//AES50SendHeadampMessage();
-
-		// flexMode: cycle through all known devices every 4 seconds
-		/*
-		AES50Device++;
-		if (AES50Device > 105) {
-			AES50Device = 65;
-		}
-		*/
+		//for (uint8_t port = 0; port < numPorts; port++) AES50SendHeadampMessage(port);
 	}
 }
 
-void Fpga::AES50SendDeviceTypeAndProperty() {
+void Fpga::AES50SendDeviceTypeAndProperty(uint8_t aes50Port) {
 	fpgaTxBufferUart[0] = 0x05;
 	fpgaTxBufferUart[1] = (16 / 4); // message-length in 32-bit words
 	fpgaTxBufferUart[2] = 0; // checksum (will be set in AES50Send-Function)
@@ -549,11 +638,11 @@ void Fpga::AES50SendDeviceTypeAndProperty() {
 	// calculate and add checksum to begin of message
 	AES50CalcChecksum(&fpgaTxBufferUart[0], true);
 
-	// send data over UART to AES50 IP-core
-	AES50Send(&fpgaTxBufferUart[0], 16);
+	// send data to AES50 IP-core (Wishbone aux or legacy UART)
+	AES50Send(aes50Port, &fpgaTxBufferUart[0], 16);
 }
 
-void Fpga::AES50SendNames() {
+void Fpga::AES50SendNames(uint8_t aes50Port) {
 	fpgaTxBufferUart[0] = 0x10;
 	fpgaTxBufferUart[1] = (408 / 4); // message-length in 32-bit words
 	fpgaTxBufferUart[2] = 0; // checksum (will be set in AES50Send-Function)
@@ -587,15 +676,16 @@ void Fpga::AES50SendNames() {
 	// calculate and add checksum to begin of message
 	AES50CalcChecksum(&fpgaTxBufferUart[0], true);
 
-	// send data over UART to AES50 IP-core
-	AES50Send(&fpgaTxBufferUart[0], 408);
+	// send data to AES50 IP-core (Wishbone aux or legacy UART)
+	AES50Send(aes50Port, &fpgaTxBufferUart[0], 408);
 }
 
 float gainMap(float in, float inMin, float inMax, float outMin, float outMax) {
   return ((in - inMin) * (outMax - outMin) / (inMax - inMin)) + outMin;
 }
 
-void Fpga::AES50SendHeadampMessage() {
+void Fpga::AES50SendHeadampMessage(uint8_t aes50Port) {
+	if (aes50Port >= FPGA_MAX_AES50_PORTS) return;
 	fpgaTxBufferUart[0] = 0x01;
 	fpgaTxBufferUart[1] = (60 / 4); // message-length in 32-bit words
 	fpgaTxBufferUart[2] = 0; // checksum (will be set in AES50Send-Function)
@@ -608,27 +698,16 @@ void Fpga::AES50SendHeadampMessage() {
 	fpgaTxBufferUart[6] = 0; // second device in AES50-chain
 	fpgaTxBufferUart[7] = AES50Device; // first device in AES50-chain
 
-	// now insert the headamp-gains
-	// TODO: the specific value depends on the connected AES50 device as some
-	// devices have more gain-options than others
-	//
 	// An S16/SD16 has settings between -2.0dB and 45.5dB resulting in 47.5dB range
 	// with 2.5dB steps -> 47.5 / 2.5 = 19. So we have settings between
 	// 0 = -2.0dB and 19 = 45.5dB
 
 	for (int i = 0; i < 48; i++) {
-		fpgaTxBufferUart[8 + i] = (uint8_t) roundf(gainMap(AES50HeadampGains[0][i], -2.0f, 45.5f, 0, 19));
-		if (AES50PhantomPowerState[0][i]) {
+		fpgaTxBufferUart[8 + i] = (uint8_t) roundf(gainMap(AES50HeadampGains[aes50Port][i], -2.0f, 45.5f, 0, 19));
+		if (AES50PhantomPowerState[aes50Port][i]) {
 			fpgaTxBufferUart[8 + i] |= 0x80;
 		}
 	}
-
-	/*
-	// set the gains to minimum value
-	for (int i = 0; i < 48; i++) {
-		fpgaTxBufferUart[8 + i] = 0;
-	}
-	*/
 
 	// a single 32-bit word with zeros for finalizing the message
 	fpgaTxBufferUart[56] = 0;
@@ -639,11 +718,21 @@ void Fpga::AES50SendHeadampMessage() {
 	// calculate and add checksum to begin of message
 	AES50CalcChecksum(&fpgaTxBufferUart[0], true);
 
-	// send data over UART to AES50 IP-core
-	AES50Send(&fpgaTxBufferUart[0], 60);
+	// send data to AES50 IP-core (Wishbone aux or legacy UART)
+	AES50Send(aes50Port, &fpgaTxBufferUart[0], 60);
 }
 
-void Fpga::AES50Send(char* data, uint len) {
+void Fpga::AES50Send(uint8_t aes50Port, char* data, uint len) {
+	if (fpgaWbRegsAvailable) {
+		if (aes50Port >= aes50PortCount) return;
+		uint32_t txReg = FPGA_WB_AES50_BASE + aes50Port * FPGA_AES50_PORT_STRIDE + FPGA_AES50_OFF_AUX_TX;
+		for (uint i = 0; i < len; i++) {
+			spi->FpgaWbWrite32(txReg, (uint8_t)data[i]);
+		}
+		return;
+	}
+	if (aes50Port != 0) return;
+
 	MessageBase* message = new MessageBase();
 
 	message->AddRawDataArray(data, len);
@@ -659,6 +748,101 @@ void Fpga::AES50Send(char* data, uint len) {
 	uart->Tx(message);
 
 	delete(message);
+}
+
+bool Fpga::SetAes50SampleRate(uint8_t aes50Port, bool fs96) {
+	if (!fpgaWbRegsAvailable || aes50Port >= aes50PortCount) return false;
+	if (fs96 && !aes50SrcAvailable) return false;
+
+	uint32_t ctrlAddr = FPGA_WB_AES50_BASE + aes50Port * FPGA_AES50_PORT_STRIDE + FPGA_AES50_OFF_CTRL;
+	uint32_t nextCtrl = fs96 ? (aes50PortCtrl[aes50Port] | 0x1u) : (aes50PortCtrl[aes50Port] & ~0x1u);
+	// Assert port soft-reset (bit 8), update fs96 (bit 0), then release soft-reset
+	if (!spi->FpgaWbWrite32(ctrlAddr, nextCtrl | 0x100u)) return false;
+	if (!spi->FpgaWbWrite32(ctrlAddr, nextCtrl & ~0x100u)) return false;
+	aes50PortCtrl[aes50Port] = nextCtrl & ~0x100u;
+
+	if (clkCtrlAvailable && activeClkSrc == (uint8_t)(aes50Port + 1)) {
+		return Cs2000WriteRatio(fs96 ? CS2K_RATIO_AES50_96K : CS2K_RATIO_AES50_48K);
+	}
+	return true;
+}
+
+bool Fpga::Cs2000WriteReg(uint8_t reg, uint8_t val) {
+	if (!clkCtrlAvailable) return false;
+	bool ready = false;
+	for (int tries = 0; tries < 200; tries++) {
+		uint32_t st = 0;
+		if (!spi->FpgaWbRead32(FPGA_CLK_REG_CS2K_STAT, &st)) return false;
+		if (!(st & 0x80000000u)) {
+			ready = true;
+			break;
+		}
+	}
+	if (!ready) return false;
+	if (!spi->FpgaWbWrite32(FPGA_CLK_REG_CS2K_CMD, ((uint32_t)reg << 8) | val)) return false;
+	if (!spi->FpgaWbWrite32(FPGA_CLK_REG_CS2K_GO, 1u)) return false;
+	for (int tries = 0; tries < 200; tries++) {
+		uint32_t st = 0;
+		if (!spi->FpgaWbRead32(FPGA_CLK_REG_CS2K_STAT, &st)) return false;
+		if (!(st & 0x80000000u)) return true;
+	}
+	return false;
+}
+
+bool Fpga::Cs2000WriteRatio(uint32_t ratio12_20) {
+	if (!Cs2000WriteReg(0x05, 0x09)) return false; // Freeze=1
+	if (!Cs2000WriteReg(0x06, (uint8_t)((ratio12_20 >> 24) & 0xFFu))) return false;
+	if (!Cs2000WriteReg(0x07, (uint8_t)((ratio12_20 >> 16) & 0xFFu))) return false;
+	if (!Cs2000WriteReg(0x08, (uint8_t)((ratio12_20 >>  8) & 0xFFu))) return false;
+	if (!Cs2000WriteReg(0x09, (uint8_t)(ratio12_20 & 0xFFu))) return false;
+	return Cs2000WriteReg(0x05, 0x01); // Freeze=0 (commit)
+}
+
+bool Fpga::SetClockSource(FpgaClockSource src) {
+	if (!fpgaWbRegsAvailable || !clkCtrlAvailable) return false;
+	if (src != FPGA_CLK_INTERNAL && (uint8_t)src > aes50PortCount) return false;
+
+	// Update sys_mode on each AES50 port (with soft_rst pulse on any port whose mode changed)
+	for (uint8_t p = 0; p < aes50PortCount; p++) {
+		uint32_t desiredMode = ((uint8_t)src == (uint8_t)(p + 1)) ? 0x0u : 0x1u; // "00"=Slave, "01"=Master
+		uint32_t nextCtrl = (aes50PortCtrl[p] & ~0x6u) | ((desiredMode & 0x3u) << 1);
+		if (nextCtrl != aes50PortCtrl[p]) {
+			uint32_t ctrlAddr = FPGA_WB_AES50_BASE + p * FPGA_AES50_PORT_STRIDE + FPGA_AES50_OFF_CTRL;
+			if (!spi->FpgaWbWrite32(ctrlAddr, nextCtrl | 0x100u)) return false;
+			if (!spi->FpgaWbWrite32(ctrlAddr, nextCtrl & ~0x100u)) return false;
+			aes50PortCtrl[p] = nextCtrl & ~0x100u;
+		}
+	}
+
+	if (!spi->FpgaWbWrite32(FPGA_CLK_REG_CTRL, (uint32_t)src)) return false;
+	activeClkSrc = (uint8_t)src;
+	pllUnlockTicks = 0;
+
+	uint32_t ratio = CS2K_RATIO_INT_16M;
+	if (src != FPGA_CLK_INTERNAL) {
+		uint8_t portIdx = (uint8_t)src - 1;
+		ratio = (aes50PortCtrl[portIdx] & 0x1u) ? CS2K_RATIO_AES50_96K : CS2K_RATIO_AES50_48K;
+	}
+	return Cs2000WriteRatio(ratio);
+}
+
+bool Fpga::GetAes50Status(uint8_t aes50Port, Aes50PortStatus* outStatus) {
+	if (!fpgaWbRegsAvailable || !outStatus || aes50Port >= aes50PortCount) return false;
+	uint32_t base = FPGA_WB_AES50_BASE + aes50Port * FPGA_AES50_PORT_STRIDE;
+	uint32_t st = 0, drops = 0, clkSt = 1;
+	if (!spi->FpgaWbRead32(base + FPGA_AES50_OFF_STATUS, &st)) return false;
+	if (!spi->FpgaWbRead32(base + FPGA_AES50_OFF_DROPS, &drops)) return false;
+	if (clkCtrlAvailable) {
+		spi->FpgaWbRead32(FPGA_CLK_REG_STATUS, &clkSt);
+	}
+	outStatus->aesOk     = (st & (1u << 0)) != 0;
+	outStatus->rxOk      = (st & (1u << 1)) != 0;
+	outStatus->txStarted = (st & (1u << 2)) != 0;
+	outStatus->fmtValid  = (st & (1u << 3)) != 0;
+	outStatus->pllLocked = (clkSt & 1u) != 0;
+	outStatus->fmt       = (uint8_t)((st >> 8) & 0xFFu);
+	outStatus->dropCount = drops;
+	return true;
 }
 
 bool Fpga::AES50CalcChecksum(char* buf, bool insertChecksum)
