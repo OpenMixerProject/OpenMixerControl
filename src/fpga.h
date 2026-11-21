@@ -64,8 +64,8 @@ class Fpga : public X32Base
         char fpgaTxBufferUart[FPGA_UART_BUFFER_SIZE];
         uint8_t configData;
         uint8_t AES50Counter;
-        bool AES50PhantomPowerState[1][48]; // [AES50A][Channel1-48]
-        float AES50HeadampGains[1][48]; // [AES50A][Channel1-48]
+        bool AES50PhantomPowerState[2][48]; // [AES50A/B][Channel1-48]
+        float AES50HeadampGains[2][48]; // [AES50A/B][Channel1-48]
         
       	uint8_t AES50Device;
         bool AES50CalcChecksum(char* buf, bool insertChecksum);

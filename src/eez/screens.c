@@ -1439,7 +1439,7 @@ void create_screen_main() {
                                             objects.routing_fpga_target = obj;
                                             lv_obj_set_pos(obj, 0, 15);
                                             lv_obj_set_size(obj, 92, 303);
-                                            lv_roller_set_options(obj, "Channels\nAUX Out\nXLR Out\nA50 Out\nCARD Out\nUltranet", LV_ROLLER_MODE_NORMAL);
+                                            lv_roller_set_options(obj, "Channel In\nAUX Out\nXLR Out\nAES50A Out\nAES50B Out\nCARD Out\nUltranet Out", LV_ROLLER_MODE_NORMAL);
                                             lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_obj_set_style_border_color(obj, lv_color_hex(0x2f3237), LV_PART_MAIN | LV_STATE_DEFAULT);
                                         }
@@ -2139,7 +2139,7 @@ void create_screen_main() {
                                             objects.routing_fpga_source = obj;
                                             lv_obj_set_pos(obj, 675, 15);
                                             lv_obj_set_size(obj, 125, 303);
-                                            lv_roller_set_options(obj, "XLR\nCARD\nAUX\nDSP\nAES50 A", LV_ROLLER_MODE_NORMAL);
+                                            lv_roller_set_options(obj, "XLR In\nCARD In\nAUX In\nChannel Out\nAES50A In\nAES50B In", LV_ROLLER_MODE_NORMAL);
                                             lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                                         }
                                     }

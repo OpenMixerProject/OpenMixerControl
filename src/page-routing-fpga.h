@@ -53,7 +53,7 @@ class PageRoutingFpga: public Page
             switch (surface_element_id)
             {
                 case SurfaceElementId::DISPLAY_ENCODER_1:
-                    selection_target = helper->CheckBoundaries(selection_target, amount, 0, 5);
+                    selection_target = helper->CheckBoundaries(selection_target, amount, 0, 6);
                     lv_roller_set_selected(objects.routing_fpga_target, selection_target, LV_ANIM_OFF);
                     LoadMatrix();
                     break;
@@ -74,7 +74,7 @@ class PageRoutingFpga: public Page
                     break;
                 case SurfaceElementId::DISPLAY_ENCODER_5:
                     {
-                        selection_source = helper->CheckBoundaries(selection_source, amount, 0, 4);
+                        selection_source = helper->CheckBoundaries(selection_source, amount, 0, 5);
                         lv_roller_set_selected(objects.routing_fpga_source, selection_source, LV_ANIM_OFF);
 
                         uint item_index = 0;
@@ -95,6 +95,9 @@ class PageRoutingFpga: public Page
                                 break;
                             case 4: // AES50 A
                                 item_index = FPGA_INPUT_IDX_AES50A;
+                                break;
+                            case 5: // AES50 B
+                                item_index = FPGA_INPUT_IDX_AES50B;
                                 break;
                             default:
                                 break;
@@ -127,15 +130,19 @@ class PageRoutingFpga: public Page
                     targetblockoffset = 0;
                     targetblocksize = 16;
                     break;
-                case 3: // AES50 Out
+                case 3: // AES50A Out
                     targetblockoffset = 112;
                     targetblocksize = 48;
                     break;
-                case 4: // Card Out
+                case 4: // AES50B Out
+                    targetblockoffset = 160;
+                    targetblocksize = 48;
+                    break;
+                case 5: // Card Out
                     targetblockoffset = 32;
                     targetblocksize = 32;
                     break;
-                case 5: // Ultranet
+                case 6: // Ultranet
                     targetblockoffset = 16;
                     targetblocksize = 16;
                     break;
@@ -200,6 +207,9 @@ class PageRoutingFpga: public Page
                             break;
                         case FPGA_INPUT_IDX_AES50A ... FPGA_INPUT_IDX_AES50A + 47:
                             selection_source = 4;
+                            break;
+                        case FPGA_INPUT_IDX_AES50B ... FPGA_INPUT_IDX_AES50B + 47:
+                            selection_source = 5;
                             break;
                         default:
                             break;

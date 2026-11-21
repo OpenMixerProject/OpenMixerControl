@@ -641,7 +641,12 @@ void Mixer::halSendGain(uint8_t dspChannel) {
             dsp->SendChannelVolume(dspChannel);
 
         }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+            // AES50B input (never thought that we get this far in the reverse-engineering process, but here we are... :) )
+            fpga->AES50SetHeadampGain(1, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50B + 1, config->GetFloat(CHANNEL_GAIN,  dspChannel));
+
+            // update channel-volume for virtual gain-resolution-increment
+            // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
+            dsp->SendChannelVolume(dspChannel);
         }
     }
 }
@@ -677,7 +682,8 @@ void Mixer::halSendPhantomPower(uint8_t dspChannel) {
             fpga->AES50SetPhantomPowerState(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
 
         }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+            // AES50B input
+            fpga->AES50SetPhantomPowerState(1, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50B + 1, config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
         }
     }
 }
