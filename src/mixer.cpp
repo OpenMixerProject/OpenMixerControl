@@ -458,6 +458,13 @@ void Mixer::Sync()
         dsp->DSP2_SendFxParameter(fxSlot);
     }
 
+    // The existing DSP2 sender transmits both oscillators together.
+    for (uint index : config->GetChangedParameterIndexes({OSC_FREQUENCY, OSC_LEVEL}))
+    {
+        dsp->DSP2_SetOscillator(index, config->GetFloat(OSC_FREQUENCY, index),
+                               config->GetFloat(OSC_LEVEL, index));
+    }
+
     // CLEAR SOLO
     if(config->HasParameterChanged(CLEAR_SOLO_COMMAND))
 	{

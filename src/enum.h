@@ -499,8 +499,11 @@ enum class MP_ID {
     DMX_ARTNET_VALUE = 279,
     //DMX_ARTNET_OFFSET,
 
+    OSC_FREQUENCY = 280,
+    OSC_LEVEL = 281,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 280
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!
