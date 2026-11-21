@@ -630,7 +630,7 @@ namespace OMC
         ->DefStandard_Bool(false)
         ->DefOSC("ch_mute");
 
-        // Mute Group Membership
+        // Mute group membership: the path names the group, the OSC index selects the channel.
         for (uint i = 0; i < MUTE_GROUPS; i++)
         {
             DefParameter(MpCalcId(MUTE_GROUP_1, i), cat, String("Mute Grp ") + String(i+1) + String(" Assign"), MAX_VCHANNELS)
