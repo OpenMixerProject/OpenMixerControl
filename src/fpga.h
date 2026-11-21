@@ -58,6 +58,8 @@ class Fpga : public X32Base
         void AES50SendNames(void);
         void AES50SendHeadampMessage();
 
+        String AES50GetConnectedDeviceName();
+
     private:
         Uart* uart;
         char fpgaRxBufferUart[FPGA_UART_BUFFER_SIZE];
@@ -66,6 +68,7 @@ class Fpga : public X32Base
         uint8_t AES50Counter;
         bool AES50PhantomPowerState[2][48]; // [AES50A/B][Channel1-48]
         float AES50HeadampGains[2][48]; // [AES50A/B][Channel1-48]
+        char AES50ConnectedDeviceName[16] = "No AES50 Device";
         
       	uint8_t AES50Device;
         bool AES50CalcChecksum(char* buf, bool insertChecksum);

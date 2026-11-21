@@ -183,7 +183,7 @@ void X32Ctrl::Tick10ms(void)
 	ProcessUartDataAdda();
 
 	// read incoming data from AES50 devices
-	ProcessUartDataAES50();
+	//ProcessUartDataAES50(); // TODO: implement ring-buffer and message-detector. For now use AES50Tick to read data
 
 	// communication with XRemote-clients via UDP (X32-Edit, MixingStation, etc.)
 	osc_server->UdpHandleCommunication();
@@ -284,6 +284,9 @@ void X32Ctrl::Tick100ms(void)
 			(double)dspLoadMean[0], (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], mixer->dsp->spi->GetDspTxQueueLength(0),
 			(double)dspLoadMean[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1], mixer->dsp->spi->GetDspTxQueueLength(1)
 		);
+
+		// show information about AES50 devices
+		lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", mixer->fpga->AES50GetConnectedDeviceName().c_str());
 	}
 
 	// send AES50-data to FPGA
