@@ -19,10 +19,12 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <stdexcept>
 #include <thread>
 
-namespace OMC {
+namespace OMC
+{
 namespace {
 
 constexpr char manifestPath[] = "/usr/share/wing-t55/manifest.json";
@@ -141,7 +143,7 @@ uint32_t ReadCsr(int fd, uint32_t address)
     return reg.val;
 }
 
-// ABI 0x20000 has a fixed CSR block. Never use a JSON-provided hardware address.
+// The T55 ABI fixes these addresses; the manifest cannot redirect a read.
 void CheckFabric(int fd, const Receipt& receipt)
 {
     uint32_t state = 0;
@@ -175,8 +177,8 @@ uint32_t Crc32(const uint8_t* data, size_t size)
     return ~crc;
 }
 
-// Keep the W2 lock across all readback and SS0 traffic. One instance addresses one core.
-class Session {
+class Session
+{
 public:
     explicit Session(unsigned target) : core(target) {}
 
@@ -186,6 +188,7 @@ public:
         CheckDirectory("/run");
         struct statfs fs{};
         Require(statfs("/run", &fs) == 0 && fs.f_type == TMPFS_MAGIC, "WING requires a boot-local /run tmpfs");
+        // W2 takes the exclusive lock before replacing the receipt or resetting a core.
         Fd lock(open("/run/wing-t55.lock", O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
         CheckFile(lock.value, true);
         Require(flock(lock.value, LOCK_SH | LOCK_NB) == 0, "WING loader is active");
@@ -224,8 +227,8 @@ private:
         uint32_t nonce;
         Require(getrandom(&nonce, sizeof nonce, GRND_NONBLOCK) == sizeof nonce, "cannot obtain WDSP nonce");
 
-        constexpr size_t firstReply = 1 + 40, replyBytes = 24;
-        std::array<uint8_t, firstReply + 8 + replyBytes> tx{}, rx{};
+        constexpr size_t firstReply = 1 + 40, replyBytes = 24, pollBytes = 8;
+        std::array<uint8_t, firstReply + pollBytes + replyBytes> tx{}, rx{};
         tx[0] = core; // FPGA consumes selector; WDSP starts at the next byte.
         auto* frame = tx.data() + 1;
         PutWord(frame, 0x57445350); // WDSP; op, class, index and payload stay zero for Identify.
@@ -234,7 +237,7 @@ private:
         const auto crc = Crc32(frame, 36);
         PutWord(frame + 36, crc);
 
-        // Let the polling slave observe deselect between messages.
+        // Allow the slave's poll loop to observe SS0 deasserted between frames.
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         spi_ioc_transfer transfer{};
         transfer.tx_buf = reinterpret_cast<uintptr_t>(tx.data());
