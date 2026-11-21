@@ -27,7 +27,7 @@ namespace OMC
     OscState::OscState(X32BaseParameter* basepar, int udpSocket, std::map<String, MP_ID>* oscPaths)
         : X32Base(basepar), paths(oscPaths), socket(udpSocket)
     {
-        // Additive vocabulary only: do not advertise absent expansion PRs.
+        // Add aliases only for parameters already exposed over OSC.
         auto alias = [&](String name, MP_ID id)
         {
             if (config->GetParameter(id)->IsOSC()) { paths->insert({name, id}); }
@@ -223,6 +223,7 @@ namespace OMC
             if (now - client.renewed >= std::chrono::seconds(10)) { it = clients.erase(it); continue; }
             for (uint budget = 0; (client.snapshot || client.metadata) && budget < 32; ++budget)
             {
+                // Finish metadata first so clients can interpret the snapshot values.
                 if (client.metadata)
                 {
                     if (client.metadataNext == paths->end())
