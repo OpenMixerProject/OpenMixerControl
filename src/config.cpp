@@ -195,8 +195,7 @@ namespace OMC
             return false;
         }
 
-        // Validate all array lengths before changing any live parameter. A bad
-        // scene must not shrink arrays and cause later reads to access past end.
+        // Reject wrong instance counts before applying any part of the scene.
         for (const auto& entry : entries)
         {
             if ((int)entry.MixerparameterId < 0) { return false; }
@@ -293,12 +292,14 @@ namespace OMC
 
         std::string json;
         auto error = glz::write_json(entries, json);
-        if (error) {
-        std::string error_msg = glz::format_error(error, json);
-        std::cout << error_msg << std::endl;
-        return false;
+        if (error)
+        {
+            std::string error_msg = glz::format_error(error, json);
+            std::cout << error_msg << std::endl;
+            return false;
         }
 
+        // Replace the previous scene only after the new file has been written and closed.
         String temporary = saveFile + ".tmp";
         std::ofstream out(temporary.c_str());
         if (!out) { return false; }
