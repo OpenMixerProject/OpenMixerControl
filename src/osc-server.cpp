@@ -62,12 +62,18 @@ namespace OMC
 
         // Build map of osc-paths from Mixerparameters
         oscPaths = config->GetOscPaths();
+        config->oscCapabilities.insert("surface_subscription");
+        config->surfaceObserver = [this](SurfaceElement* element, const char* action, float value)
+        {
+            ObserveSurface(element, action, value);
+        };
         
         return 0;
     }
 
     void OscServer::UdpHandleCommunication() 
     {
+        ExpireObservers();
         char rxData[500];
         int bytes_available = 0;
         
@@ -79,7 +85,8 @@ namespace OMC
             struct sockaddr_in senderAddr;
             socklen_t senderAddrLen = sizeof(senderAddr);
         
-            size_t len = recvfrom(UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &senderAddr, &senderAddrLen);
+            ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
+            if (len <= 0 || len >= sizeof(rxData)) { return; }
 
             tosc_message osc;
             if (!tosc_parseMessage(&osc, rxData, len))
@@ -116,6 +123,20 @@ namespace OMC
                 String osc_format = String(tosc_getFormat(&osc));
 
                 helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Path: %s Format: %s", adrPath.c_str(), osc_format.c_str());
+
+                if (address.size() == 3 && address[0] == "subscribe" && address[1] == "surface" && address[2] == "1")
+                {
+                    if (osc_format != "f") { return; }
+                    in_addr_t ip = ClientAddr.sin_addr.s_addr;
+                    bool enable = tosc_getNextFloat(&osc) >= 0.5f;
+                    if (enable && (surfaceObservers.contains(ip) || surfaceObservers.size() < 16))
+                    { surfaceObservers[ip] = std::chrono::steady_clock::now(); }
+                    else { surfaceObservers.erase(ip); enable = false; }
+                    int size = tosc_writeMessage(TxMessage, sizeof(TxMessage), "/subscribe/surface/1", "f", enable ? 1.0f : 0.0f);
+                    SendUdpPacket(TxMessage, size);
+                    return;
+                }
+                if (address.size() != 3) { return; }
 
                 // Find matching Mixerparameter
                 uint found = oscPaths->count(String(address[1].c_str()));
@@ -203,6 +224,47 @@ namespace OMC
             {
                 helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "Could not parse OSC-Message");
             }
+        }
+    }
+
+    void OscServer::ExpireObservers()
+    {
+        auto now = std::chrono::steady_clock::now();
+        for (auto it = surfaceObservers.begin(); it != surfaceObservers.end(); )
+        {
+            if (now - it->second >= std::chrono::seconds(10)) { it = surfaceObservers.erase(it); }
+            else { ++it; }
+        }
+    }
+
+    void OscServer::ObserveSurface(SurfaceElement* element, const char* action, float value)
+    {
+        ExpireObservers();
+        String name = "";
+        bool separator = false;
+        String label = element->GetName();
+        for (uint i = 0; i < label.length(); ++i)
+        {
+            char c = label[i];
+            if (c >= 'A' && c <= 'Z') { c += 'a' - 'A'; }
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
+            {
+                if (separator && name.length()) { name += '_'; }
+                name += c;
+                separator = false;
+            }
+            else { separator = true; }
+        }
+        String path = String("/") + action + "/" + name + "/1";
+        int size = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "f", value);
+        if (size <= 0) { return; }
+        for (const auto& [ip, renewed] : surfaceObservers)
+        {
+            sockaddr_in target{};
+            target.sin_family = AF_INET;
+            target.sin_addr.s_addr = ip;
+            target.sin_port = htons(10033);
+            sendto(UdpHandle, TxMessage, size, 0, reinterpret_cast<sockaddr*>(&target), sizeof(target));
         }
     }
 

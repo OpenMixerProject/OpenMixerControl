@@ -1740,6 +1740,8 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 			return;
 		}
 
+		if (config->surfaceObserver) { config->surfaceObserver(fader, "move", helper->Fadervalue2dBfs(value)); }
+
 		SurfaceBindingParameter* bindingParameter = config->GetSurfaceBinding(fader->GetId());
 		if (bindingParameter == 0) { return; }
 				
@@ -1760,7 +1762,7 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 	else if (command == 'b') // Button
 	{
 		// find surfaceelement
-		SurfaceElement* button;
+		SurfaceElement* button = nullptr;
 		if(config->IsModelAnyXM32())
 		{
 			button = config->GetSurfaceElementButton_XM32(board, value);
@@ -1786,6 +1788,8 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 		{
 			isButtonPressed = (value==1);
 		}
+
+		if (config->surfaceObserver) { config->surfaceObserver(button, "press", isButtonPressed ? 1.0f : 0.0f); }
 
 		// Logic for double button press
 		if (isButtonPressed) {
@@ -2029,6 +2033,8 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 		{
 			amount = -(256 - (uint8_t)(value));
 		}
+
+		if (config->surfaceObserver) { config->surfaceObserver(encoder, "turn", amount); }
 
 		helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Encoder \"%s\" turned: \"%d\"",
 			encoder->GetName().c_str(),
