@@ -23,6 +23,21 @@ Linux and Custom Firmware for the Behringer WING Audio-Mixing-Consoles
 
 <img width="3000" height="4000" alt="IMG_20260604_020730" src="https://github.com/user-attachments/assets/189e2af7-1664-4385-b29f-81b094274c69" />
 
+### T55 bench DSP identification
+
+On a muted WING Compact running the matching OpenWING T55 loader and WDSP v1
+firmware, use `omc --wing-dsp-identify 4` (DSP 1, 2 or 4). This one-shot
+command exits before mixer startup. It requires the loader's boot-local,
+per-core qualification record, matching live FPGA identity and reset readback,
+and FS and return-valid both off. A successful Identify means SPORT is armed,
+not that audio is valid. DSP3, X32 probing, boot/reset and audio enable are
+outside this command's scope.
+
+The WING transport uses [Mala's SPIBone UAPI](https://github.com/malarisch/OpenAudioFPGA/commit/7d2869acdcff4a0a1952b74bf9b5fe45e37ff7dd)
+and follows [Mala's OMC Wishbone read design](https://github.com/malarisch/OpenMixerControl/commit/a136388a92dc73c9d0d983eed1386260553d9d91).
+Run `bash tests/wing-wdsp.sh` with the fetched Glaze headers and Linux zlib
+development package for device-mocked verification.
+
 
 # Some Screenshots
 

@@ -49,6 +49,7 @@
 #include "defines.h"
 #include "version.h"
 #include "omc.h"
+#include "wing-wdsp.h"
 
 #define DOCTEST_CONFIG_IMPLEMENT // we start doctest within our own main()
 #include "../lib_ext/doctest/doctest/doctest.h"
@@ -431,7 +432,25 @@ namespace OMC
 		
 		app->get_config_formatter_base()->quoteCharacter('"', '"');
 
+#ifdef TARGET_WING
+		unsigned wingDsp = 0;
+		auto* wingIdentify = app->add_option("--wing-dsp-identify", wingDsp,
+			"Identify one boot-qualified WING DSP (1, 2 or 4), then exit")->configurable(false);
+#endif
 		CLI11_PARSE(*app, argc, argv);
+
+#ifdef TARGET_WING
+		if (*wingIdentify) {
+			try {
+				IdentifyWingDsp(wingDsp);
+				printf("WING DSP%u: WDSP v1 verified; SPORT armed, not audio valid\n", wingDsp);
+				return 0;
+			} catch (const std::exception& e) {
+				fprintf(stderr, "WING DSP%u: %s\n", wingDsp, e.what());
+				return 1;
+			}
+		}
+#endif
 
 		if(app->get_option("--print")->as<bool>()) {
 			std::cout << app->config_to_str(true, false);
