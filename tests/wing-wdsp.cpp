@@ -16,6 +16,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 namespace {
@@ -24,7 +25,12 @@ int control, dsp, dspOpens, transfers, controlOpens;
 bool offline, noEntropy, nonBootLocal;
 unsigned expectedCore, resetMask, changedCsr;
 constexpr uint32_t nonce = 0x19274690;
-enum BadReply { Good, Empty, Short, Early, Magic, Abi, Core, Nonce, RequestCrc, ReplyCrc, Status, Flags, Reserved };
+constexpr std::array overdrive{2.5f, -0.25f, 0.125f, 0.0625f, 0.75f, 0.5f};
+// Expected wire bits are fixed independently of the production encoder.
+constexpr std::array overdriveWords{0x40200000u, 0xbe800000u, 0x3e000000u, 0x3d800000u, 0x3f400000u, 0x3f000000u};
+unsigned updateOp, randomReads, faultOnTransfer = 1;
+bool loseFabricAfterIdentify;
+enum BadReply { Good, Empty, Short, Early, Magic, Abi, Core, Nonce, RequestCrc, ReplyCrc, Status, Flags, Reserved, Replay };
 BadReply bad;
 
 void Put(uint8_t* p, uint32_t v)
@@ -40,19 +46,22 @@ void Receipt(const std::string& digest, const std::string& image, unsigned mask)
         << R"(,"manifest_sha256":")" << digest << R"(","bitstream_sha256":")" << image << "\"}\n";
 }
 
-void Try(unsigned core, bool success, int count, int opens, bool checkControl = true)
+void Try(unsigned core, bool success, int count, int opens, bool allowControl = true,
+         const std::array<float, 6>* values = &overdrive)
 {
     expectedCore = core;
     transfers = dspOpens = controlOpens = 0;
+    randomReads = 0;
     try {
-        OMC::IdentifyWingDsp(core);
+        if (updateOp) OMC::SetWingOverdrive(values);
+        else OMC::IdentifyWingDsp(core);
         assert(success);
     } catch (const std::runtime_error& e) {
         if (success || transfers != count || dspOpens != opens) std::cerr << e.what() << '\n';
         assert(!success);
     }
     assert(transfers == count && dspOpens == opens);
-    if (!checkControl) assert(controlOpens == 0);
+    if (!allowControl) assert(controlOpens == 0);
 }
 } // namespace
 
@@ -99,7 +108,8 @@ extern "C" int __wrap_open(const char* path, int flags, ...)
 extern "C" ssize_t __wrap_getrandom(void* out, size_t size, unsigned flags)
 {
     assert(size == sizeof nonce && flags == 1);
-    std::memcpy(out, &nonce, size);
+    const uint32_t challenge = nonce + randomReads++;
+    std::memcpy(out, &challenge, size);
     return noEntropy ? -1 : size;
 }
 
@@ -109,7 +119,8 @@ extern "C" int __wrap_ioctl(int fd, unsigned long op, ...)
     va_start(args, op);
     if (fd == control) {
         if (op == SPIBONE_IOC_GET_STATE) {
-            *va_arg(args, uint32_t*) = offline ? SPIBONE_STATE_OFFLINE : SPIBONE_STATE_ONLINE;
+            *va_arg(args, uint32_t*) = offline || (loseFabricAfterIdentify && transfers > 0)
+                ? SPIBONE_STATE_OFFLINE : SPIBONE_STATE_ONLINE;
         } else {
             assert(op == SPIBONE_IOC_PEEK); // No write ioctl may reach the FPGA.
             auto* reg = va_arg(args, spibone_wb_xfer*);
@@ -127,6 +138,7 @@ extern "C" int __wrap_ioctl(int fd, unsigned long op, ...)
     else {
         assert(op == SPI_IOC_MESSAGE(1));
         ++transfers;
+        const auto replyFault = transfers == int(faultOnTransfer) ? bad : Good;
         const auto& xfer = *va_arg(args, spi_ioc_transfer*);
         va_end(args);
         assert(xfer.len == 73 && xfer.bits_per_word == 8 && xfer.cs_change == 0 && xfer.speed_hz == 10000);
@@ -135,26 +147,39 @@ extern "C" int __wrap_ioctl(int fd, unsigned long op, ...)
         std::array<uint8_t, 73> expected{};
         expected[0] = expected[12] = expectedCore;
         std::memcpy(expected.data() + 1, "WDSP", 4);
-        Put(expected.data() + 5, nonce);
+        const uint32_t challenge = nonce + transfers - 1;
+        Put(expected.data() + 5, challenge);
+        if (transfers == 2) {
+            assert(updateOp && expectedCore == 4);
+            expected[9] = updateOp;
+            expected[10] = 5;
+            if (updateOp == 2) {
+                for (size_t i = 0; i < overdriveWords.size(); ++i)
+                    Put(expected.data() + 13 + 4 * i, overdriveWords[i]);
+            }
+        }
         const uint32_t crc = crc32(0, expected.data() + 1, 36);
         Put(expected.data() + 37, crc);
         assert(std::memcmp(tx, expected.data(), expected.size()) == 0);
         const int exclusive = __real_open((dir + "/lock").c_str(), O_RDWR);
         assert(exclusive >= 0 && flock(exclusive, LOCK_EX | LOCK_NB) < 0);
         close(exclusive);
-        if (bad != Empty) {
-            auto* reply = rx + (bad == Early ? 40 : 49);
-            std::memcpy(reply, bad == Magic ? "WDSP" : "WDSR", 4);
-            Put(reply + 4, bad == Abi ? 2 : 1);
-            Put(reply + 8, nonce ^ (bad == Nonce));
-            reply[12] = bad == Core ? 3 : expectedCore;
-            reply[13] = bad == Status ? 2 : 0;
-            reply[14] = bad == Flags ? 3 : 1;
-            reply[15] = bad == Reserved ? 1 : 0;
-            Put(reply + 16, crc ^ (bad == RequestCrc));
-            Put(reply + 20, crc32(0, reply, 20) ^ (bad == ReplyCrc));
+        static std::array<uint8_t, 24> identifyReply;
+        if (replyFault != Empty) {
+            auto* reply = rx + (replyFault == Early ? 40 : 49);
+            std::memcpy(reply, replyFault == Magic ? "WDSP" : "WDSR", 4);
+            Put(reply + 4, replyFault == Abi ? 2 : 1);
+            Put(reply + 8, challenge ^ (replyFault == Nonce));
+            reply[12] = replyFault == Core ? 3 : expectedCore;
+            reply[13] = replyFault == Status ? 2 : 0;
+            reply[14] = replyFault == Flags ? 3 : 1;
+            reply[15] = replyFault == Reserved ? 1 : 0;
+            Put(reply + 16, crc ^ (replyFault == RequestCrc));
+            Put(reply + 20, crc32(0, reply, 20) ^ (replyFault == ReplyCrc));
+            if (transfers == 1) std::memcpy(identifyReply.data(), reply, identifyReply.size());
+            if (replyFault == Replay) std::memcpy(reply, identifyReply.data(), identifyReply.size());
         }
-        return xfer.len - (bad == Short);
+        return xfer.len - (replyFault == Short);
     }
     va_end(args);
     return 0;
@@ -199,5 +224,33 @@ int main(int argc, char** argv)
     noEntropy = false;
     for (auto core : {1u, 2u, 4u}) Try(core, true, 1, 1);
     for (bad = Empty; bad <= Reserved; bad = static_cast<BadReply>(bad + 1)) Try(4, false, 1, 1);
-    std::cout << "PASS: W2 boot gates and WDSP v1 identity/reply failures\n";
+
+    updateOp = 2;
+    bad = Good;
+    Receipt(digest, image, 3); // Other qualified cores never substitute for DSP4.
+    Try(4, false, 0, 0, false);
+    Receipt(digest, image, 0x0b);
+    for (float q : {1.f, std::numeric_limits<float>::quiet_NaN()}) {
+        auto invalid = overdrive;
+        invalid[1] = q;
+        Try(4, false, 0, 0, false, &invalid);
+    }
+    bad = Flags;
+    Try(4, false, 1, 1); // Failed Identify must prevent the write.
+    bad = Good;
+    loseFabricAfterIdentify = true;
+    Try(4, false, 1, 1);
+    loseFabricAfterIdentify = false;
+    Try(4, true, 2, 1);
+    faultOnTransfer = 2;
+    for (auto fault : {Empty, Short, Status, Flags, Replay, RequestCrc, ReplyCrc}) {
+        bad = fault;
+        Try(4, false, 2, 1); // No command is retried after an absent or invalid ACK.
+    }
+    updateOp = 1;
+    bad = Status;
+    Try(4, false, 2, 1, true, nullptr);
+    bad = Good;
+    Try(4, true, 2, 1, true, nullptr);
+    std::cout << "PASS: W2 boot gates, WDSP v1 Identify, DSP4 atomic Set and Bypass, and rejected ACKs\n";
 }

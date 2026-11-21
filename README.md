@@ -33,6 +33,14 @@ and FS and return-valid both off. A successful Identify means SPORT is armed,
 not that audio is valid. DSP3, X32 probing, boot/reset and audio enable are
 outside this command's scope.
 
+With the matching DSP4 Overdrive firmware, `omc --wing-overdrive-set 2 0.25
+-0.1 0.03 0.8 0.6` sends one atomic update to stereo pair 0 after a fresh
+Identify. Arguments are WDSP units, not dB/Hz: linear pregain [1, 16], Q
+[-1, 0.999999], bias [-1, 1], then the input HPF, input LPF and output LPF
+coefficients [0, 1]. `omc --wing-overdrive-bypass` bypasses the same pair.
+Both require an acknowledged command. A missing ACK leaves the outcome unknown;
+the command is not retried. Neither command enables audio or changes routing.
+
 The WING transport uses [Mala's SPIBone UAPI](https://github.com/malarisch/OpenAudioFPGA/commit/7d2869acdcff4a0a1952b74bf9b5fe45e37ff7dd)
 and follows [Mala's OMC Wishbone read design](https://github.com/malarisch/OpenMixerControl/commit/a136388a92dc73c9d0d983eed1386260553d9d91).
 Run `bash tests/wing-wdsp.sh` with the fetched Glaze headers and Linux zlib

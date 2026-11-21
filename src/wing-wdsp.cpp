@@ -19,7 +19,9 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
+#include <limits>
 #include <stdexcept>
 #include <thread>
 
@@ -177,12 +179,14 @@ uint32_t Crc32(const uint8_t* data, size_t size)
     return ~crc;
 }
 
+enum class Operation : uint8_t { Identify = 0, Bypass = 1, Set = 2 };
+
 class Session
 {
 public:
     explicit Session(unsigned target) : core(target) {}
 
-    void Identify() const
+    void Run(Operation op = Operation::Identify, const std::array<float, 6>* values = nullptr) const
     {
         Require(core >= 1 && core <= 4 && (coreMask & (1u << (core - 1))), "unsupported WING DSP core");
         CheckDirectory("/run");
@@ -218,11 +222,16 @@ public:
         Require(dsp.value >= 0 && ioctl(dsp.value, SPI_IOC_WR_MODE32, &mode) == 0 &&
                 ioctl(dsp.value, SPI_IOC_WR_BITS_PER_WORD, &bits) == 0 &&
                 ioctl(dsp.value, SPI_IOC_WR_MAX_SPEED_HZ, &speed) == 0, "cannot configure WING SS0");
-        Command(dsp.value);
+        Command(dsp.value, Operation::Identify, nullptr);
+        if (op != Operation::Identify) {
+            // Identify can succeed just before the FPGA goes offline; recheck before writing.
+            CheckFabric(control.value, receipt);
+            Command(dsp.value, op, values);
+        }
     }
 
 private:
-    void Command(int fd) const
+    void Command(int fd, Operation op, const std::array<float, 6>* values) const
     {
         uint32_t nonce;
         Require(getrandom(&nonce, sizeof nonce, GRND_NONBLOCK) == sizeof nonce, "cannot obtain WDSP nonce");
@@ -231,9 +240,16 @@ private:
         std::array<uint8_t, firstReply + pollBytes + replyBytes> tx{}, rx{};
         tx[0] = core; // FPGA consumes selector; WDSP starts at the next byte.
         auto* frame = tx.data() + 1;
-        PutWord(frame, 0x57445350); // WDSP; op, class, index and payload stay zero for Identify.
+        PutWord(frame, 0x57445350); // WDSP
         PutWord(frame + 4, nonce);
+        frame[8] = static_cast<uint8_t>(op);
+        frame[9] = op == Operation::Identify ? 0 : 5; // FX class; index 0 is the first stereo pair.
         frame[11] = core;
+        static_assert(std::numeric_limits<float>::is_iec559 && sizeof(float) == 4);
+        if (values) {
+            for (size_t i = 0; i < values->size(); ++i)
+                PutWord(frame + 12 + 4 * i, std::bit_cast<uint32_t>((*values)[i]));
+        }
         const auto crc = Crc32(frame, 36);
         PutWord(frame + 36, crc);
 
@@ -245,7 +261,9 @@ private:
         transfer.len = tx.size();
         transfer.speed_hz = dspSpeed;
         transfer.bits_per_word = 8;
-        Require(ioctl(fd, SPI_IOC_MESSAGE(1), &transfer) == int(tx.size()), "failed or short WING SS0 transfer");
+        Require(ioctl(fd, SPI_IOC_MESSAGE(1), &transfer) == int(tx.size()),
+                op == Operation::Identify ? "failed or short WING SS0 Identify" :
+                "failed or short WING SS0 update: outcome unknown, no retry");
 
         for (size_t i = firstReply; i + replyBytes <= rx.size(); ++i) {
             const auto* reply = rx.data() + i;
@@ -254,7 +272,8 @@ private:
             Require(reply[13] == 0 && reply[14] == 1 && reply[15] == 0, "WDSP rejected command or SPORT not armed");
             return;
         }
-        throw std::runtime_error("no matching WDSP v1 reply");
+        throw std::runtime_error(op == Operation::Identify ? "no matching WDSP v1 Identify reply" :
+                                 "no matching WDSP v1 update ACK: outcome unknown, no retry");
     }
 
     const unsigned core;
@@ -264,7 +283,19 @@ private:
 
 void IdentifyWingDsp(unsigned core)
 {
-    Session(core).Identify();
+    Session(core).Run();
+}
+
+void SetWingOverdrive(const std::array<float, 6>* values)
+{
+    // Reject out-of-range and non-finite values before opening SS0.
+    constexpr std::array low{1.f, -1.f, -1.f, 0.f, 0.f, 0.f};
+    constexpr std::array high{16.f, 0.999999f, 1.f, 1.f, 1.f, 1.f};
+    if (values) {
+        for (size_t i = 0; i < values->size(); ++i)
+            Require((*values)[i] >= low[i] && (*values)[i] <= high[i], "overdrive value outside WDSP range");
+    }
+    Session(4).Run(values ? Operation::Set : Operation::Bypass, values);
 }
 
 } // namespace OMC

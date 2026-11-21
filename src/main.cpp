@@ -436,6 +436,12 @@ namespace OMC
 		unsigned wingDsp = 0;
 		auto* wingIdentify = app->add_option("--wing-dsp-identify", wingDsp,
 			"Identify one boot-qualified WING DSP (1, 2 or 4), then exit")->configurable(false);
+		std::array<float, 6> overdrive{};
+		auto* wingSet = app->add_option("--wing-overdrive-set", overdrive,
+			"Set DSP4 pair 0: linear pregain, Q, bias, input HPF, input LPF, output LPF")->configurable(false);
+		auto* wingBypass = app->add_flag("--wing-overdrive-bypass", "Bypass DSP4 pair 0")->configurable(false);
+		wingSet->excludes(wingBypass)->excludes(wingIdentify);
+		wingBypass->excludes(wingIdentify);
 #endif
 		CLI11_PARSE(*app, argc, argv);
 
@@ -447,6 +453,16 @@ namespace OMC
 				return 0;
 			} catch (const std::exception& e) {
 				fprintf(stderr, "WING DSP%u: %s\n", wingDsp, e.what());
+				return 1;
+			}
+		}
+		if (*wingSet || *wingBypass) {
+			try {
+				SetWingOverdrive(*wingSet ? &overdrive : nullptr);
+				printf("WING DSP4 pair 0: overdrive %s acknowledged; not audio valid\n", *wingSet ? "set" : "bypass");
+				return 0;
+			} catch (const std::exception& e) {
+				fprintf(stderr, "WING DSP4 pair 0: %s\n", e.what());
 				return 1;
 			}
 		}
