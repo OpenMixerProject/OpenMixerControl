@@ -82,7 +82,8 @@ namespace OMC
         
         if (bytes_available > 0)
         {
-            socklen_t xremoteClientAddrLen = sizeof(ClientAddr);
+            struct sockaddr_in senderAddr;
+            socklen_t senderAddrLen = sizeof(senderAddr);
         
             ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
             if (len <= 0 || len >= sizeof(rxData)) { return; }
@@ -90,7 +91,11 @@ namespace OMC
             tosc_message osc;
             if (!tosc_parseMessage(&osc, rxData, len))
             {
-                // Client has send data
+                // Client has send data: remember it as the target for Sync().
+                // Only valid OSC messages update the client address, so a stray
+                // UDP packet can not redirect the parameter updates.
+                ClientAddr = senderAddr;
+                hasClients = true;
 
                 char str[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(ClientAddr.sin_addr), str, INET_ADDRSTRLEN);
@@ -274,6 +279,12 @@ namespace OMC
         {
             // loop parameter_id
             Mixerparameter* parameter = config->GetParameter(parameter_id);
+
+            // only parameters with an OSC path are part of the protocol
+            if (!parameter->IsOSC())
+            {
+                continue;
+            }
 
             // for (indexes)
             for (uint index : indexSet)
