@@ -223,8 +223,8 @@ void Mixer::Sync()
         }
     }
 
-    // Volume
-    filter = {CHANNEL_GAIN, CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB};
+    // Volume & Phase Invert
+    filter = {CHANNEL_GAIN, CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB, CHANNEL_PHASE_INVERT};
     if (config->HasParametersChanged(filter))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter);
@@ -418,6 +418,7 @@ void Mixer::Sync()
     
             dsp->SendEQ(changedIndex);
             dsp->SendLowcut(changedIndex);
+            dsp->SendHighcut(changedIndex);
         }
     }
 

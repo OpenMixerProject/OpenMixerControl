@@ -11,12 +11,18 @@ class FxMath : X32Base {
 
         FxMath(X32BaseParameter* basepar);
         void RecalcFilterCoefficients_PEQ(sPEQ* peq);
-        float CalcFrequencyResponse_LC(float f, float fc, float fs);
+        void CalcLowcutBiquads(float fc, uint8_t slopeIdx, float fs, sBiquadCoeffs sections[2]);
+        void CalcHighcutBiquad(float fc, float fs, sBiquadCoeffs* section);
+        float CalcFrequencyResponse_LC(float f, float fc, float fs, uint8_t slopeIdx = 0);
         float CalcFrequencyResponse_HC(float f, float fc, float fs);
         float CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1, float b2, float f, float fs);
-        float CalcPhaseResponse_LC(float f, float fc);
-        float CalcPhaseResponse_HC(float f, float fc);
+        float CalcPhaseResponse_LC(float f, float fc, float fs = 48000.0f, uint8_t slopeIdx = 0);
+        float CalcPhaseResponse_HC(float f, float fc, float fs = 48000.0f);
         float CalcPhaseResponse_PEQ(float a0, float a1, float a2, float b0, float b1, float b2, float f, float fs);
+        static float GetCompressorKneeWidthDb(uint8_t kneeLevel);
+        static float CalcCompressorOutputDb(float inputDb, float thresholdDb, float ratio, uint8_t kneeLevel);
+        static float GetGateExpanderSlope(uint8_t mode);
+        static float CalcGateOutputDb(float inputDb, float thresholdDb, float rangeDb, uint8_t mode);
         void RecalcFilterCoefficients_LR12(sLR12* LR12);
         void RecalcFilterCoefficients_LR24(sLR24* LR24);
 

@@ -126,6 +126,12 @@ void DSP1::SendChannelVolume(uint chanIndex)
         trim_pu = pow(10.0f, trim/20.0f);
     }
 
+    // Fold Phase Invert (Polarity 180 deg) into trim_pu for zero extra SHARC DSP cycles
+    if (config->GetBool(CHANNEL_PHASE_INVERT, chanIndex))
+    {
+        trim_pu = -trim_pu;
+    }
+
     float volumeLR_pu = pow(10.0f, volumeLR/20.0f);
     float volumeSub_pu = pow(10.0f, volumeSub/20.0f);
 
@@ -344,44 +350,95 @@ void DSP1::SendGate(uint chanIndex)
 
     float samplerate = (float)config->GetUint(SAMPLERATE);
     float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
-    float values[5];
+    float values[9];
 
-    // threshold
-    values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_GATE_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
+    float thresholdDb = config->GetFloat(CHANNEL_GATE_TRESHOLD, chanIndex);
+    float rangeDb     = config->GetFloat(CHANNEL_GATE_RANGE, chanIndex);
+    uint8_t gateMode  = (uint8_t)config->GetUint(CHANNEL_GATE_MODE, chanIndex);
 
-    // gainmin
-    // range of 60dB means that we will reduce the signal on active gate by 60dB. We have to convert logarithmic dB-value into linear value for gain
-    values[1] = 1.0f / pow(10.0f, config->GetFloat(CHANNEL_GATE_RANGE, chanIndex)/20.0f);
+    // Precompute 16 * (threshold_linear)^2 for zero-sqrt power compare in Hard Gate mode
+    float thresholdLin = (powf(2.0f, 31.0f) - 1.0f) * powf(10.0f, thresholdDb / 20.0f);
+    values[0] = (float)DSP_SAMPLES_IN_BUFFER * thresholdLin * thresholdLin;
+
+    // gainmin: linear minimum gain corresponding to Range (dB)
+    values[1] = 1.0f / powf(10.0f, rangeDb / 20.0f);
 
     // coeff_attack (envelope is recalculated every sample)
-    // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
-    // ln(10%) - ln(90%) = -2.197224577
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[2] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
+    float attackMs = config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex);
+    values[2] = (attackMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * attackMs)));
 
     // hold_ticks (recalculated every 16 samples, hence 333 microseconds)
     values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * bufferrate / 1000.0f;
 
     // coeff_release (envelope is recalculated every sample)
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[4] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
+    float releaseMs = config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex);
+    values[4] = (releaseMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * releaseMs)));
 
-    spi->QueueDspData(0, 'g', chanIndex, 0, 5, &values[0]);
+    // Expander parameters & enable flag
+    values[5] = thresholdDb;
+    values[6] = -rangeDb;
+    values[7] = FxMath::GetGateExpanderSlope(gateMode);
+    values[8] = config->GetBool(CHANNEL_GATE_ENABLE, chanIndex) ? 1.0f : 0.0f;
+
+    spi->QueueDspData(0, 'g', chanIndex, 0, 9, &values[0]);
 }
 
 void DSP1::SendLowcut(uint8_t chan)
 {
-    float values[1];
+    using enum MP_ID;
 
-    // Source: https://www.dsprelated.com/showarticle/1769.php
-    // alpha = 1 / (1 + 2 * pi * f_c * 1/f_s)
-    // Equation for samples: output = alpha * (input + previous_output - previous_input)
-    values[0] = 1.0f / (1.0f + 2.0f * M_PI * config->GetFloat(CHANNEL_LOWCUT_FREQ, chan) * (1.0f/(float)config->GetUint(SAMPLERATE)));
+    float fc         = config->GetFloat(CHANNEL_LOWCUT_FREQ, chan);
+    uint8_t slopeIdx = (uint8_t)config->GetUint(CHANNEL_LOWCUT_SLOPE, chan);
+    float fs         = (float)config->GetUint(SAMPLERATE);
+    bool enabled     = config->GetBool(CHANNEL_LOWCUT_ENABLE, chan);
 
-    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendLowcut() channelindex %d -> %f", chan, values[0]);
+    sBiquadCoeffs sections[2];
+    fxmath->CalcLowcutBiquads(fc, slopeIdx, fs, sections);
 
+    // Interleave 2 sections for SHARC biquad_trans():
+    // [s0.a0, s1.a0, s0.a1, s1.a1, s0.a2, s1.a2, -s0.b1, -s1.b1, -s0.b2, -s1.b2, enable]
+    float values[11];
+    values[0]  = sections[0].a[0];
+    values[1]  = sections[1].a[0];
+    values[2]  = sections[0].a[1];
+    values[3]  = sections[1].a[1];
+    values[4]  = sections[0].a[2];
+    values[5]  = sections[1].a[2];
+    values[6]  = -sections[0].b[1];
+    values[7]  = -sections[1].b[1];
+    values[8]  = -sections[0].b[2];
+    values[9]  = -sections[1].b[2];
+    values[10] = enabled ? 1.0f : 0.0f;
 
-    spi->QueueDspData(0, 'e', chan, 'l', 1, &values[0]);
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendLowcut() channelindex %d -> fc=%f slope=%u en=%d", chan, fc, slopeIdx, enabled);
+
+    spi->QueueDspData(0, 'e', chan, 'l', 11, &values[0]);
+}
+
+void DSP1::SendHighcut(uint8_t chan)
+{
+    using enum MP_ID;
+
+    float fc     = config->GetFloat(CHANNEL_HIGHCUT_FREQ, chan);
+    float fs     = (float)config->GetUint(SAMPLERATE);
+    bool enabled = config->GetBool(CHANNEL_HIGHCUT_ENABLE, chan);
+
+    sBiquadCoeffs section;
+    fxmath->CalcHighcutBiquad(fc, fs, &section);
+
+    // Non-interleaved 1-section format for SHARC biquad_trans():
+    // [a0, a1, a2, -b1, -b2, enable]
+    float values[6];
+    values[0] = section.a[0];
+    values[1] = section.a[1];
+    values[2] = section.a[2];
+    values[3] = -section.b[1];
+    values[4] = -section.b[2];
+    values[5] = enabled ? 1.0f : 0.0f;
+
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendHighcut() channelindex %d -> fc=%f en=%d", chan, fc, enabled);
+
+    spi->QueueDspData(0, 'e', chan, 'h', 6, &values[0]);
 }
 
 void DSP1::SendEQ(uint chanIndex)
@@ -455,33 +512,38 @@ void DSP1::SendCompressor(uint8_t chanIndex)
 
     using enum MP_ID;
 
-    float values[6];
+    float values[9];
 
     float samplerate = (float)config->GetUint(SAMPLERATE);
     float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
 
-    // threshold
-    //values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
-    values[0] = config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex); // send threshold as dB value, DSP will convert it to linear value for 32-bit fixed point representation
+    // threshold in dBFS
+    values[0] = config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex);
 
-    // pre-calculated ratio
-    values[1] = (1.0f - 1.0f / config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex));
+    // pre-calculated slope (1 - 1/ratio)
+    float slope = (1.0f - 1.0f / config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex));
+    values[1] = slope;
 
-    // makeup
-    values[2] = pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
+    // makeup (linear)
+    values[2] = powf(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
 
-    // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
-    // ln(10%) - ln(90%) = -2.197224577
-    // attack (envelope is recalculated every sample)
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[3] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
-    // hold (hold-timer is calculated every 16 samples, hence every 333 microseconds)
+    // attack / hold / release coefficients
+    float attackMs  = config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex);
+    float releaseMs = config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex);
+    values[3] = (attackMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * attackMs)));
     values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * bufferrate / 1000.0f;
-    // release (envelope is recalculated every sample)
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
+    values[5] = (releaseMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * releaseMs)));
 
-    spi->QueueDspData(0, 'c', chanIndex, 0, 6, &values[0]);
+    // pre-calculated multi-stage quadratic soft-knee parameters (zero divisions on SHARC)
+    uint8_t kneeLevel = (uint8_t)config->GetUint(CHANNEL_DYNAMICS_KNEE, chanIndex);
+    float kneeWidth   = FxMath::GetCompressorKneeWidthDb(kneeLevel);
+    values[6] = 0.5f * kneeWidth;                                            // kneeHalf
+    values[7] = (kneeWidth > 0.0f) ? (-slope / (2.0f * kneeWidth)) : 0.0f;   // kneeCoeff
+
+    // enable flag
+    values[8] = config->GetBool(CHANNEL_COMPRESSOR_ENABLE, chanIndex) ? 1.0f : 0.0f;
+
+    spi->QueueDspData(0, 'c', chanIndex, 0, 9, &values[0]);
 }
 
 void DSP1::SetInputDelay(uint chanIndex)

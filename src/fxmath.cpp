@@ -23,6 +23,7 @@
 */
 
 #include "fxmath.h"
+#include "../lib_ext/doctest/doctest/doctest.h"
 
 namespace OMC
 {
@@ -136,13 +137,90 @@ void FxMath::RecalcFilterCoefficients_PEQ(sPEQ* peq) {
   }
 }
 
-float FxMath::CalcFrequencyResponse_LC(float f, float fc, float fs) {
-  float numerator = f / fc;
-  return 10.0f * log10( numerator / sqrt(1 + numerator * numerator) );
+static void calcFirstOrderHPF(double K, sBiquadCoeffs* s) {
+  double norm = 1.0 / (1.0 + K);
+  s->a[0] = (float)norm;
+  s->a[1] = (float)(-norm);
+  s->a[2] = 0.0f;
+  s->b[0] = 1.0f;
+  s->b[1] = (float)((K - 1.0) * norm);
+  s->b[2] = 0.0f;
+}
+
+static void calcSecondOrderHPF(double K, double Q, sBiquadCoeffs* s) {
+  double K2 = K * K;
+  double norm = 1.0 / (1.0 + K / Q + K2);
+  s->a[0] = (float)(1.0 * norm);
+  s->a[1] = (float)(-2.0 * norm);
+  s->a[2] = (float)(1.0 * norm);
+  s->b[0] = 1.0f;
+  s->b[1] = (float)(2.0 * (K2 - 1.0) * norm);
+  s->b[2] = (float)((1.0 - K / Q + K2) * norm);
+}
+
+static void calcPassthroughBiquad(sBiquadCoeffs* s) {
+  s->a[0] = 1.0f;
+  s->a[1] = 0.0f;
+  s->a[2] = 0.0f;
+  s->b[0] = 1.0f;
+  s->b[1] = 0.0f;
+  s->b[2] = 0.0f;
+}
+
+// Unified N-th order Butterworth HPF (order = slopeIdx + 1: 1=6, 2=12, 3=18, 4=24 dB/oct)
+// Poles of an N-th order Butterworth filter lie at angles theta_k = pi*(2k + 1)/(2N),
+// giving Q_k = 1 / (2 * cos(theta_k)) for each complex-conjugate biquad pair,
+// plus one real first-order pole at s = -wc whenever N is odd.
+void FxMath::CalcLowcutBiquads(float fc, uint8_t slopeIdx, float fs, sBiquadCoeffs sections[2]) {
+  double clampedFc = (double)fc;
+  if (clampedFc < 10.0) clampedFc = 10.0;
+  if (clampedFc > (double)fs * 0.45) clampedFc = (double)fs * 0.45;
+  double K = tan(PI * clampedFc / (double)fs);
+
+  uint8_t order = (slopeIdx > LOWCUT_SLOPE_MAX) ? 4 : (uint8_t)(slopeIdx + 1);
+  calcPassthroughBiquad(&sections[0]);
+  calcPassthroughBiquad(&sections[1]);
+
+  int secIdx = 0;
+  int biquadPairs = order / 2;
+  for (int k = 0; k < biquadPairs; k++) {
+    double theta = (double)PI * (double)(2 * k + 1) / (2.0 * (double)order);
+    double Q = 1.0 / (2.0 * sin(theta));
+    calcSecondOrderHPF(K, Q, &sections[secIdx++]);
+  }
+  if ((order & 1) != 0) {
+    calcFirstOrderHPF(K, &sections[secIdx++]);
+  }
+}
+
+void FxMath::CalcHighcutBiquad(float fc, float fs, sBiquadCoeffs* section) {
+  double clampedFc = (double)fc;
+  if (clampedFc < 20.0) clampedFc = 20.0;
+  if (clampedFc > (double)fs * 0.45) clampedFc = (double)fs * 0.45;
+  double K = tan(PI * clampedFc / (double)fs);
+  double K2 = K * K;
+  double Q = 0.7071067811865476; // 12 dB/oct Butterworth LPF
+  double norm = 1.0 / (1.0 + K / Q + K2);
+
+  section->a[0] = (float)(K2 * norm);
+  section->a[1] = (float)(2.0 * K2 * norm);
+  section->a[2] = (float)(K2 * norm);
+  section->b[0] = 1.0f;
+  section->b[1] = (float)(2.0 * (K2 - 1.0) * norm);
+  section->b[2] = (float)((1.0 - K / Q + K2) * norm);
+}
+
+float FxMath::CalcFrequencyResponse_LC(float f, float fc, float fs, uint8_t slopeIdx) {
+  sBiquadCoeffs sections[2];
+  CalcLowcutBiquads(fc, slopeIdx, fs, sections);
+  return CalcFrequencyResponse_PEQ(sections[0].a[0], sections[0].a[1], sections[0].a[2], sections[0].b[1], sections[0].b[2], f, fs)
+       + CalcFrequencyResponse_PEQ(sections[1].a[0], sections[1].a[1], sections[1].a[2], sections[1].b[1], sections[1].b[2], f, fs);
 }
 
 float FxMath::CalcFrequencyResponse_HC(float f, float fc, float fs) {
-  return 10.0f * log10( 1.0f/sqrt( 1.0f + pow(f/fc, 2.0f) ) );
+  sBiquadCoeffs section;
+  CalcHighcutBiquad(fc, fs, &section);
+  return CalcFrequencyResponse_PEQ(section.a[0], section.a[1], section.a[2], section.b[1], section.b[2], f, fs);
 }
 
 float FxMath::CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1, float b2, float f, float fs) {
@@ -174,13 +252,72 @@ float FxMath::CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1,
 */
 }
 
-float FxMath::CalcPhaseResponse_LC(float f, float fc) {
-    // Phase = arctan(fc / f)
-    return atan2f(fc, f);
+float FxMath::CalcPhaseResponse_LC(float f, float fc, float fs, uint8_t slopeIdx) {
+    sBiquadCoeffs sections[2];
+    CalcLowcutBiquads(fc, slopeIdx, fs, sections);
+    return CalcPhaseResponse_PEQ(sections[0].a[0], sections[0].a[1], sections[0].a[2], 1.0f, sections[0].b[1], sections[0].b[2], f, fs)
+         + CalcPhaseResponse_PEQ(sections[1].a[0], sections[1].a[1], sections[1].a[2], 1.0f, sections[1].b[1], sections[1].b[2], f, fs);
 }
-float FxMath::CalcPhaseResponse_HC(float f, float fc) {
-    // Phase = arctan(-f / fc)
-    return atan2f(-f, fc);
+
+float FxMath::CalcPhaseResponse_HC(float f, float fc, float fs) {
+    sBiquadCoeffs section;
+    CalcHighcutBiquad(fc, fs, &section);
+    return CalcPhaseResponse_PEQ(section.a[0], section.a[1], section.a[2], 1.0f, section.b[1], section.b[2], f, fs);
+}
+
+float FxMath::GetCompressorKneeWidthDb(uint8_t kneeLevel) {
+    static const float kneeWidths[6] = { 0.0f, 6.0f, 12.0f, 18.0f, 26.0f, 36.0f };
+    if (kneeLevel > DYNAMICS_KNEE_MAX) {
+        kneeLevel = DYNAMICS_KNEE_MAX;
+    }
+    return kneeWidths[kneeLevel];
+}
+
+float FxMath::CalcCompressorOutputDb(float inputDb, float thresholdDb, float ratio, uint8_t kneeLevel) {
+    float slope = 1.0f - (1.0f / ratio);
+    float kneeWidth = GetCompressorKneeWidthDb(kneeLevel);
+    float kneeHalf = 0.5f * kneeWidth;
+    float overshoot = inputDb - thresholdDb;
+
+    if (overshoot >= kneeHalf) {
+        if (overshoot > 0.0f) {
+            return inputDb - (overshoot * slope);
+        }
+        return inputDb;
+    } else if (overshoot > -kneeHalf) {
+        float u = overshoot + kneeHalf;
+        float gainReductionDb = -(slope / (2.0f * kneeWidth)) * (u * u);
+        return inputDb + gainReductionDb;
+    }
+    return inputDb;
+}
+
+float FxMath::GetGateExpanderSlope(uint8_t mode) {
+    // 0 = Hard Gate (0.0f sentinel), 1 = Exp 2:1 (slope 1.0), 2 = Exp 3:1 (slope 2.0), 3 = Exp 4:1 (slope 3.0)
+    static const float slopes[4] = { 0.0f, 1.0f, 2.0f, 3.0f };
+    if (mode > GATE_MODE_MAX) {
+        mode = 0;
+    }
+    return slopes[mode];
+}
+
+float FxMath::CalcGateOutputDb(float inputDb, float thresholdDb, float rangeDb, uint8_t mode) {
+    if (inputDb >= thresholdDb) {
+        return inputDb;
+    }
+
+    float expSlope = GetGateExpanderSlope(mode);
+    if (expSlope == 0.0f) {
+        // Hard Gate: drop by full range below threshold
+        return inputDb - rangeDb;
+    }
+
+    // Downward Expander: attenuate by (inputDb - thresholdDb) * expSlope, clamped to -rangeDb
+    float attenDb = (inputDb - thresholdDb) * expSlope;
+    if (attenDb < -rangeDb) {
+        attenDb = -rangeDb;
+    }
+    return inputDb + attenDb;
 }
 
 float FxMath::CalcPhaseResponse_PEQ(float a0, float a1, float a2, float b0, float b1, float b2, float f, float fs) {
@@ -420,6 +557,38 @@ void FxMath::fxCalcParameters_DynamicEQ(float data[], int band, int type, float 
   float fs = (float)config->GetUint(MP_ID::SAMPLERATE)/(16.0f); // 16 samples per buffer
   data[9] = 1.0f - exp(-1000.0f / (fs * attack)); // convert ms to coeff
   data[10] = 1.0f - exp(-1000.0f / (fs * release)); // convert ms to coeff
+}
+
+TEST_CASE("FxMath - Butterworth LowCut 6/12/18/24 dB/oct and HighCut 12 dB/oct")
+{
+    X32BaseParameter bp(nullptr, nullptr, nullptr, nullptr);
+    FxMath fx(&bp);
+    const float fs = 48000.0f;
+
+    for (uint8_t slope = 0; slope <= LOWCUT_SLOPE_MAX; slope++) {
+        float atFc = fx.CalcFrequencyResponse_LC(200.0f, 200.0f, fs, slope);
+        float atPass = fx.CalcFrequencyResponse_LC(4000.0f, 200.0f, fs, slope);
+        CHECK(atFc == doctest::Approx(-3.0103f).epsilon(0.05f));
+        CHECK(atPass == doctest::Approx(0.0f).epsilon(0.05f));
+    }
+
+    CHECK(fx.CalcFrequencyResponse_HC(4000.0f, 4000.0f, fs) == doctest::Approx(-3.0103f).epsilon(0.05f));
+    CHECK(fx.CalcFrequencyResponse_HC(100.0f, 4000.0f, fs) == doctest::Approx(0.0f).epsilon(0.02f));
+}
+
+TEST_CASE("FxMath - Compressor 6-stage knee (0 to 36 dB) and Gate/Expander")
+{
+    CHECK(FxMath::GetCompressorKneeWidthDb(0) == 0.0f);
+    CHECK(FxMath::GetCompressorKneeWidthDb(5) == 36.0f);
+
+    // At threshold (-18 dB, ratio 99:1), Hard knee has 0 dB reduction, Soft 5 (W=36) has -S*W/8 = -4.4545 dB
+    CHECK(FxMath::CalcCompressorOutputDb(-18.0f, -18.0f, 99.0f, 0) == doctest::Approx(-18.0f).epsilon(0.01f));
+    CHECK(FxMath::CalcCompressorOutputDb(-18.0f, -18.0f, 99.0f, 5) == doctest::Approx(-22.4545f).epsilon(0.05f));
+
+    // Gate vs Expander 2:1
+    CHECK(FxMath::CalcGateOutputDb(-30.0f, -20.0f, 40.0f, 0) == doctest::Approx(-70.0f).epsilon(0.01f)); // Hard gate
+    CHECK(FxMath::CalcGateOutputDb(-30.0f, -20.0f, 40.0f, 1) == doctest::Approx(-40.0f).epsilon(0.01f)); // Exp 2:1
+    CHECK(FxMath::CalcGateOutputDb(-70.0f, -20.0f, 40.0f, 1) == doctest::Approx(-110.0f).epsilon(0.01f)); // Clamped at range
 }
 
 }
