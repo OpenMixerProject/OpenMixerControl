@@ -25,6 +25,8 @@
 #include "spi.h"
 
 #include <string.h>
+#include <errno.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <linux/spi/spidev.h>
 #include <linux/gpio.h>
@@ -32,10 +34,12 @@
 
 #include "defines.h"
 
+#define FPGA_SPI_LOCK_PATH "/run/openx32-fpga-spi.lock"
+
 namespace OMC
 {
 
-SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar) {}
+SPI::SPI(X32BaseParameter* basepar) : X32Base(basepar), spiFpgaHandle(-1), spiFpgaLockFd(-1) {}
 
 // configures a Xilinx Spartan 3A via SPI
 // accepts path to bitstream-file
@@ -901,12 +905,21 @@ bool SPI::OpenConnectionFpga()
     ioctl(spiFpgaHandle, SPI_IOC_WR_MODE, &spiMode);
     ioctl(spiFpgaHandle, SPI_IOC_WR_BITS_PER_WORD, &spiBitsPerWord);
     ioctl(spiFpgaHandle, SPI_IOC_WR_MAX_SPEED_HZ, &spiSpeed);
+
+    if (spiFpgaLockFd < 0) {
+        spiFpgaLockFd = open(FPGA_SPI_LOCK_PATH, O_CREAT | O_RDWR, 0666);
+    }
     return true;
 }
 
 bool SPI::CloseConnectionFpga() {
     if (spiFpgaHandle >= 0) {
         close(spiFpgaHandle);
+        spiFpgaHandle = -1;
+    }
+    if (spiFpgaLockFd >= 0) {
+        close(spiFpgaLockFd);
+        spiFpgaLockFd = -1;
     }
     return true;
 }
@@ -958,7 +971,7 @@ bool SPI::CloseConnectionDsps() {
 }
 
 bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) {
-//    if (!connected) return false; // this line prevents SPI-communication at the moment
+    if (spiFpgaHandle < 0) return false;
 
     struct spi_ioc_transfer tr = {0};
 
@@ -971,11 +984,48 @@ bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) {
     tr.len = len;
     tr.speed_hz = SPI_FPGA_SPEED_HZ;
 
+    if (spiFpgaLockFd >= 0) {
+        while (flock(spiFpgaLockFd, LOCK_EX) < 0 && errno == EINTR) {}
+    }
     setFpgaChipSelectPin(true); // assert ChipSelect
     int ret = ioctl(spiFpgaHandle, SPI_IOC_MESSAGE(1), &tr); // send via SPI
-	setFpgaChipSelectPin(false); // deassert ChipSelect
+    setFpgaChipSelectPin(false); // deassert ChipSelect
+    if (spiFpgaLockFd >= 0) {
+        while (flock(spiFpgaLockFd, LOCK_UN) < 0 && errno == EINTR) {}
+    }
 
     return (ret >= 0);
+}
+
+bool SPI::FpgaWriteReg32(uint16_t addr, uint32_t value) {
+    uint8_t tx[7] = {
+        0xA5,
+        (uint8_t)((addr >> 8) & 0xFF),
+        (uint8_t)(addr & 0xFF),
+        (uint8_t)((value >> 24) & 0xFF),
+        (uint8_t)((value >> 16) & 0xFF),
+        (uint8_t)((value >> 8) & 0xFF),
+        (uint8_t)(value & 0xFF)
+    };
+    uint8_t rx[7] = {0};
+    return SendFpgaData(tx, rx, sizeof(tx));
+}
+
+bool SPI::FpgaReadReg32(uint16_t addr, uint32_t* value) {
+    if (!value) return false;
+    uint8_t tx[8] = {
+        0x5A,
+        (uint8_t)((addr >> 8) & 0xFF),
+        (uint8_t)(addr & 0xFF),
+        0, 0, 0, 0, 0
+    };
+    uint8_t rx[8] = {0};
+    if (!SendFpgaData(tx, rx, sizeof(tx))) return false;
+    *value = ((uint32_t)rx[4] << 24) |
+             ((uint32_t)rx[5] << 16) |
+             ((uint32_t)rx[6] << 8)  |
+             (uint32_t)rx[7];
+    return true;
 }
 
 void SPI::QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]) {
