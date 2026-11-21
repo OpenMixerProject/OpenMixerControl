@@ -505,9 +505,11 @@ void Mixer::halSendGain(uint8_t dspChannel) {
             // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
             dsp->SendChannelVolume(dspChannel);
         }
-        // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
+        // AES50B input
         else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48)))
-        {    
+        {
+            fpga->AES50SetHeadampGain(1, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50B + 1, config->GetFloat(CHANNEL_GAIN, dspChannel));
+            dsp->SendChannelVolume(dspChannel);
         }
     }
 }
