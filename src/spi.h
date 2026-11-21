@@ -89,6 +89,7 @@ class SPI : public X32Base {
     sSpiTxRingBuffer spiTxRingBuffer[2]; // for both DSPs
     int spiDspHandle[2];
     int spiFpgaHandle;
+    int spiboneHandle;
     std::list<SpiEvent*> eventBuffer;
 
     void toggleFpgaProgramnPin(uint32_t assertTime, uint32_t waitTime);
@@ -117,6 +118,9 @@ class SPI : public X32Base {
     bool CloseConnectionDsps();
 
     bool SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len);
+    bool HasSpibone() const { return spiboneHandle >= 0; }
+    bool FpgaWbWrite32(uint32_t addr, uint32_t value);
+    bool FpgaWbRead32(uint32_t addr, uint32_t* value);
 
     void QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]);
     void ProcessDspTxQueue(uint8_t dsp);
