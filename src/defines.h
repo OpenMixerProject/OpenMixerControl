@@ -73,6 +73,7 @@ typedef unsigned int uint;
 #define GATE_HOLD_MAX                2000.0f // ms
 #define GATE_RELEASE_MIN                5.0f // ms
 #define GATE_RELEASE_MAX             4000.0f // ms
+#define GATE_MODE_MAX                      3 // 0=Gate, 1=Exp 2:1, 2=Exp 3:1, 3=Exp 4:1
 
 #define DYNAMICS_THRESHOLD_MIN            -60.0f // dB
 #define DYNAMICS_THRESHOLD_MAX              0.0f // dB
@@ -86,6 +87,16 @@ typedef unsigned int uint;
 #define DYNAMICS_HOLD_MAX           2000.0f // ms
 #define DYNAMICS_RELEASE_MIN          5.0f // ms
 #define DYNAMICS_RELEASE_MAX        4000.0f // ms
+#define DYNAMICS_KNEE_MAX                  5 // 0=Hard, 1..5=increasing soft knee
+
+#define LOWCUT_FREQ_MIN               20.0f // Hz
+#define LOWCUT_FREQ_MAX              600.0f // Hz
+#define LOWCUT_FREQ_DEFAULT           80.0f // Hz
+#define LOWCUT_SLOPE_MAX                  3 // 0=6dB/oct, 1=12dB/oct, 2=18dB/oct, 3=24dB/oct
+
+#define HIGHCUT_FREQ_MIN            1000.0f // Hz
+#define HIGHCUT_FREQ_MAX           20000.0f // Hz
+#define HIGHCUT_FREQ_DEFAULT       20000.0f // Hz
 
 #define MAX_FX_SLOTS                    8
 

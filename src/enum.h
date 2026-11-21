@@ -123,6 +123,9 @@ enum class MP_UOM {
     CARD_AUDIO_SOURCE,
     PANORAMA,
     BANKING_EQ,
+    FILTER_SLOPE,
+    GATE_MODE,
+    DYNAMICS_KNEE,
 };
 
 enum class MP_VALUE_TYPE {
@@ -499,8 +502,14 @@ enum class MP_ID {
     DMX_ARTNET_VALUE = 279,
     //DMX_ARTNET_OFFSET,
 
+    CHANNEL_LOWCUT_SLOPE = 280,
+    CHANNEL_HIGHCUT_ENABLE = 281,
+    CHANNEL_HIGHCUT_FREQ = 282,
+    CHANNEL_DYNAMICS_KNEE = 283,
+    CHANNEL_GATE_MODE = 284,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 280
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 285
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

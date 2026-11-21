@@ -717,6 +717,15 @@ namespace OMC
         ->DefMinMaxStandard_Float(GATE_RELEASE_MIN, GATE_RELEASE_MAX, 250.0f, 0)
         ->DefOSC("ch_gate_release");
 
+        DefParameter(CHANNEL_GATE_MODE, cat, "Mode", MAX_VCHANNELS)
+        ->DefNameShort("GtMod")
+        ->DefUOM(MP_UOM::GATE_MODE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, GATE_MODE_MAX, 0)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_gate_mode");
+
         // dynamics
         cat = MP_CAT::CHANNEL_DYNAMICS;
 
@@ -762,6 +771,15 @@ namespace OMC
         ->DefMinMaxStandard_Float(DYNAMICS_RELEASE_MIN, DYNAMICS_RELEASE_MAX, 150.0f, 0)
         ->DefOSC("ch_dyn_release");
 
+        DefParameter(CHANNEL_DYNAMICS_KNEE, cat, "Knee", MAX_VCHANNELS)
+        ->DefNameShort("Knee")
+        ->DefUOM(MP_UOM::DYNAMICS_KNEE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, DYNAMICS_KNEE_MAX, 0)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_dyn_knee");
+
         // EQ
         cat = MP_CAT::CHANNEL_EQ;
 
@@ -775,8 +793,30 @@ namespace OMC
         ->DefUOM(MP_UOM::HZ)
         ->DefStepmode(1) // frequency mode
         ->DefStepsize(1)
-        ->DefMinMaxStandard_Float(20.0f, 400.0f, 0.0f)
+        ->DefMinMaxStandard_Float(LOWCUT_FREQ_MIN, LOWCUT_FREQ_MAX, LOWCUT_FREQ_DEFAULT)
         ->DefOSC("ch_locut_freq");
+
+        DefParameter(CHANNEL_LOWCUT_SLOPE, cat, "LC Slope", MAX_VCHANNELS)
+        ->DefNameShort("Slope")
+        ->DefUOM(MP_UOM::FILTER_SLOPE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, LOWCUT_SLOPE_MAX, 1)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_locut_slope");
+
+        DefParameter(CHANNEL_HIGHCUT_ENABLE, cat, "Highcut Enable", MAX_VCHANNELS)
+        ->DefNameShort("HC En")
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_hicut");
+
+        DefParameter(CHANNEL_HIGHCUT_FREQ, cat, "Highcut", MAX_VCHANNELS)
+        ->DefNameShort("HC Fr")
+        ->DefUOM(MP_UOM::HZ)
+        ->DefStepmode(1) // frequency mode
+        ->DefStepsize(1)
+        ->DefMinMaxStandard_Float(HIGHCUT_FREQ_MIN, HIGHCUT_FREQ_MAX, HIGHCUT_FREQ_DEFAULT)
+        ->DefOSC("ch_hicut_freq");
 
         DefParameter(CHANNEL_EQ_ENABLE, cat, "EQ Enable", MAX_VCHANNELS)
         ->DefNameShort("EQ En")

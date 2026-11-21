@@ -73,6 +73,9 @@ namespace OMC
                     return "<C>";
                 }
             case BANKING_EQ:
+            case FILTER_SLOPE:
+            case GATE_MODE:
+            case DYNAMICS_KNEE:
                 return GetUnitOfMesaurement(false, index, isResetLabel);
                 break;
             default:
@@ -398,6 +401,72 @@ namespace OMC
                         break;
                     case 1:
                         result += String("CARD");
+                        break;
+                }
+                break;
+            case FILTER_SLOPE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 0:
+                        result += String("6 dB/oct");
+                        break;
+                    case 1:
+                        result += String("12 dB/oct");
+                        break;
+                    case 2:
+                        result += String("18 dB/oct");
+                        break;
+                    case 3:
+                        result += String("24 dB/oct");
+                        break;
+                    default:
+                        result += String("12 dB/oct");
+                        break;
+                }
+                break;
+            case GATE_MODE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 0:
+                        result += String("Gate");
+                        break;
+                    case 1:
+                        result += String("Exp 2:1");
+                        break;
+                    case 2:
+                        result += String("Exp 3:1");
+                        break;
+                    case 3:
+                        result += String("Exp 4:1");
+                        break;
+                    default:
+                        result += String("Gate");
+                        break;
+                }
+                break;
+            case DYNAMICS_KNEE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 0:
+                        result += String("Hard");
+                        break;
+                    case 1:
+                        result += String("Soft 1");
+                        break;
+                    case 2:
+                        result += String("Soft 2");
+                        break;
+                    case 3:
+                        result += String("Soft 3");
+                        break;
+                    case 4:
+                        result += String("Soft 4");
+                        break;
+                    case 5:
+                        result += String("Soft 5");
+                        break;
+                    default:
+                        result += String("Hard");
                         break;
                 }
                 break;
