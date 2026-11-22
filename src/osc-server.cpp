@@ -82,6 +82,7 @@ namespace OMC
         
         if (bytes_available > 0)
         {
+            socklen_t xremoteClientAddrLen = sizeof(ClientAddr);
             struct sockaddr_in senderAddr;
             socklen_t senderAddrLen = sizeof(senderAddr);
         
