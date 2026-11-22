@@ -65,10 +65,12 @@ namespace OMC
         oscPaths = config->GetOscPaths();
         config->oscCapabilities.insert("scene_save");
         config->oscCapabilities.insert("scene_load");
-        if (recorder && !state->bodyless && !state->raspi && !config->IsModelAnyWing() &&
-            config->GetUint(MP_ID::CARD_TYPE) == (uint)CARD::XLIVE)
-        { config->oscCapabilities.insert("recorder_xlive_transport"); }
+        if (recorder && !state->bodyless && !state->raspi && !config->IsModelAnyWing() && config->GetUint(MP_ID::CARD_TYPE) == (uint)CARD::XLIVE)
+        {
+            config->oscCapabilities.insert("recorder_xlive_transport");
+        }
         config->oscCapabilities.insert("surface_subscription");
+
         config->surfaceObserver = [this](SurfaceElement* element, const char* action, float value)
         {
             ObserveSurface(element, action, value);
@@ -84,19 +86,34 @@ namespace OMC
         int bytes_available = 0;
         
         // check for bytes in UDP-buffer
-        ioctl(UdpHandle, FIONREAD, &bytes_available);
+        if (ioctl(UdpHandle, FIONREAD, &bytes_available) < 0)
+        {
+            return;
+        }
         
         if (bytes_available > 0)
         {
-            socklen_t xremoteClientAddrLen = sizeof(ClientAddr);
             struct sockaddr_in senderAddr;
             socklen_t senderAddrLen = sizeof(senderAddr);
         
-            ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
-            if (len <= 0 || len >= sizeof(rxData)) { return; }
+            ssize_t len = recvfrom(
+                UdpHandle,
+                rxData,
+                sizeof(rxData) -1,
+                0,
+                reinterpret_cast<struct sockaddr*>(&senderAddr),
+                &senderAddrLen
+            );
+            
+            if (len <= 0 || len >= sizeof(rxData))
+            {
+                return;
+            }
+
+            rxData[len] = '\0';
 
             tosc_message osc;
-            if (!tosc_parseMessage(&osc, rxData, len))
+            if (!tosc_parseMessage(&osc, rxData, static_cast<int>(len)))
             {
                 // Client has send data: remember it as the target for Sync().
                 // Only valid OSC messages update the client address, so a stray
@@ -277,7 +294,7 @@ namespace OMC
         if (size > 0) { SendUdpPacket(TxMessage, size); }
         return true;
     }
-    
+
     void OscServer::ExpireObservers()
     {
         auto now = std::chrono::steady_clock::now();
