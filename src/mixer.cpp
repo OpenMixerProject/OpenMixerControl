@@ -523,41 +523,4 @@ void Mixer::halSendGain(uint8_t dspChannel) {
     }
 }
 
-
-// enable or disable phantom power of local XLR-inputs
-void Mixer::halSendPhantomPower(uint8_t dspChannel) {
-    // get the channel-number of the internal DSP-routing
-    uint8_t internalDspSourceIndex = config->GetUint(ROUTING_DSP_INPUT, dspChannel);
-
-    // check if we are using an external signal (possibly with gain) or DSP-internal (no gain)
-    if ((internalDspSourceIndex >= 1) && (internalDspSourceIndex <= MAX_FPGA_TO_DSP1_CHANNELS)) {
-        // we are connected to one of the DSP-inputs
-
-        // check if we are connected to a channel with gain
-        uint8_t externalDspSourceIndex = config->GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (internalDspSourceIndex - 1));
-
-        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32))) {
-            // XLR-input
-
-            // send value to adda-board
-            uint8_t boardId = adda->GetXlrInBoardId(externalDspSourceIndex);
-
-            if (boardId < 4) {
-                uint8_t addaChannel = externalDspSourceIndex;
-                while (addaChannel > 8) {
-                    addaChannel -= 8;
-                }
-                adda->SetGain(boardId, addaChannel, config->GetFloat(CHANNEL_GAIN,  dspChannel), config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-            }
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48))) {
-            // AES50A input
-            fpga->AES50SetPhantomPowerState(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input
-            fpga->AES50SetPhantomPowerState(1, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50B + 1, config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-        }
-    }
-}
-
 }
