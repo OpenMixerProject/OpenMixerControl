@@ -60,5 +60,8 @@ struct spibone_raw_message {
 #define SPIBONE_IOC_GET_STATE	_IOR(SPIBONE_IOC_MAGIC, 5, __u32)
 #define SPIBONE_IOC_SET_STATE	_IOW(SPIBONE_IOC_MAGIC, 6, __u32)
 #define SPIBONE_IOC_RAW_MESSAGE	_IOW(SPIBONE_IOC_MAGIC, 7, struct spibone_raw_message)
+/* WING only: privileged loader calls from OFFLINE after image verification and
+ * CDONE, passing the manifest BUILD_ID. Never use as a probe for unknown images. */
+#define SPIBONE_IOC_WING_ENABLE	_IOW(SPIBONE_IOC_MAGIC, 8, __u32)
 
 #endif /* _UAPI_SPIBONE_H */
