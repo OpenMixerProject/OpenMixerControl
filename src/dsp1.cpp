@@ -344,7 +344,7 @@ void DSP1::SendGate(uint chanIndex)
 
     float samplerate = (float)config->GetUint(SAMPLERATE);
     float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
-    float values[5];
+    float values[6];
 
     // threshold
     values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_GATE_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
@@ -366,7 +366,9 @@ void DSP1::SendGate(uint chanIndex)
     // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
     values[4] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
 
-    spi->QueueDspData(0, 'g', chanIndex, 0, 5, &values[0]);
+    values[5] = config->GetBool(CHANNEL_GATE_ENABLE, chanIndex) ? 1.0f : 0.0f;
+
+    spi->QueueDspData(0, 'g', chanIndex, 0, 6, &values[0]);
 }
 
 void DSP1::SendLowcut(uint8_t chan)
