@@ -371,17 +371,18 @@ void DSP1::SendGate(uint chanIndex)
 
 void DSP1::SendLowcut(uint8_t chan)
 {
-    float values[1];
+    float values[2];
 
     // Source: https://www.dsprelated.com/showarticle/1769.php
     // alpha = 1 / (1 + 2 * pi * f_c * 1/f_s)
     // Equation for samples: output = alpha * (input + previous_output - previous_input)
     values[0] = 1.0f / (1.0f + 2.0f * M_PI * config->GetFloat(CHANNEL_LOWCUT_FREQ, chan) * (1.0f/(float)config->GetUint(SAMPLERATE)));
+    values[1] = config->GetBool(CHANNEL_LOWCUT_ENABLE, chan) ? 1.0f : 0.0f;
 
     helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendLowcut() channelindex %d -> %f", chan, values[0]);
 
 
-    spi->QueueDspData(0, 'e', chan, 'l', 1, &values[0]);
+    spi->QueueDspData(0, 'e', chan, 'l', 2, &values[0]);
 }
 
 void DSP1::SendEQ(uint chanIndex)
