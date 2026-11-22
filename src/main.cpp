@@ -50,6 +50,11 @@
 #include "version.h"
 #include "omc.h"
 #include "wing-wdsp.h"
+#ifdef TARGET_WING
+#include "wing-t55-control.h"
+#include "osc-server.h"
+#include <poll.h>
+#endif
 
 #define DOCTEST_CONFIG_IMPLEMENT // we start doctest within our own main()
 #include "../lib_ext/doctest/doctest/doctest.h"
@@ -358,6 +363,29 @@ namespace OMC
 			//->default_str("dsp2.ldr")
 			->configurable(false);
 
+#ifdef TARGET_WING
+		std::string wingReceipt;
+		std::unique_ptr<WingT55Control> wingT55;
+		std::vector<uint32_t> wingRoute;
+		uint32_t wingConfig = 0;
+		auto* receiptOpt = app->add_option("--wing-t55-loaded", wingReceipt,
+			"Check WING Compact T55 fabric using the trusted loader receipt, then exit")
+			->option_text("/run/omc-wing-fpga.json")->configurable(false);
+		auto* recoveryOpt = app->add_flag("--wing-t55-recovery", "Use raw SPI only with a verified Recovery image")
+			->needs(receiptOpt)->configurable(false);
+		auto* wingRun = app->add_flag("--wing-t55-run", "Serve the local WING UI with verified matrix readback")
+			->excludes(recoveryOpt)
+			->needs(receiptOpt)->configurable(false);
+		auto* wingUiOffline = app->add_flag("--wing-t55-ui-offline", "Test local OSC with OMC software state, no hardware initialization")
+			->excludes(receiptOpt)->configurable(false);
+		auto* routeOpt = app->add_option("--wing-t55-route", wingRoute,
+			"Set one verified native T55 route (manifest destination, source; 0 source is OFF)")
+			->expected(2)->option_text("DEST SOURCE")->needs(receiptOpt)->excludes(wingRun)->configurable(false);
+		auto* configOpt = app->add_option("--wing-t55-config", wingConfig,
+			"Set and read back Recovery CONFIG_FLAGS (0..255)")
+			->needs(recoveryOpt)->excludes(routeOpt)->excludes(wingRun)->configurable(false);
+#endif
+
 		// debugging commandline option	
 		app->add_flag("-b,--bodyless", state->bodyless, "Enables a special mode to run omc in a different enviroment than a X32 mixer.")
 				->configurable(false)
@@ -442,6 +470,9 @@ namespace OMC
 		auto* wingBypass = app->add_flag("--wing-overdrive-bypass", "Bypass DSP4 pair 0")->configurable(false);
 		wingSet->excludes(wingBypass)->excludes(wingIdentify);
 		wingBypass->excludes(wingIdentify);
+		for (auto* diagnostic : {wingIdentify, wingSet, wingBypass}) {
+			diagnostic->excludes(receiptOpt)->excludes(wingUiOffline);
+		}
 #endif
 		CLI11_PARSE(*app, argc, argv);
 
@@ -488,6 +519,50 @@ namespace OMC
 			printf("%s build on %s %s\n\n%s\n", GIT_VERSION, __DATE__, __TIME__, OMC_URL);
 			return 0;
 		}
+
+#ifdef TARGET_WING
+		if (receiptOpt->count()) {
+			if (state->bodyless || state->raspi || app->count("--client") || app->count("--osc-doc") ||
+			    app->count("--L") || app->count("--X") || app->count("--D1") || app->count("--D2")) {
+				fprintf(stderr, "T55 control cannot be combined with legacy or non-hardware modes\n");
+				return 1;
+			}
+			try {
+				wingT55 = std::make_unique<WingT55Control>(wingReceipt, recoveryOpt->count() != 0);
+				if (routeOpt->count()) wingT55->SetRoute(wingRoute[0], wingRoute[1]);
+				if (configOpt->count()) wingT55->SetConfig(wingConfig);
+				printf("WING T55 fabric ready: BUILD_ID=0x%08x, matrix capacity %u × %u%s\n",
+					wingT55->BuildId(), wingT55->NumInputs(), wingT55->NumOutputs(),
+					routeOpt->count() || configOpt->count() ? "; write verified" : "");
+				if (!wingRun->count()) return 0;
+			} catch (const std::exception& e) {
+				fprintf(stderr, "WING T55 control: %s\n", e.what());
+				return 1;
+			}
+		}
+		if (wingRun->count() || wingUiOffline->count()) {
+			if (wingUiOffline->count() && argc != 2) {
+				fprintf(stderr, "--wing-t55-ui-offline must be used alone\n");
+				return 1;
+			}
+			// Do not start the legacy mixer, network services or device probes.
+			Config config("WINGC", helper, false);
+			LoadVChannelLayout(&config);
+			X32BaseParameter base(app, &config, state, helper);
+			OscServer osc(&base, true, wingT55.get());
+			if (osc.Init() != 0) {
+				fprintf(stderr, "Cannot bind local WING OSC at 127.0.0.1:10032\n");
+				return 1;
+			}
+			pollfd fd{osc.UdpHandle, POLLIN, 0};
+			for (;;) {
+				const int ready = poll(&fd, 1, -1);
+				if (ready < 0 && errno == EINTR) continue;
+				if (ready < 0 || !(fd.revents & POLLIN)) return 1;
+				osc.UdpHandleCommunication();
+			}
+		}
+#endif
 
 		//##################################################################################
 		//#

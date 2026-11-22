@@ -76,6 +76,60 @@ development package for device-mocked verification.
 - **lib_ext:** libraries we load from external sources in the build process, folder is created on buildtime
 - **src:** our sources
 
+## WING Compact T55 control
+
+Build with `./compile.sh TARGET_WING` on Debian 13 with the `arm-linux-gnueabihf`
+toolchain. The static executable is `build/wing/omc`. Package it with
+`transport=spibone`, the SHA-256 of `src/spibone_uapi.h` and the matching
+`dsp_board_profile_sha256` in OpenWING's OMC provenance.
+
+`wing-t55 check` verifies fabric readiness; `wing-t55 run` starts the local UI
+server. OMC requires the loader's boot-local receipt, shared loader lock,
+manifest digest and matching live SPIBone ONLINE, identity and routing Ready.
+It does not program the FPGA, boot a DSP, start legacy services or enable audio.
+The separate WDSP bench commands above are unchanged.
+
+An operator can set one route with `omc --wing-t55-loaded /run/omc-wing-fpga.json
+--wing-t55-route DEST SOURCE`. Use the zero-based manifest destination and the
+native source selector (`0` is OFF). OMC checks exported endpoint IDs and reads
+the selector back after writing; it never retries an uncertain write. Routes
+are not part of scenes. Raw SPI and `--wing-t55-config` require explicit
+`--wing-t55-recovery` and a matching schema-1 Recovery receipt; there is no fallback.
+
+The OpenWING-ui profile uses UDP loopback ports 10032 (OMC) and 10033 (UI).
+It serves a 32-input software snapshot with name, fader and mute values. Only
+`/set/ch_name/<1–32>` is writable: up to 32 UTF-8 bytes, nonblank and without
+control characters. `/result/ch_name/<channel>` reports the stored name;
+invalid names return `/result/ch_name_error/<channel>`. Names are not persisted.
+`/get/t55_matrix/1` reports DSP and AES50 B endpoints and passive selector reads.
+Unreadable or unmapped selectors are unknown, not OFF. `--wing-t55-ui-offline`
+can serve the installed catalog but never opens a device.
+
+`local_io` catalogs stock Compact ADC/DAC pads and slots (24 LOCAL IN, eight
+LOCAL OUT, AUX OUT 7/8). Stock AE IDs are references, not T55 selectors or
+verified jack numbers. The offline encoder updates a 27-byte head-amp image;
+it has no runtime caller or verified dB conversion. Current gateware has no
+ADDA transport.
+
+The UAPI is from [Mala's SPIBone driver](https://github.com/malarisch/OpenAudioFPGA/commit/7d2869acdcff4a0a1952b74bf9b5fe45e37ff7dd)
+plus the OpenWING loader's `WING_ENABLE` ioctl definition. Register access follows
+[Mala's OMC Wishbone design](https://github.com/malarisch/OpenMixerControl/commit/a136388a92dc73c9d0d983eed1386260553d9d91).
+
+Run the device-mocked tests as root on isolated Linux with `/run` on tmpfs,
+kernel AF_ALG SHA-256 and the fetched Glaze headers:
+
+```sh
+g++ -std=c++23 -DTARGET_WING -Ilib_ext/glaze/include \
+    tests/wing-t55-control.cpp src/wing-t55-control.cpp \
+    -Wl,--wrap=open,--wrap=lstat,--wrap=close,--wrap=ioctl -o build/wing-t55-control-test
+build/wing-t55-control-test
+c++ -std=c++23 -DTARGET_WING tests/wing-local-io.cpp src/wing-local-io.cpp -o build/wing-local-io-test
+build/wing-local-io-test
+```
+
+With no installed T55 manifest, test the UI wire contract with
+`python3 tests/wing-t55-ui.py qemu-arm build/wing/omc` (omit `qemu-arm` on ARM).
+
 ## Plans, Vision, Future
 
 The big plan on one page :-)
