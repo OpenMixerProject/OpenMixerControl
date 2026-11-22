@@ -712,3 +712,5 @@ int Fpga::wrapRingBufferIndex(int index, int bufLen) {
 String Fpga::AES50GetConnectedDeviceName() {
 	return String(AES50ConnectedDeviceName);
 }
+
+}
