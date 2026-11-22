@@ -76,6 +76,7 @@ class Fpga : public X32Base
       	uint8_t AES50Device;
         bool AES50CalcChecksum(char* buf, bool insertChecksum);
         int wrapRingBufferIndex(int index, int bufLen);
+        uint8_t fixRoutingForDifferentProductTypes(uint8_t signalSource);
 };
 
 }
