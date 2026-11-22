@@ -112,6 +112,7 @@ enum class MP_UOM {
     EQ_TYPE,
     FX_TYPE,
     FPGA_ROUTING,
+    FPGA_ROUTING_OUTPUT,
     DSP_ROUTING,
     TAPPOINT,
     ZERO_BASED_INDEX__START_BY_ONE,
@@ -502,8 +503,12 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    CHANNEL_INSERT_ENABLE = 282,
+    CHANNEL_INSERT_SEND = 283,
+    CHANNEL_INSERT_RETURN = 284,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 285
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

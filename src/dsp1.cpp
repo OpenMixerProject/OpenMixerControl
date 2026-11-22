@@ -60,22 +60,10 @@ void DSP1::Init()
 
 bool DSP1::ChannelHasAdjustableGain(uint chanIndex)
 {
-    // check if channel has an adjustable gain
-    uint dspChannelInputRouting = config->GetUint(ROUTING_DSP_INPUT, chanIndex);
-    uint dspChannelFpgaSource = config->GetUint(ROUTING_FPGA, dspChannelInputRouting + 72);
-
-    // check if channel uses external signal from FPGA
-    if ((dspChannelInputRouting >= DSP_BUF_IDX_DSPCHANNEL) && (dspChannelInputRouting < (DSP_BUF_IDX_AUX + 8)))
-    {
-        // this channel gets its input from the FPGA. Now check if it has an adjustable gain
-        if (((dspChannelFpgaSource >= FPGA_INPUT_IDX_XLR) && (dspChannelFpgaSource < FPGA_INPUT_IDX_XLR + 32)) ||
-            (dspChannelFpgaSource >= FPGA_INPUT_IDX_AES50A && dspChannelFpgaSource < FPGA_INPUT_IDX_AES50A + 48))
-        {
-            return true;
-        }
-    }
-
-    return false;
+    // Always resolve headamp capability from the channel's logical physical input
+    // so preamp control stays bound to the channel even when an insert is active.
+    uint dspChannelFpgaSource = config->GetChannelLogicalFpgaInput(chanIndex);
+    return config->IsFpgaInputHeadamp(dspChannelFpgaSource);
 }
 
 float DSP1::CompensateGainAndVolume(float targetGainDb, float targetVolumeDb)
@@ -107,7 +95,7 @@ void DSP1::SendChannelVolume(uint chanIndex)
 
     // convert volume from dB to linear
     float trim_pu;
-
+    float insertReturnTrimDb = config->GetChannelInsertReturnTrimDb(chanIndex);
 
     // check if current channel has an adjustable gain. If not, apply GAIN as TRIM
     if (ChannelHasAdjustableGain(chanIndex))
@@ -116,13 +104,13 @@ void DSP1::SendChannelVolume(uint chanIndex)
         volumeLR = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeLR);
         volumeSub = CompensateGainAndVolume(config->GetFloat(CHANNEL_GAIN, chanIndex), volumeSub);
 
-        // no TRIM
-        trim_pu = 1.0f;
+        // apply insert return unity compensation trim (0.0dB for digital/line, +2.0dB for analog headamp return)
+        trim_pu = pow(10.0f, insertReturnTrimDb / 20.0f);
     }
     else
     {
-        // GAIN as TRIM
-        float trim = config->GetFloat(CHANNEL_GAIN, chanIndex);
+        // GAIN as TRIM (plus insert return unity compensation if applicable)
+        float trim = config->GetFloat(CHANNEL_GAIN, chanIndex) + insertReturnTrimDb;
         trim_pu = pow(10.0f, trim/20.0f);
     }
 

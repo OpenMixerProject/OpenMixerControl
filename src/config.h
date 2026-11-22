@@ -178,6 +178,21 @@ namespace OMC
             void InitAssignBanks();
             OMCAssignBank* GetAssignBank(X32AssignBankId id);
 
+            // Channel I/O Insert & effective FPGA routing helpers
+            bool IsValidInsertSendOutput(uint fpgaOutputIdx);
+            bool IsValidInsertReturnInput(uint fpgaInputIdx);
+            bool IsFpgaInputHeadamp(uint fpgaInputIdx);
+            uint GetChannelLogicalFpgaInput(uint chanIndex);
+            bool IsChannelInsertSendActive(uint chanIndex);
+            bool IsChannelInsertActive(uint chanIndex);
+            float GetChannelInsertReturnTrimDb(uint chanIndex);
+            uint GetEffectiveFpgaRoutingSource(uint fpgaOutZeroBased);
+            int FindInsertSendOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
+            int FindActiveInsertDspInOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel = -1);
+            int FindInsertReturnOwnerChannel(uint fpgaInputIdx, int ignoreChannel = -1);
+            String GetFpgaPatchInsertWarning(uint fpgaOutZeroBased, uint newSourceIdx);
+            String GetChannelInsertConflictWarning(uint chanIndex, uint sendOutIdx, uint returnInIdx);
+
             void PrintOscDoc();
     };
 

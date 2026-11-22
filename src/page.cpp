@@ -374,4 +374,67 @@ void Page::ClearEncoderButton(LVGLEncoderWidget *binding)
     remove_style_label_bg_yellow(binding->ButtonLabel);
 }
 
+static lv_obj_t* g_warning_banner = nullptr;
+static lv_obj_t* g_warning_label = nullptr;
+static lv_timer_t* g_warning_timer = nullptr;
+
+static void warning_banner_timer_cb(lv_timer_t* timer)
+{
+    (void)timer;
+    if (g_warning_banner != nullptr)
+    {
+        lv_obj_set_flag(g_warning_banner, LV_OBJ_FLAG_HIDDEN, true);
+    }
+    // LVGL auto-deletes one-shot timers (repeat_count == 1) after this callback returns
+    g_warning_timer = nullptr;
+}
+
+void Page::ShowWarningBanner(const String& message)
+{
+    if (message.length() == 0)
+    {
+        return;
+    }
+
+    helper->Error("%s\n", message.c_str());
+
+    if (objects.main == nullptr)
+    {
+        return;
+    }
+
+    if (g_warning_banner == nullptr)
+    {
+        g_warning_banner = lv_obj_create(lv_layer_top());
+        lv_obj_set_size(g_warning_banner, DISPLAY_RESOLUTION_X - 40, LV_SIZE_CONTENT);
+        lv_obj_align(g_warning_banner, LV_ALIGN_TOP_MID, 0, 38);
+        lv_obj_set_style_bg_color(g_warning_banner, lv_palette_main(LV_PALETTE_AMBER), 0);
+        lv_obj_set_style_bg_opa(g_warning_banner, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_color(g_warning_banner, lv_palette_darken(LV_PALETTE_ORANGE, 3), 0);
+        lv_obj_set_style_border_width(g_warning_banner, 2, 0);
+        lv_obj_set_style_radius(g_warning_banner, 6, 0);
+        lv_obj_set_style_pad_ver(g_warning_banner, 6, 0);
+        lv_obj_set_style_pad_hor(g_warning_banner, 12, 0);
+        lv_obj_remove_flag(g_warning_banner, LV_OBJ_FLAG_SCROLLABLE);
+
+        g_warning_label = lv_label_create(g_warning_banner);
+        lv_obj_set_style_text_color(g_warning_label, lv_color_black(), 0);
+        lv_label_set_long_mode(g_warning_label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_width(g_warning_label, DISPLAY_RESOLUTION_X - 68);
+        lv_obj_set_style_text_align(g_warning_label, LV_TEXT_ALIGN_CENTER, 0);
+    }
+
+    String bannerText = String(LV_SYMBOL_WARNING) + String(" ") + message;
+    lv_label_set_text(g_warning_label, bannerText.c_str());
+    lv_obj_set_flag(g_warning_banner, LV_OBJ_FLAG_HIDDEN, false);
+
+    if (g_warning_timer != nullptr)
+    {
+        lv_timer_delete(g_warning_timer);
+        g_warning_timer = nullptr;
+    }
+    g_warning_timer = lv_timer_create(warning_banner_timer_cb, 4500, nullptr);
+    lv_timer_set_repeat_count(g_warning_timer, 1);
+}
+
 }
