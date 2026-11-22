@@ -729,11 +729,7 @@ uint8_t Fpga::fixRoutingForDifferentProductTypes(uint8_t signalSource) {
 			// Inputs 9-16 are connected to Board 2 (reroute Board 3 to Board 2)
 
 			if (signalSource >= 0 && signalSource <= 15) {
-				if (signalSource >= 0 && signalSource <= 7) {
-					signalSourceNew = signalSource + 8; // reroute Board 1 to Board 3
-				}else if (signalSource >= 8 && signalSource <= 15) {
-					signalSourceNew = signalSource + 16; // reroute Board 3 to Board 2
-				}
+				signalSourceNew = signalSource + 16;
 			}else{
 				// Inputs 17-32 are not available on the X32Producer, so map them to zero (OFF)
 				signalSourceNew = 0;
