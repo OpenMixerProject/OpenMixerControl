@@ -85,7 +85,7 @@ namespace OMC
             struct sockaddr_in senderAddr;
             socklen_t senderAddrLen = sizeof(senderAddr);
         
-            ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &ClientAddr, &xremoteClientAddrLen);
+            ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &senderAddr, &senderAddrLen);
             if (len <= 0 || len >= sizeof(rxData)) { return; }
 
             tosc_message osc;

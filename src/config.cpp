@@ -414,6 +414,52 @@ namespace OMC
         //->DefUOM(MP_UOM::CARD_SDCARD)
         ->DefNoConfig();
 
+        DefParameter(USB_STORAGE_STATE, cat, "USB State")
+        ->DefMinMaxStandard_Uint(0, (uint)USB_DRIVE_STATE::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)USB_DRIVE_STATE::REMOVED)
+        ->DefUOM(MP_UOM::USB_STORAGE_STATE)
+        ->DefNoConfig()
+        ->DefOSC("usb/state");
+
+        DefParameter(USB_STORAGE_FS_TYPE, cat, "USB Filesystem")
+        ->DefMinMaxStandard_Uint(0, (uint)USB_FS_TYPE::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)USB_FS_TYPE::UNKNOWN)
+        ->DefUOM(MP_UOM::USB_STORAGE_FS_TYPE)
+        ->DefNoConfig()
+        ->DefOSC("usb/fs");
+
+        DefParameter(USB_STORAGE_TOTAL_SPACE, cat, "USB Total Space")
+        ->DefMinMaxStandard_Uint(0, UINT32_MAX, 0)
+        ->DefUOM(MP_UOM::MEGABYTE)
+        ->DefNoConfig()
+        ->DefOSC("usb/total_mb");
+
+        DefParameter(USB_STORAGE_FREE_SPACE, cat, "USB Free Space")
+        ->DefMinMaxStandard_Uint(0, UINT32_MAX, 0)
+        ->DefUOM(MP_UOM::MEGABYTE)
+        ->DefNoConfig()
+        ->DefOSC("usb/free_mb");
+
+        DefParameter(USB_STORAGE_FORMAT_TARGET, cat, "USB Format FS")
+        ->DefMinMaxStandard_Uint(0, (uint)USB_FORMAT_TARGET::__ELEMENT_COUNTER_DO_NOT_MOVE - 1, (uint)USB_FORMAT_TARGET::EXFAT)
+        ->DefCycleMode(1, 1)
+        ->DefUOM(MP_UOM::USB_STORAGE_FORMAT_TARGET)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefOSC("usb/format_fs");
+
+        DefParameter(USB_STORAGE_FORMAT_COMMAND, cat, "USB Format")
+        ->DefMinMaxStandard_Uint(0, 1, 0)
+        ->DefNoConfig();
+
+        DefParameter(USB_STORAGE_DEVICE_INFO, cat, "USB Device")
+        ->DefStandard_String("No USB Drive")
+        ->DefNoConfig()
+        ->DefOSC("usb/device");
+
+        DefParameter(USB_STORAGE_BOOT_PROTECTED, cat, "USB Boot Protected")
+        ->DefStandard_Bool(false)
+        ->DefNoConfig()
+        ->DefOSC("usb/boot_protected");
+
         // ##########
         // # Routing 
         // ##########
