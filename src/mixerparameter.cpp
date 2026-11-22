@@ -80,9 +80,9 @@ namespace OMC
         }            
     }
 
-    String Mixerparameter::GetUnitOfMesaurement(bool spaceInFront, uint index, bool isResetLabel)
-    {
-        String result = spaceInFront ? " " : "";
+String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool isResetLabel)
+{
+    String result = spaceInFront ? " " : "";
 
         switch(unitOfMeasurement)
         {
@@ -95,7 +95,7 @@ namespace OMC
                 result += "dB";
                 break;
             case DBFS:
-                result += "dbFS";
+                result += "dBFS";
                 break;
             case HZ:
                 result += "Hz"; // this will automatically be converted to kHz for values >= 1000 in FormatValue_Intern()
@@ -546,6 +546,7 @@ namespace OMC
         }
     }
 
+
     TEST_CASE("Mixerparameter - Set and Get uint8_t (like Meterdata)")
     {
         // create Mixerparaemter
@@ -561,4 +562,5 @@ namespace OMC
         // check that values are the same
         CHECK(metervalue == metervalue_received);
     }
+
 }
