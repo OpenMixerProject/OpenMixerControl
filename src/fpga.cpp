@@ -352,7 +352,8 @@ void Fpga::SendRoutingToFpga(int channel) {
 	{
 		// send only one routing-data to FPGA
 
-		txData[0] = (uint8_t)config->GetUint(ROUTING_FPGA, channel);
+		uint8_t signalSource = (uint8_t)config->GetUint(ROUTING_FPGA, channel);
+		txData[0] = fixRoutingForDifferentProductTypes(signalSource);
 		txData[1] = channel;
 
 		helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "SendRoutingToFpga() %s -> %s",
@@ -375,8 +376,10 @@ void Fpga::SendRoutingToFpga(int channel) {
 		for (uint8_t i = 0; i < 208; i++)
 		{
 			helper->DEBUG_FPGA(DEBUGLEVEL_TRACE, "send routing data %d", channel+1);
-			txData[0] = (uint8_t)config->GetUint(ROUTING_FPGA, i);
-			txData[1] = i; 
+
+			uint8_t signalSource = (uint8_t)config->GetUint(ROUTING_FPGA, i);
+			txData[0] = fixRoutingForDifferentProductTypes(signalSource);
+			txData[1] = i;
 			spi->SendFpgaData(&txData[0], &rxData[0], 2);
 
 			if ((rxData[0] != txData[0]) || (rxData[1] != txData[1]))
@@ -707,6 +710,60 @@ int Fpga::wrapRingBufferIndex(int index, int bufLen) {
 	}else{
 		return index;
 	}
+}
+
+uint8_t Fpga::fixRoutingForDifferentProductTypes(uint8_t signalSource) {
+	uint8_t signalSourceNew = signalSource;
+
+	// check if the signal source is one of the channels which change on different types of X32/M32-models
+	if (signalSource >= 0 && signalSource <= 31) {
+		if (config->IsModelX32FullOrM32()) {
+			// Inputs 1-8 are connected to Board 1
+			// Inputs 9-16 are connected to Board 3
+			// Inputs 17-24 are connected to Board 0
+			// Inputs 25-32 are connected to Board 2
+
+			// so dont change anything for these models as the FPGA is set for this configuration
+		}else if (config->IsModelX32Compact()) {
+			// Inputs 1-8 are connected to Board 3 (reroute Board 1 to Board 3)
+			// Inputs 9-16 are connected to Board 2 (reroute Board 3 to Board 2)
+
+			if (signalSource >= 0 && signalSource <= 15) {
+				if (signalSource >= 0 && signalSource <= 7) {
+					signalSourceNew = signalSource + 8; // reroute Board 1 to Board 3
+				}else if (signalSource >= 8 && signalSource <= 15) {
+					signalSourceNew = signalSource + 16; // reroute Board 3 to Board 2
+				}
+			}else{
+				// Inputs 17-32 are not available on the X32Producer, so map them to zero (OFF)
+				signalSourceNew = 0;
+			}
+		}else if (config->IsModelX32Producer()) {
+			// Inputs 1-8 are connected to Board 1 (dont change anything)
+			// Inputs 9-16 are connected to Board 0 (reroute Board 3 to Board 0)
+
+			if (signalSource >= 0 && signalSource <= 15) {
+				// XLR-Inputs 1-16 are the same, but 17-32 are the Card-Inputs 1-16
+				if (signalSource >= 8 && signalSource <= 15) {
+					signalSourceNew = signalSource + 8; // reroute Board 3 to Board 0
+				}
+			}else{
+				// Inputs 17-32 are not available on the X32Rack, so map them to zero (OFF)
+				signalSourceNew = 0;
+			}
+		}else if (config->IsModelX32Rack()) {
+			// my rack seems to have the same routing as the X32Fullsize, so dont change anything for these models as the FPGA is set for this configuration
+			if (signalSource >= 16 && signalSource <= 31) {
+				// Inputs 17-32 are not available on the X32Rack, so map them to zero (OFF)
+				signalSourceNew = 0;
+			}
+		}else if (config->IsModelX32Core()) {
+			// we do not have analog inputs at all, so map all XLR-Inputs to zero (OFF)
+			signalSourceNew = 0;
+		}
+	}
+
+	return signalSourceNew;
 }
 
 String Fpga::AES50GetConnectedDeviceName() {
