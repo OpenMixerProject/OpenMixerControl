@@ -9,6 +9,10 @@ OpenMixerControl is the main software to run on a digital Audio-Mixing-Console. 
 - [OpenX32](https://github.com/OpenMixerProject/OpenX32)
 - [OpenWING](https://github.com/OpenMixerProject/OpenWING)
 
+## Bugs and Ideas
+
+Please report Bugs or submit Ideas in our central [Ticketsystem](https://github.com/OpenMixerProject/Ticketsystem/issues)
+
 ## OpenX32
 Linux and Custom Firmware for the Behringer X32 and Midas M32 Audio-Mixing-Consoles
 
