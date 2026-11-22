@@ -458,7 +458,7 @@ void DSP1::SendCompressor(uint8_t chanIndex)
 
     using enum MP_ID;
 
-    float values[6];
+    float values[7];
 
     float samplerate = (float)config->GetUint(SAMPLERATE);
     float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
@@ -484,7 +484,9 @@ void DSP1::SendCompressor(uint8_t chanIndex)
     // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
     values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
 
-    spi->QueueDspData(0, 'c', chanIndex, 0, 6, &values[0]);
+    values[6] = config->GetBool(CHANNEL_COMPRESSOR_ENABLE, chanIndex) ? 1.0f : 0.0f;
+
+    spi->QueueDspData(0, 'c', chanIndex, 0, 7, &values[0]);
 }
 
 void DSP1::SetInputDelay(uint chanIndex)
