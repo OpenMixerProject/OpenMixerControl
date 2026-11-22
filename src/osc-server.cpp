@@ -276,6 +276,8 @@ namespace OMC
         int size = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "s", json.c_str());
         if (size > 0) { SendUdpPacket(TxMessage, size); }
         return true;
+    }
+    
     void OscServer::ExpireObservers()
     {
         auto now = std::chrono::steady_clock::now();
