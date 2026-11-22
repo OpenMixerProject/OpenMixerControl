@@ -312,8 +312,9 @@ void CtrlClient::Tick100ms()
 			(double)state->dspLoad[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
 		);
 
-		// show information about AES50 devices
-		lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", mixer->fpga->AES50GetConnectedDeviceName().c_str());
+		// TODO: expose info via Mixerparameter and OSC
+		//// show information about AES50 devices
+		//lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", mixer->fpga->AES50GetConnectedDeviceName().c_str());
 	}
 }
 
