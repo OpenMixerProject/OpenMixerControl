@@ -172,7 +172,7 @@ float Helper::Fadervalue2DMX(uint16_t fadervalue)
 }
 
 uint16_t Helper::Oscvalue2Fadervalue(float oscValue){
-	return (uint16_t)oscValue * 0x0FFF;
+	return (uint16_t)(oscValue * 0x0FFF);
 }
 
 float Helper::Fadervalue2Oscvalue(uint16_t faderValue){
@@ -559,41 +559,33 @@ bool Helper::IsInChannelBlock(uint8_t index, X32_VCHANNEL_BLOCK block){
 		}
 	case X32_VCHANNEL_BLOCK::AUX: {
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::AUX;
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::AUX;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::FXRET: {
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::FXRET;
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::FXRET;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::BUS: {
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::BUS;
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::BUS;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::MATRIX: {
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::MATRIX;
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::MATRIX;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::SPECIAL: {
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::SPECIAL;
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::SPECIAL;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::MAINSUB: {
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::MAINSUB;
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::MAINSUB;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::DCA: {
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::DCA;
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::DCA;
 			break;
 		}
 	case X32_VCHANNEL_BLOCK::MAIN: {
-	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::MAIN;
 	  		blocksize = (uint)X32_VCHANNEL_BLOCK_SIZE::MAIN;
 			break;
 		}
@@ -640,23 +632,23 @@ void Helper::stoptimer(uint8_t timer, const char* description) {
 }
 
 uint8_t Helper::value2percent(float value, float value_min, float value_max) {
-	float onehunderedpercent = value_max - value_min;
+	float onehundredpercent = value_max - value_min;
 	float value_normiert = value - value_min;
-	float onepercent = onehunderedpercent / 100.0f;
+	float onepercent = onehundredpercent / 100.0f;
 	return value_normiert / onepercent;
 }
 
 uint8_t Helper::value2percent(uint8_t value, uint8_t value_min, uint8_t value_max) {
-	uint8_t onehunderedpercent = value_max - value_min;
+	uint8_t onehundredpercent = value_max - value_min;
 	uint8_t value_normiert = value - value_min;
-	float onepercent = onehunderedpercent / 100.0f;
+	float onepercent = onehundredpercent / 100.0f;
 	return value_normiert / onepercent;
 }
 
 uint8_t Helper::value2percent(int8_t value, int8_t value_min, int8_t value_max) {
-	uint8_t onehunderedpercent = value_max - value_min;
+	uint8_t onehundredpercent = value_max - value_min;
 	uint8_t value_normiert = value - value_min;
-	float onepercent = onehunderedpercent / 100.0f;
+	float onepercent = onehundredpercent / 100.0f;
 	return value_normiert / onepercent;
 }
 

@@ -2,6 +2,7 @@
 
 
 #include <map>
+#include <chrono>
 
 // includes for reading IP-Address
 #include <sys/stat.h>
@@ -29,6 +30,10 @@ namespace OMC
             //std::map<WString::String, uint> clients;
             Card* recorder = nullptr;
             bool HandleCommand(const std::vector<std::string>& address, const char* format, tosc_message* message);
+
+            std::map<in_addr_t, std::chrono::steady_clock::time_point> surfaceObservers;
+            void ObserveSurface(SurfaceElement* element, const char* action, float value);
+            void ExpireObservers();
 
         public:
             int UdpHandle;

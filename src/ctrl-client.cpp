@@ -311,6 +311,10 @@ void CtrlClient::Tick100ms()
 			(double)((state->dspLoad[0] * 100)/DSP1_100_PERCENT_CYCLES), (double)state->dspVersion[0], (double)state->dspAudioGlitchCounter[0], /*mixer->dsp->spi->GetDspTxQueueLength(0),*/
 			(double)state->dspLoad[1], (double)state->dspVersion[1], (double)state->dspAudioGlitchCounter[1], (double)state->dspFreeHeapWords[1]/*, mixer->dsp->spi->GetDspTxQueueLength(1)*/
 		);
+
+		// TODO: expose info via Mixerparameter and OSC
+		//// show information about AES50 devices
+		//lv_label_set_text_fmt(objects.header_aes50_info, "AES50: %s", mixer->fpga->AES50GetConnectedDeviceName().c_str());
 	}
 }
 
@@ -556,6 +560,8 @@ void CtrlClient::syncSurface(bool fullSync)
 						bank2 = OMCBankId::FLEX2;
 						break;
 					default:
+						bank1 = OMCBankId::CH1_8;
+						bank2 = OMCBankId::CH9_16;
 						break;
 				}
 
@@ -1740,6 +1746,8 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 			return;
 		}
 
+		if (config->surfaceObserver) { config->surfaceObserver(fader, "move", helper->Fadervalue2dBfs(value)); }
+
 		SurfaceBindingParameter* bindingParameter = config->GetSurfaceBinding(fader->GetId());
 		if (bindingParameter == 0) { return; }
 				
@@ -1760,7 +1768,7 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 	else if (command == 'b') // Button
 	{
 		// find surfaceelement
-		SurfaceElement* button;
+		SurfaceElement* button = nullptr;
 		if(config->IsModelAnyXM32())
 		{
 			button = config->GetSurfaceElementButton_XM32(board, value);
@@ -1786,6 +1794,8 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 		{
 			isButtonPressed = (value==1);
 		}
+
+		if (config->surfaceObserver) { config->surfaceObserver(button, "press", isButtonPressed ? 1.0f : 0.0f); }
 
 		// Logic for double button press
 		if (isButtonPressed) {
@@ -2029,6 +2039,8 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 		{
 			amount = -(256 - (uint8_t)(value));
 		}
+
+		if (config->surfaceObserver) { config->surfaceObserver(encoder, "turn", amount); }
 
 		helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "Encoder \"%s\" turned: \"%d\"",
 			encoder->GetName().c_str(),

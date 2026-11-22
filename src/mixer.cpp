@@ -458,6 +458,13 @@ void Mixer::Sync()
         dsp->DSP2_SendFxParameter(fxSlot);
     }
 
+    // The existing DSP2 sender transmits both oscillators together.
+    for (uint index : config->GetChangedParameterIndexes({OSC_FREQUENCY, OSC_LEVEL}))
+    {
+        dsp->DSP2_SetOscillator(index, config->GetFloat(OSC_FREQUENCY, index),
+                               config->GetFloat(OSC_LEVEL, index));
+    }
+
     // CLEAR SOLO
     if(config->HasParameterChanged(CLEAR_SOLO_COMMAND))
 	{
@@ -504,10 +511,14 @@ void Mixer::halSendGain(uint8_t dspChannel) {
             // update channel-volume for virtual gain-resolution-increment
             // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
             dsp->SendChannelVolume(dspChannel);
-        }
-        // AES50B input (we need more optimizations in the FPGA to get the second AES50-port working, so this is not implemented yet)
-        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48)))
-        {    
+
+        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
+            // AES50B input (never thought that we get this far in the reverse-engineering process, but here we are... :) )
+            fpga->AES50SetHeadampGain(1, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50B + 1, config->GetFloat(CHANNEL_GAIN,  dspChannel));
+
+            // update channel-volume for virtual gain-resolution-increment
+            // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
+            dsp->SendChannelVolume(dspChannel);
         }
     }
 }

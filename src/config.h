@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <set>
 
@@ -58,6 +59,10 @@ namespace OMC
         public:
 
             std::set<std::string> oscCapabilities;
+
+            // Observation is independent of bindings/claims and cannot consume
+            // an event. Called on the same control loop as ordinary handling.
+            std::function<void(SurfaceElement*, const char*, float)> surfaceObserver;
 
             Config(String model, Helper* h, bool runAsClient);
 

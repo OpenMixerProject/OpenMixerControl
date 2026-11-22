@@ -47,7 +47,7 @@ namespace OMC
             case CARD_NUMBER_OF_CHANNELS:
             case CARD_SDCARD_STATE:
             case CARD_AUDIO_SOURCE:
-                return GetUnitOfMesaurement(false, index, isResetLabel);
+                return GetUnitOfMeasurement(false, index, isResetLabel);
             case ZERO_BASED_INDEX__START_BY_ONE:
                 return String(value_float + 1, 0);
             case HZ:
@@ -66,23 +66,23 @@ namespace OMC
                 }
             case PANORAMA:
                 if (value_float < 0) {
-                    return "L" + String(abs(value_float), decimal_places) + GetUnitOfMesaurement(false, index, isResetLabel);
+                    return "L" + String(abs(value_float), decimal_places) + GetUnitOfMeasurement(false, index, isResetLabel);
                 }else if (value_float > 0) {
-                    return "R" + String(value_float, decimal_places) + GetUnitOfMesaurement(false, index, isResetLabel);
+                    return "R" + String(value_float, decimal_places) + GetUnitOfMeasurement(false, index, isResetLabel);
                 }else{
                     return "<C>";
                 }
             case BANKING_EQ:
-                return GetUnitOfMesaurement(false, index, isResetLabel);
+                return GetUnitOfMeasurement(false, index, isResetLabel);
                 break;
             default:
-                return String(value_float, decimal_places) + GetUnitOfMesaurement(false, index, isResetLabel);
+                return String(value_float, decimal_places) + GetUnitOfMeasurement(false, index, isResetLabel);
         }            
     }
 
-    String Mixerparameter::GetUnitOfMesaurement(bool spaceInFront, uint index, bool isResetLabel)
-    {
-        String result = spaceInFront ? " " : "";
+String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool isResetLabel)
+{
+    String result = spaceInFront ? " " : "";
 
         switch(unitOfMeasurement)
         {
@@ -95,7 +95,7 @@ namespace OMC
                 result += "dB";
                 break;
             case DBFS:
-                result += "dbFS";
+                result += "dBFS";
                 break;
             case HZ:
                 result += "Hz"; // this will automatically be converted to kHz for values >= 1000 in FormatValue_Intern()
@@ -546,6 +546,7 @@ namespace OMC
         }
     }
 
+
     TEST_CASE("Mixerparameter - Set and Get uint8_t (like Meterdata)")
     {
         // create Mixerparaemter
@@ -561,4 +562,5 @@ namespace OMC
         // check that values are the same
         CHECK(metervalue == metervalue_received);
     }
+
 }
