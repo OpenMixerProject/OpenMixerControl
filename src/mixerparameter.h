@@ -119,7 +119,7 @@ class Mixerparameter
             }
         }
 
-        String GetUnitOfMesaurement(bool spaceInFront, uint index, bool isResetLabel);
+        String GetUnitOfMeasurement(bool spaceInFront, uint index, bool isResetLabel);
         String FormatValue_Intern(float value_float, uint index, bool isResetLabel);
 
     public:

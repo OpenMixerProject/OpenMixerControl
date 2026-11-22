@@ -84,6 +84,7 @@
           },
           {
             "type": "border",
+            "selected": 0,
             "size": 260.5,
             "location": "bottom",
             "children": [
@@ -259,7 +260,8 @@
                   "enableClose": false,
                   "icon": "svg:properties"
                 }
-              ]
+              ],
+              "active": true
             }
           ]
         }
@@ -1103,6 +1105,7 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
+          "0": {},
           "4": {},
           "5": {
             "2": {
