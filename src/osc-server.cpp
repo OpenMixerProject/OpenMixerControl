@@ -29,6 +29,7 @@
 
 #include "enum.h"
 #include "mixerparameter.h"
+#include "card.h"
 #include <cstddef>
 
 namespace OMC
@@ -62,6 +63,11 @@ namespace OMC
 
         // Build map of osc-paths from Mixerparameters
         oscPaths = config->GetOscPaths();
+        config->oscCapabilities.insert("scene_save");
+        config->oscCapabilities.insert("scene_load");
+        if (recorder && !state->bodyless && !state->raspi && !config->IsModelAnyWing() &&
+            config->GetUint(MP_ID::CARD_TYPE) == (uint)CARD::XLIVE)
+        { config->oscCapabilities.insert("recorder_xlive_transport"); }
         config->oscCapabilities.insert("surface_subscription");
         config->surfaceObserver = [this](SurfaceElement* element, const char* action, float value)
         {
@@ -125,6 +131,7 @@ namespace OMC
 
                 helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Path: %s Format: %s", adrPath.c_str(), osc_format.c_str());
 
+                if (HandleCommand(address, osc_format.c_str(), &osc)) { return; }
                 if (address.size() == 3 && address[0] == "subscribe" && address[1] == "surface" && address[2] == "1")
                 {
                     if (osc_format != "f") { return; }
@@ -228,6 +235,47 @@ namespace OMC
         }
     }
 
+    bool OscServer::HandleCommand(const std::vector<std::string>& address, const char* format, tosc_message* message)
+    {
+        if (address.empty() || (address[0] != "scene" && address[0] != "recorder")) { return false; }
+        if (address.size() != 3) { return true; }
+        bool success = false;
+        const char* reason = "invalid_command_or_arguments";
+        bool digits = !address[2].empty() && address[2].size() <= 4 &&
+            address[2].find_first_not_of("0123456789") == std::string::npos;
+        if (address[0] == "scene" && digits && !*format)
+        {
+            uint slot = strtoul(address[2].c_str(), nullptr, 10);
+            if (address[1] == "save") { success = config->Save(slot); reason = success ? "saved" : "save_failed"; }
+            if (address[1] == "load") { success = config->Load(slot); reason = success ? "loaded" : "load_failed"; }
+        }
+        if (address[0] == "recorder" && address[2] == "1")
+        {
+            if (!recorder || state->bodyless || state->raspi || config->IsModelAnyWing() ||
+                config->GetUint(MP_ID::CARD_TYPE) != (uint)CARD::XLIVE)
+            { reason = "unsupported_no_xlive_card"; }
+            else
+            {
+                bool called = false;
+                if (!*format)
+                {
+                    if (address[1] == "stop") { success = recorder->XLIVE_Stop(); called = true; }
+                    if (address[1] == "play_pause") { success = recorder->XLIVE_PlayPause(); called = true; }
+                    if (address[1] == "record") { success = recorder->XLIVE_RecordNewSession(); called = true; }
+                }
+                else if (address[1] == "seek" && strcmp(format, "i") == 0)
+                {
+                    int32_t samples = tosc_getNextInt32(message);
+                    if (samples >= 0) { success = recorder->XLIVE_Seek(samples); called = true; }
+                }
+                if (called) { reason = success ? "backend_returned_true_not_audio_confirmation" : "backend_returned_false"; }
+            }
+        }
+        std::string path = "/result/" + address[0] + "/" + address[1] + "/" + address[2];
+        std::string json = std::string("{\"success\":") + (success ? "true" : "false") + ",\"message\":\"" + reason + "\"}";
+        int size = tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "s", json.c_str());
+        if (size > 0) { SendUdpPacket(TxMessage, size); }
+        return true;
     void OscServer::ExpireObservers()
     {
         auto now = std::chrono::steady_clock::now();
