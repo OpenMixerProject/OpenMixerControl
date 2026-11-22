@@ -140,6 +140,10 @@ class PageRoutingChannels: public Page
 	 			lv_table_set_selected_cell(objects.table_routing_dsp_input, gui_selected_item, 2);
 			
 	 			gui_selected_item_before = gui_selected_item;
+                if (config->GetBool(DISPLAY_UTILITY))
+                {
+                    BindInsertUtilityMode();
+                }
 	 		} 
         }
     
@@ -215,27 +219,92 @@ class PageRoutingChannels: public Page
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_3, String(LV_SYMBOL_REFRESH) + String("\nSource"));
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_4, String(LV_SYMBOL_REFRESH) + String("\nSource (8)"));
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_5, String(LV_SYMBOL_REFRESH) + String("\nTAP"));
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Insert\nOn / Off");
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6);
 	 	}
+
+        void BindInsertUtilityMode()
+        {
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, String(LV_SYMBOL_UP) + String("\nSelect\n") + LV_SYMBOL_DOWN);
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_2, String(LV_SYMBOL_UP) + String("\nSelect (8)\n") + LV_SYMBOL_DOWN);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE, CHANNEL_INSERT_SEND, (uint)gui_selected_item);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_3, MixerparameterAction::RESET, CHANNEL_INSERT_SEND, (uint)gui_selected_item);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE, CHANNEL_INSERT_RETURN, (uint)gui_selected_item);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_4, MixerparameterAction::RESET, CHANNEL_INSERT_RETURN, (uint)gui_selected_item);
+            config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_5);
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_6, "Insert\nOn / Off");
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6);
+        }
+
+        String FormatRowSource(uint index)
+        {
+            uint dspIn = config->GetUint(ROUTING_DSP_INPUT, index);
+            if ((dspIn >= 1) && (dspIn <= 40))
+            {
+                String src = config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + (dspIn - 1));
+                bool hasInsPatch = config->GetUint(CHANNEL_INSERT_SEND, index) != FPGA_OUTPUT_IDX_OFF ||
+                                   config->GetUint(CHANNEL_INSERT_RETURN, index) != FPGA_INPUT_IDX_OFF;
+                if (config->IsChannelInsertActive(index))
+                {
+                    src += String(" [INS ON: ") +
+                           config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(index) + "/" +
+                           config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(index) + "]";
+                }
+                else if (hasInsPatch)
+                {
+                    src += String(" [INS BYP: ") +
+                           config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(index) + "/" +
+                           config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(index) + "]";
+                }
+                return src + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index);
+            }
+            return config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index);
+        }
 
 		void OnChange(bool force) override
 		{
             UpdateRowSelection();
-			
-	 		if(config->HasParametersChanged({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT}) || force)
-	 		{
-	 			for(auto const& index : config->GetChangedParameterIndexes({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT}))
-                 {
-	 				if ((config->GetUint(ROUTING_DSP_INPUT, index) >= 1) && (config->GetUint(ROUTING_DSP_INPUT, index) <= 40)) {
-	 					// external signal from FPGA
-	 					lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + index) + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index)).c_str());
-	 				}else{
-	 					// internal signal within DSP
-	 					lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index).c_str());
-	 				}
-	 				lv_table_set_cell_value(objects.table_routing_dsp_input, index, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(index).c_str());
-	 			}
-	 		}
+
+            if (config->HasParameterChanged(DISPLAY_UTILITY) && config->GetBool(DISPLAY_UTILITY))
+            {
+                BindInsertUtilityMode();
+            }
+
+            if (force || config->HasParameterChanged(ROUTING_FPGA))
+            {
+                for (uint index = 0; index < 40; index++)
+                {
+                    lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, FormatRowSource(index).c_str());
+                    lv_table_set_cell_value(objects.table_routing_dsp_input, index, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(index).c_str());
+                }
+            }
+            else if (config->HasParametersChanged({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+            {
+                for (auto const& index : config->GetChangedParameterIndexes({ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT, CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+                {
+                    if (index >= 40) continue;
+                    lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, FormatRowSource(index).c_str());
+                    lv_table_set_cell_value(objects.table_routing_dsp_input, index, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(index).c_str());
+                }
+            }
+
+            if (config->HasParametersChanged({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+            {
+                for (auto const& index : config->GetChangedParameterIndexes({CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}))
+                {
+                    String warning = config->GetChannelInsertConflictWarning(index, config->GetUint(CHANNEL_INSERT_SEND, index), config->GetUint(CHANNEL_INSERT_RETURN, index));
+                    if (warning.length() > 0) ShowWarningBanner(warning);
+                }
+            }
 		}
+
+        void OnChangeCustomButton(SurfaceElementId surface_element_id) override
+        {
+            if (surface_element_id == SurfaceElementId::DISPLAY_ENCODER_BUTTON_6)
+            {
+                config->Toggle(CHANNEL_INSERT_ENABLE, (uint)gui_selected_item);
+            }
+        }
 
 		void OnChangeCustomEncoder(SurfaceElementId surface_element_id, int amount) override
         {
@@ -257,15 +326,12 @@ class PageRoutingChannels: public Page
 					config->Change(ROUTING_DSP_INPUT, amount, gui_selected_item);
                     break;
                 case SurfaceElementId::DISPLAY_ENCODER_4:
-					int8_t absoluteChange;
-					if (amount < 0) {
-						absoluteChange = -8;
-					}else{
-						absoluteChange = 8;
-					}
-					for (uint8_t i = (gui_selected_item); i < (gui_selected_item + 8); i++) {
-						config->Change(ROUTING_DSP_INPUT, absoluteChange, i);
-					}
+                    {
+                        int8_t absoluteChange = (amount < 0) ? -8 : 8;
+                        for (uint8_t i = (gui_selected_item); i < (gui_selected_item + 8); i++) {
+                            config->Change(ROUTING_DSP_INPUT, absoluteChange, i);
+                        }
+                    }
                     break;
                 case SurfaceElementId::DISPLAY_ENCODER_5:
 					config->Change(ROUTING_DSP_INPUT_TAPPOINT, amount, gui_selected_item);

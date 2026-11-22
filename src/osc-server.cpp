@@ -207,8 +207,7 @@ namespace OMC
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Amount: %d", index, amount);
 
-                            parameter->Change(amount, index);
-                            config->SetParameterChanged(parameter->GetId(), index);
+                            config->Change(parameter->GetId(), amount, index);
                         }
                         else
                         {

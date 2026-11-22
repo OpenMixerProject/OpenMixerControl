@@ -35,34 +35,48 @@ class PageRouting: public Page
 
         void OnChangeCustomButton(SurfaceElementId surface_element_id) override
         {
+            String firstWarning = "";
+            auto applyPatch = [&](uint srcIdx, uint dstZeroBased) {
+                if (firstWarning.length() == 0)
+                {
+                    firstWarning = config->GetFpgaPatchInsertWarning(dstZeroBased, srcIdx);
+                }
+                config->Set(ROUTING_FPGA, srcIdx, dstZeroBased);
+            };
+
             switch (surface_element_id)
             {
                 case SurfaceElementId::DISPLAY_ENCODER_BUTTON_1:
                     for (uint i = 0; i < 32; i++)
                     {
-                        config->Set(ROUTING_FPGA, FPGA_INPUT_IDX_XLR + i, FPGA_OUTPUT_IDX_DSP - 1 + i);
+                        applyPatch(FPGA_INPUT_IDX_XLR + i, FPGA_OUTPUT_IDX_DSP - 1 + i);
                     }
                     break;
                  case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2:
                     for (uint i = 0; i < 32; i++)
                     {
-                        config->Set(ROUTING_FPGA, FPGA_INPUT_IDX_CARD + i, FPGA_OUTPUT_IDX_DSP - 1 + i);
+                        applyPatch(FPGA_INPUT_IDX_CARD + i, FPGA_OUTPUT_IDX_DSP - 1 + i);
                     }  
                     break;
                  case SurfaceElementId::DISPLAY_ENCODER_BUTTON_3:
                     for (uint i = 0; i < 32; i++)
                     {
-                        config->Set(ROUTING_FPGA, FPGA_INPUT_IDX_XLR + i, FPGA_OUTPUT_IDX_AES50A - 1 + i);
+                        applyPatch(FPGA_INPUT_IDX_XLR + i, FPGA_OUTPUT_IDX_AES50A - 1 + i);
                     }   
                     break;
                  case SurfaceElementId::DISPLAY_ENCODER_BUTTON_4:
                     for (uint i = 0; i < 32; i++)
                     {
-                        config->Set(ROUTING_FPGA, FPGA_INPUT_IDX_CARD + i, FPGA_OUTPUT_IDX_AES50A - 1 + i);
+                        applyPatch(FPGA_INPUT_IDX_CARD + i, FPGA_OUTPUT_IDX_AES50A - 1 + i);
                     }  
                     break;
                 default:
                     break;
+            }
+
+            if (firstWarning.length() > 0)
+            {
+                ShowWarningBanner(firstWarning);
             }
         }
 };

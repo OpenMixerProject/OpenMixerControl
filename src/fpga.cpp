@@ -350,13 +350,13 @@ void Fpga::SendRoutingToFpga(int channel) {
 
 	if ((channel >= 0) && (channel < 208))
 	{
-		// send only one routing-data to FPGA
-
-		txData[0] = (uint8_t)config->GetUint(ROUTING_FPGA, channel);
+		// send only one routing-data to FPGA (applying active channel insert overrides)
+		uint8_t effectiveSource = (uint8_t)config->GetEffectiveFpgaRoutingSource((uint)channel);
+		txData[0] = effectiveSource;
 		txData[1] = channel;
 
 		helper->DEBUG_FPGA(DEBUGLEVEL_NORMAL, "SendRoutingToFpga() %s -> %s",
-			config->GetParameter(ROUTING_FPGA)->GetFormatedValue(channel).c_str(),
+			GetInputNameByIndex(effectiveSource).c_str(),
 			GetOutputNameByIndex(channel+1).c_str()
 		);
 
@@ -375,7 +375,7 @@ void Fpga::SendRoutingToFpga(int channel) {
 		for (uint8_t i = 0; i < 208; i++)
 		{
 			helper->DEBUG_FPGA(DEBUGLEVEL_TRACE, "send routing data %d", channel+1);
-			txData[0] = (uint8_t)config->GetUint(ROUTING_FPGA, i);
+			txData[0] = (uint8_t)config->GetEffectiveFpgaRoutingSource(i);
 			txData[1] = i; 
 			spi->SendFpgaData(&txData[0], &rxData[0], 2);
 

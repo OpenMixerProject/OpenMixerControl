@@ -42,6 +42,7 @@ namespace OMC
             case EQ_TYPE:
             case FX_TYPE:
             case FPGA_ROUTING:
+            case FPGA_ROUTING_OUTPUT:
             case DSP_ROUTING:
             case CHANNEL_LCD_MODE:
             case CARD_NUMBER_OF_CHANNELS:
@@ -235,6 +236,46 @@ String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool 
                             break;
                         case FPGA_INPUT_IDX_AES50B ... (FPGA_INPUT_IDX_AES50B + 48 - 1):
                             result += String("AES50B In ") + (chan - FPGA_INPUT_IDX_AES50B + 1);
+                            break;
+                        default:
+                            result += "???";
+                    }
+                }
+                break;
+            case FPGA_ROUTING_OUTPUT:
+                {
+                    uint chan = (uint) (isResetLabel ? value_standard : value[index]);
+                    switch (chan)
+                    {
+                        case FPGA_OUTPUT_IDX_OFF:
+                            result += "OFF";
+                            break;
+                        case FPGA_OUTPUT_IDX_XLR ... (FPGA_OUTPUT_IDX_ULTRANET - 1):
+                            result += String("XLR Out ") + chan;
+                            break;
+                        case FPGA_OUTPUT_IDX_ULTRANET ... (FPGA_OUTPUT_IDX_CARD - 1):
+                            result += String("P16-") + (chan - FPGA_OUTPUT_IDX_ULTRANET + 1);
+                            break;
+                        case FPGA_OUTPUT_IDX_CARD ... (FPGA_OUTPUT_IDX_AUX - 1):
+                            result += String("Card Out ") + (chan - FPGA_OUTPUT_IDX_CARD + 1);
+                            break;
+                        case FPGA_OUTPUT_IDX_AUX ... (FPGA_OUTPUT_IDX_AUX + 5):
+                            result += String("AUX Out ") + (chan - FPGA_OUTPUT_IDX_AUX + 1);
+                            break;
+                        case FPGA_OUTPUT_IDX_AUX + 6:
+                            result += String("Monitor L");
+                            break;
+                        case FPGA_OUTPUT_IDX_AUX + 7:
+                            result += String("Monitor R");
+                            break;
+                        case FPGA_OUTPUT_IDX_DSP ... (FPGA_OUTPUT_IDX_AES50A - 1):
+                            result += String("DSP In ") + (chan - FPGA_OUTPUT_IDX_DSP + 1);
+                            break;
+                        case FPGA_OUTPUT_IDX_AES50A ... (FPGA_OUTPUT_IDX_AES50B - 1):
+                            result += String("AES50A Out ") + (chan - FPGA_OUTPUT_IDX_AES50A + 1);
+                            break;
+                        case FPGA_OUTPUT_IDX_AES50B ... (FPGA_OUTPUT_IDX_AES50B + 48 - 1):
+                            result += String("AES50B Out ") + (chan - FPGA_OUTPUT_IDX_AES50B + 1);
                             break;
                         default:
                             result += "???";

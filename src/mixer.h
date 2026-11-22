@@ -31,7 +31,13 @@ class Mixer : public X32Base
         // solo is (somewhere) activated
         bool solo = false;
 
+        // Track previous insert send & DSP input per channel so old FPGA slots are restored on change
+        uint8_t prevInsertSend[MAX_FPGA_TO_DSP1_CHANNELS] = {0};
+        uint8_t prevDspInput[MAX_FPGA_TO_DSP1_CHANNELS] = {0};
+
         void halSendGain(uint8_t dspChannel);
+        bool halWriteHeadamp(uint8_t fpgaInputIndex, float gain, bool phantom);
+        void syncChannelInsert(uint chanIndex);
 
     public:
                   

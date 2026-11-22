@@ -65,6 +65,7 @@ class Page : public X32Base
 
         void ClearEncoder(LVGLEncoderWidget *binding);
         void ClearEncoderButton(LVGLEncoderWidget *binding);
+        void ShowWarningBanner(const String& message);
 
         //###################################################
         //# Default implementation of virtual functions,

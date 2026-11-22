@@ -2,6 +2,8 @@
 #include "enum.h"
 #include "fx-osc.h"
 
+#include "../lib_ext/doctest/doctest/doctest.h"
+
 namespace OMC
 {
     Config::Config(String model, Helper* h, bool runAsClient)
@@ -696,6 +698,25 @@ namespace OMC
         DefParameter(CHANNEL_SEND_SUB, cat, "Send Sub", MAX_VCHANNELS)
         ->DefStandard_Bool(false)
         ->DefOSC("ch_send_sub");
+
+        DefParameter(CHANNEL_INSERT_ENABLE, cat, "Insert", MAX_VCHANNELS)
+        ->DefNameShort("Ins")
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_insert_on");
+
+        DefParameter(CHANNEL_INSERT_SEND, cat, "Insert Send", MAX_VCHANNELS)
+        ->DefNameShort("InsS")
+        ->DefUOM(MP_UOM::FPGA_ROUTING_OUTPUT)
+        ->DefHideEncoderSlider()
+        ->DefMinMaxStandard_Uint(0, NUM_OUTPUT_CHANNEL, 0)
+        ->DefOSC("ch_insert_send");
+
+        DefParameter(CHANNEL_INSERT_RETURN, cat, "Insert Ret", MAX_VCHANNELS)
+        ->DefNameShort("InsR")
+        ->DefUOM(MP_UOM::FPGA_ROUTING)
+        ->DefHideEncoderSlider()
+        ->DefMinMaxStandard_Uint(0, NUM_INPUT_CHANNEL, 0)
+        ->DefOSC("ch_insert_return");
 
         // Sends
         cat = MP_CAT::CHANNEL_SENDS;
@@ -1930,6 +1951,15 @@ namespace OMC
         {
             // Process Parameter localy
             mpm[(uint)mp]->Change(amount, index);
+            if (mp == CHANNEL_INSERT_SEND || mp == CHANNEL_INSERT_RETURN)
+            {
+                // Skip invalid internal range (71..112: Monitor/TB and DSP In/Out)
+                uint val = GetUint(mp, index);
+                if (val >= (FPGA_OUTPUT_IDX_AUX + 6) && val < FPGA_OUTPUT_IDX_AES50A)
+                {
+                    mpm[(uint)mp]->Set(amount >= 0 ? (float)FPGA_OUTPUT_IDX_AES50A : (float)(FPGA_OUTPUT_IDX_AUX + 5), index);
+                }
+            }
             SetParameterChanged(mp, index);
         }
     }
@@ -3832,5 +3862,220 @@ namespace OMC
         printf("--------------------------------------------------------\n");
         printf("\n");
         printf("\n");
+    }
+
+    bool Config::IsValidInsertSendOutput(uint fpgaOutputIdx)
+    {
+        return fpgaOutputIdx != FPGA_OUTPUT_IDX_OFF && fpgaOutputIdx <= NUM_OUTPUT_CHANNEL &&
+               !(fpgaOutputIdx >= FPGA_OUTPUT_IDX_AUX + 6 && fpgaOutputIdx < FPGA_OUTPUT_IDX_AES50A);
+    }
+
+    bool Config::IsValidInsertReturnInput(uint fpgaInputIdx)
+    {
+        return fpgaInputIdx != FPGA_INPUT_IDX_OFF && fpgaInputIdx <= NUM_INPUT_CHANNEL &&
+               !(fpgaInputIdx >= FPGA_INPUT_IDX_TALKBACK_INT && fpgaInputIdx < FPGA_INPUT_IDX_AES50A);
+    }
+
+    bool Config::IsFpgaInputHeadamp(uint fpgaInputIdx)
+    {
+        return (fpgaInputIdx >= FPGA_INPUT_IDX_XLR && fpgaInputIdx < FPGA_INPUT_IDX_XLR + 32) ||
+               (fpgaInputIdx >= FPGA_INPUT_IDX_AES50A && fpgaInputIdx < FPGA_INPUT_IDX_AES50A + 48) ||
+               (fpgaInputIdx >= FPGA_INPUT_IDX_AES50B && fpgaInputIdx < FPGA_INPUT_IDX_AES50B + 48);
+    }
+
+    uint Config::GetChannelLogicalFpgaInput(uint chanIndex)
+    {
+        if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS) return FPGA_INPUT_IDX_OFF;
+        uint dspIn = GetUint(ROUTING_DSP_INPUT, chanIndex);
+        if (dspIn < DSP_BUF_IDX_DSPCHANNEL || dspIn >= DSP_BUF_IDX_AUX + 8) return FPGA_INPUT_IDX_OFF;
+        return GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (dspIn - 1));
+    }
+
+    bool Config::IsChannelInsertSendActive(uint chanIndex)
+    {
+        return chanIndex < MAX_FPGA_TO_DSP1_CHANNELS &&
+               GetChannelLogicalFpgaInput(chanIndex) != FPGA_INPUT_IDX_OFF &&
+               IsValidInsertSendOutput(GetUint(CHANNEL_INSERT_SEND, chanIndex));
+    }
+
+    bool Config::IsChannelInsertActive(uint chanIndex)
+    {
+        return IsChannelInsertSendActive(chanIndex) &&
+               GetBool(CHANNEL_INSERT_ENABLE, chanIndex) &&
+               IsValidInsertReturnInput(GetUint(CHANNEL_INSERT_RETURN, chanIndex));
+    }
+
+    float Config::GetChannelInsertReturnTrimDb(uint chanIndex)
+    {
+        // Analog headamp insert returns are locked at -2.0dB hardware (step 0, +48V off);
+        // add +2.0dB digital input trim for exact 0.0dB unity gain.
+        return (IsChannelInsertActive(chanIndex) && IsFpgaInputHeadamp(GetUint(CHANNEL_INSERT_RETURN, chanIndex))) ? 2.0f : 0.0f;
+    }
+
+    int Config::FindInsertSendOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel)
+    {
+        uint fpgaOut1Based = fpgaOutZeroBased + 1;
+        if (!IsValidInsertSendOutput(fpgaOut1Based)) return -1;
+        for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+        {
+            if ((int)ch != ignoreChannel && IsChannelInsertSendActive(ch) && GetUint(CHANNEL_INSERT_SEND, ch) == fpgaOut1Based)
+                return (int)ch;
+        }
+        return -1;
+    }
+
+    int Config::FindActiveInsertDspInOwnerChannel(uint fpgaOutZeroBased, int ignoreChannel)
+    {
+        uint fpgaOut1Based = fpgaOutZeroBased + 1;
+        if (fpgaOut1Based < FPGA_OUTPUT_IDX_DSP || fpgaOut1Based >= FPGA_OUTPUT_IDX_DSP + MAX_FPGA_TO_DSP1_CHANNELS) return -1;
+        uint dspInSlot = fpgaOut1Based - FPGA_OUTPUT_IDX_DSP + 1;
+        for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+        {
+            if ((int)ch != ignoreChannel && GetUint(ROUTING_DSP_INPUT, ch) == dspInSlot && IsChannelInsertActive(ch))
+                return (int)ch;
+        }
+        return -1;
+    }
+
+    int Config::FindInsertReturnOwnerChannel(uint fpgaInputIdx, int ignoreChannel)
+    {
+        if (!IsValidInsertReturnInput(fpgaInputIdx)) return -1;
+        for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+        {
+            if ((int)ch != ignoreChannel && GetUint(CHANNEL_INSERT_RETURN, ch) == fpgaInputIdx &&
+                (IsChannelInsertSendActive(ch) || GetBool(CHANNEL_INSERT_ENABLE, ch)))
+                return (int)ch;
+        }
+        return -1;
+    }
+
+    uint Config::GetEffectiveFpgaRoutingSource(uint fpgaOutZeroBased)
+    {
+        int sendOwner = FindInsertSendOwnerChannel(fpgaOutZeroBased);
+        if (sendOwner >= 0) return GetChannelLogicalFpgaInput((uint)sendOwner);
+
+        int retOwner = FindActiveInsertDspInOwnerChannel(fpgaOutZeroBased);
+        if (retOwner >= 0) return GetUint(CHANNEL_INSERT_RETURN, (uint)retOwner);
+
+        return GetUint(ROUTING_FPGA, fpgaOutZeroBased);
+    }
+
+    String Config::GetFpgaPatchInsertWarning(uint fpgaOutZeroBased, uint newSourceIdx)
+    {
+        int sendOwner = FindInsertSendOwnerChannel(fpgaOutZeroBased);
+        if (sendOwner >= 0)
+            return String("Warning: Output is used by ") + GetString(CHANNEL_NAME_INTERN, (uint)sendOwner) + " Insert Send!";
+
+        int activeOwner = FindActiveInsertDspInOwnerChannel(fpgaOutZeroBased);
+        if (activeOwner >= 0)
+            return String("Warning: ") + GetString(CHANNEL_NAME_INTERN, (uint)activeOwner) + " has an active Insert (source updated on Send)!";
+
+        if (newSourceIdx != FPGA_INPUT_IDX_OFF)
+        {
+            int retOwner = FindInsertReturnOwnerChannel(newSourceIdx);
+            if (retOwner >= 0)
+                return String("Warning: Input is used by ") + GetString(CHANNEL_NAME_INTERN, (uint)retOwner) + " Insert Return!";
+        }
+        return "";
+    }
+
+    String Config::GetChannelInsertConflictWarning(uint chanIndex, uint sendOutIdx, uint returnInIdx)
+    {
+        if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS) return "";
+
+        if (sendOutIdx != FPGA_OUTPUT_IDX_OFF)
+        {
+            if (!IsValidInsertSendOutput(sendOutIdx))
+                return "Warning: Selected Insert Send is not a valid external I/O output!";
+            int otherSend = FindInsertSendOwnerChannel(sendOutIdx - 1, (int)chanIndex);
+            if (otherSend >= 0)
+                return String("Warning: Insert Send already used by ") + GetString(CHANNEL_NAME_INTERN, (uint)otherSend) + "!";
+            if (GetUint(ROUTING_FPGA, sendOutIdx - 1) != FPGA_INPUT_IDX_OFF)
+                return String("Warning: Insert Send overrides existing patch (") +
+                       GetParameter(ROUTING_FPGA)->GetFormatedValue(sendOutIdx - 1) + ")!";
+        }
+
+        if (returnInIdx != FPGA_INPUT_IDX_OFF)
+        {
+            if (!IsValidInsertReturnInput(returnInIdx))
+                return "Warning: Selected Insert Return is not a valid external I/O input!";
+            int otherRet = FindInsertReturnOwnerChannel(returnInIdx, (int)chanIndex);
+            if (otherRet >= 0)
+                return String("Warning: Insert Return already used by ") + GetString(CHANNEL_NAME_INTERN, (uint)otherRet) + "!";
+            for (uint ch = 0; ch < MAX_FPGA_TO_DSP1_CHANNELS; ch++)
+            {
+                if (ch != chanIndex && GetChannelLogicalFpgaInput(ch) == returnInIdx)
+                    return String("Warning: Insert Return input is already patched to ") + GetString(CHANNEL_NAME_INTERN, ch) + "!";
+            }
+        }
+        return "";
+    }
+
+    TEST_CASE("Channel I/O Inserts - routing, always-fed send, non-paired I/O, exact 0dB trim, and conflict warnings")
+    {
+        Helper h;
+        Config cfg("X32", &h, false);
+
+        // Setup Channel 1 (index 0): XLR In 1 -> DSP In 1
+        cfg.Set(ROUTING_FPGA, FPGA_INPUT_IDX_XLR + 0, FPGA_OUTPUT_IDX_DSP - 1 + 0);
+        cfg.Set(ROUTING_DSP_INPUT, DSP_BUF_IDX_DSPCHANNEL + 0, 0);
+
+        CHECK(cfg.GetChannelLogicalFpgaInput(0) == FPGA_INPUT_IDX_XLR);
+        CHECK(cfg.IsFpgaInputHeadamp(cfg.GetChannelLogicalFpgaInput(0)) == true);
+        CHECK(cfg.IsChannelInsertSendActive(0) == false);
+        CHECK(cfg.IsChannelInsertActive(0) == false);
+        CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 0) == FPGA_INPUT_IDX_XLR);
+
+        // Configure non-paired insert: Send = Card Out 1, Return = AES50A In 5, Insert OFF (bypassed)
+        uint sendOut = FPGA_OUTPUT_IDX_CARD + 0;      // Card Out 1 (33)
+        uint retIn = FPGA_INPUT_IDX_AES50A + 4;       // AES50A In 5 (117)
+        cfg.Set(CHANNEL_INSERT_SEND, sendOut, 0);
+        cfg.Set(CHANNEL_INSERT_RETURN, retIn, 0);
+        cfg.Set(CHANNEL_INSERT_ENABLE, false, 0);
+
+        CHECK(cfg.GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(0) == "Card Out 1");
+        CHECK(cfg.GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(0) == "AES50A In 5");
+
+        // Send must always be fed even when insert is OFF; trim stays 0.0dB while bypassed
+        CHECK(cfg.IsChannelInsertSendActive(0) == true);
+        CHECK(cfg.IsChannelInsertActive(0) == false);
+        CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(sendOut - 1) == FPGA_INPUT_IDX_XLR);
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 0) == FPGA_INPUT_IDX_XLR);
+
+        // Enable Insert ON -> analog headamp return gets +2.0dB trim (with -2.0dB hw = exact 0.0dB)
+        cfg.Set(CHANNEL_INSERT_ENABLE, true, 0);
+        CHECK(cfg.IsChannelInsertActive(0) == true);
+        CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(2.0f));
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(sendOut - 1) == FPGA_INPUT_IDX_XLR);
+        CHECK(cfg.GetEffectiveFpgaRoutingSource(FPGA_OUTPUT_IDX_DSP - 1 + 0) == retIn);
+        CHECK(cfg.GetChannelLogicalFpgaInput(0) == FPGA_INPUT_IDX_XLR);
+
+        // Digital/line return (Card In 1) gets 0.0dB trim
+        cfg.Set(CHANNEL_INSERT_RETURN, FPGA_INPUT_IDX_CARD + 0, 0);
+        CHECK(cfg.GetChannelInsertReturnTrimDb(0) == doctest::Approx(0.0f));
+        cfg.Set(CHANNEL_INSERT_RETURN, retIn, 0);
+
+        // Encoder step skips invalid internal range (71..112) in both directions
+        cfg.Set(CHANNEL_INSERT_SEND, FPGA_OUTPUT_IDX_AUX + 5, 1); // 70 (AUX Out 6)
+        cfg.Change(CHANNEL_INSERT_SEND, 1, 1);
+        CHECK(cfg.GetUint(CHANNEL_INSERT_SEND, 1) == FPGA_OUTPUT_IDX_AES50A); // 113
+        cfg.Change(CHANNEL_INSERT_SEND, -1, 1);
+        CHECK(cfg.GetUint(CHANNEL_INSERT_SEND, 1) == FPGA_OUTPUT_IDX_AUX + 5); // 70
+        cfg.Set(CHANNEL_INSERT_SEND, FPGA_OUTPUT_IDX_OFF, 1);
+
+        // Conflict warnings
+        CHECK(cfg.GetFpgaPatchInsertWarning(sendOut - 1, FPGA_INPUT_IDX_XLR + 1).length() > 0);
+        CHECK(cfg.GetFpgaPatchInsertWarning(FPGA_OUTPUT_IDX_DSP - 1 + 0, FPGA_INPUT_IDX_XLR + 2).length() > 0);
+        CHECK(cfg.GetFpgaPatchInsertWarning(FPGA_OUTPUT_IDX_DSP - 1 + 1, retIn).length() > 0);
+        CHECK(cfg.GetChannelInsertConflictWarning(1, sendOut, FPGA_INPUT_IDX_OFF).length() > 0);
+        CHECK(cfg.GetChannelInsertConflictWarning(1, FPGA_OUTPUT_IDX_OFF, retIn).length() > 0);
+
+        // Invalid I/O (Monitor L/R, DSP In/Out, Talkback) are rejected
+        CHECK(cfg.IsValidInsertSendOutput(FPGA_OUTPUT_IDX_AUX + 6) == false);
+        CHECK(cfg.IsValidInsertSendOutput(FPGA_OUTPUT_IDX_DSP) == false);
+        CHECK(cfg.IsValidInsertReturnInput(FPGA_INPUT_IDX_TALKBACK_INT) == false);
+        CHECK(cfg.IsValidInsertReturnInput(FPGA_INPUT_IDX_DSP_RETURN) == false);
     }
 }

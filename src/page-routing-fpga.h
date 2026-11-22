@@ -43,9 +43,21 @@ class PageRoutingFpga: public Page
             LoadMatrix();
         }
 
-        void OnChange(bool force)
+        void OnChange(bool force) override
         {
             if (config->HasParameterChanged(ROUTING_FPGA))
+            {
+                for (auto const& changedIdx : config->GetChangedParameterIndexes({ROUTING_FPGA}))
+                {
+                    String warning = config->GetFpgaPatchInsertWarning(changedIdx, config->GetUint(ROUTING_FPGA, changedIdx));
+                    if (warning.length() > 0)
+                    {
+                        ShowWarningBanner(warning);
+                    }
+                }
+                LoadMatrix();
+            }
+            else if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}) || force)
             {
                 LoadMatrix();
             }
@@ -126,7 +138,7 @@ class PageRoutingFpga: public Page
                     targetblocksize = 40;
                     break;
                 case 1: // AUX Out
-                    targetblockoffset = 65;
+                    targetblockoffset = FPGA_OUTPUT_IDX_AUX - 1;
                     targetblocksize = 6;
                     break;
                 case 2: // XLR Out
@@ -170,16 +182,35 @@ class PageRoutingFpga: public Page
 
                 if (i < targetblocksize)
                 {
+                    uint fpgaOut0 = i + targetblockoffset;
+                    int sendOwner = config->FindInsertSendOwnerChannel(fpgaOut0);
+                    int activeRetOwner = config->FindActiveInsertDspInOwnerChannel(fpgaOut0);
+
                     switch (selection_target)
                     {
                         case 0: // CHANNELS
                             header = config->GetString(CHANNEL_NAME_INTERN, i);
-                            label = config->GetParameter(ROUTING_FPGA)->GetFormatedValue(i + targetblockoffset);
-                            footer = config->GetString(CHANNEL_NAME, i);
+                            label = config->GetParameter(ROUTING_FPGA)->GetFormatedValue(fpgaOut0);
+                            if (activeRetOwner >= 0)
+                            {
+                                footer = String("INS: ") + config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue((uint)activeRetOwner);
+                            }
+                            else
+                            {
+                                footer = config->GetString(CHANNEL_NAME, i);
+                            }
                             break;
                         default:
                             header = String(i+1);
-                            label = config->GetParameter(ROUTING_FPGA)->GetFormatedValue(i + targetblockoffset);
+                            if (sendOwner >= 0)
+                            {
+                                label = String("INS SEND");
+                                footer = config->GetString(CHANNEL_NAME_INTERN, (uint)sendOwner);
+                            }
+                            else
+                            {
+                                label = config->GetParameter(ROUTING_FPGA)->GetFormatedValue(fpgaOut0);
+                            }
                             break;
                     }
                 }

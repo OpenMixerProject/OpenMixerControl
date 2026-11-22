@@ -14,6 +14,25 @@ class PageConfig : public Page
 
         lv_obj_t* config_mute_group[MUTE_GROUPS];
         lv_obj_t* config_dca_group[8];
+        lv_obj_t* config_insert_status = nullptr;
+
+        void UpdateInsertStatusLabel(uint8_t chanIndex)
+        {
+            if (config_insert_status == nullptr) return;
+            if (chanIndex >= MAX_FPGA_TO_DSP1_CHANNELS)
+            {
+                lv_label_set_text(config_insert_status, "INS: N/A");
+                return;
+            }
+            String text = config->IsChannelInsertActive(chanIndex)
+                ? (String("INS: ON  ") + config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(chanIndex) +
+                   " -> " + config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(chanIndex))
+                : (config->GetUint(CHANNEL_INSERT_SEND, chanIndex) || config->GetUint(CHANNEL_INSERT_RETURN, chanIndex)
+                    ? (String("INS: BYP ") + config->GetParameter(CHANNEL_INSERT_SEND)->GetFormatedValue(chanIndex) +
+                       " / " + config->GetParameter(CHANNEL_INSERT_RETURN)->GetFormatedValue(chanIndex))
+                    : String("INS: OFF"));
+            lv_label_set_text(config_insert_status, text.c_str());
+        }
 
         int get_vu_pixels_non_linear(int dbfs)
         {                
@@ -127,11 +146,20 @@ class PageConfig : public Page
             config_dca_group[5] = objects.config_dca_group_6;
             config_dca_group[6] = objects.config_dca_group_7;
             config_dca_group[7] = objects.config_dca_group_8;
+
+            if (objects.configtab != nullptr)
+            {
+                config_insert_status = lv_label_create(objects.configtab);
+                lv_obj_align(config_insert_status, LV_ALIGN_TOP_RIGHT, -10, 4);
+                lv_obj_set_style_text_color(config_insert_status, lv_palette_main(LV_PALETTE_AMBER), 0);
+                lv_label_set_text(config_insert_status, "INS: OFF");
+            }
         }
 
         void OnShow() override 
         {
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE, SELECTED_CHANNEL);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_INSERT_ENABLE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GAIN);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_2, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_PHANTOM);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE_SELECTED_CHANNEL, ROUTING_DSP_INPUT);
@@ -207,6 +235,11 @@ class PageConfig : public Page
                 {
                     lv_obj_set_state(config_dca_group[i], LV_STATE_CHECKED, config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex));
                 }
+            }
+
+            if (config->HasParametersChanged({CHANNEL_INSERT_ENABLE, CHANNEL_INSERT_SEND, CHANNEL_INSERT_RETURN}, chanIndex) || force_update)
+            {
+                UpdateInsertStatusLabel(chanIndex);
             }
 
         }
