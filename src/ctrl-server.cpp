@@ -20,6 +20,7 @@ CtrlServer::CtrlServer(X32BaseParameter* basepar) : X32Base(basepar)
 	mixer = new Mixer(basepar);
 	osc_server = new OscServer(basepar);
 	wsm = new WSM(basepar);
+	usb_storage = new UsbStorage(basepar);
 }
 
 // ###########################################################################
@@ -54,6 +55,9 @@ void CtrlServer::Init()
 
 	helper->Log("Init WSM\n");
 	wsm->Init();
+
+	helper->Log("Init USB Storage\n");
+	usb_storage->Init();
 
 
 	//############################################################################
@@ -131,6 +135,7 @@ void CtrlServer::Tick10ms()
 	{
 		mixer->Sync();
 		mixer->card->Sync();
+		usb_storage->Sync();
 		osc_server->Sync();
 	}
 }
@@ -237,6 +242,8 @@ void CtrlServer::Tick100ms()
 
 void CtrlServer::Tick1000ms()
 {
+	usb_storage->Tick1000ms();
+
 	if (autosavewait == 0)
 	{
 		AutoSave();

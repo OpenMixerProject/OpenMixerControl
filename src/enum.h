@@ -123,6 +123,9 @@ enum class MP_UOM {
     CARD_AUDIO_SOURCE,
     PANORAMA,
     BANKING_EQ,
+    USB_STORAGE_STATE,
+    USB_STORAGE_FS_TYPE,
+    USB_STORAGE_FORMAT_TARGET,
 };
 
 enum class MP_VALUE_TYPE {
@@ -502,8 +505,18 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    // USB Storage (FAT32 / exFAT + Format)
+    USB_STORAGE_STATE = 282,
+    USB_STORAGE_FS_TYPE = 283,
+    USB_STORAGE_TOTAL_SPACE = 284,
+    USB_STORAGE_FREE_SPACE = 285,
+    USB_STORAGE_FORMAT_TARGET = 286,
+    USB_STORAGE_FORMAT_COMMAND = 287,
+    USB_STORAGE_DEVICE_INFO = 288,
+    USB_STORAGE_BOOT_PROTECTED = 289,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 290
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!
@@ -1262,4 +1275,31 @@ enum class OMCBankTarget
     BusSection,
 
     WING_COMPACT,
+};
+
+enum class USB_DRIVE_STATE
+{
+    REMOVED = 0,
+    MOUNTED = 1,
+    UNMOUNTED = 2,
+    FORMATTING = 3,
+    ERROR = 4,
+    UNSUPPORTED_FS = 5,
+    __ELEMENT_COUNTER_DO_NOT_MOVE
+};
+
+enum class USB_FS_TYPE
+{
+    UNKNOWN = 0,
+    FAT32 = 1,
+    EXFAT = 2,
+    OTHER = 3,
+    __ELEMENT_COUNTER_DO_NOT_MOVE
+};
+
+enum class USB_FORMAT_TARGET
+{
+    FAT32 = 0,
+    EXFAT = 1,
+    __ELEMENT_COUNTER_DO_NOT_MOVE
 };

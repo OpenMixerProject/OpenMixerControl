@@ -47,6 +47,9 @@ namespace OMC
             case CARD_NUMBER_OF_CHANNELS:
             case CARD_SDCARD_STATE:
             case CARD_AUDIO_SOURCE:
+            case USB_STORAGE_STATE:
+            case USB_STORAGE_FS_TYPE:
+            case USB_STORAGE_FORMAT_TARGET:
                 return GetUnitOfMesaurement(false, index, isResetLabel);
             case ZERO_BASED_INDEX__START_BY_ONE:
                 return String(value_float + 1, 0);
@@ -398,6 +401,63 @@ namespace OMC
                         break;
                     case 1:
                         result += String("CARD");
+                        break;
+                }
+                break;
+            case USB_STORAGE_STATE:
+                switch((uint)value[index])
+                {
+                    case (uint)USB_DRIVE_STATE::REMOVED:
+                        result += String("Removed");
+                        break;
+                    case (uint)USB_DRIVE_STATE::MOUNTED:
+                        result += String("Mounted");
+                        break;
+                    case (uint)USB_DRIVE_STATE::UNMOUNTED:
+                        result += String("Unmounted");
+                        break;
+                    case (uint)USB_DRIVE_STATE::FORMATTING:
+                        result += String("Formatting...");
+                        break;
+                    case (uint)USB_DRIVE_STATE::ERROR:
+                        result += String("Error");
+                        break;
+                    case (uint)USB_DRIVE_STATE::UNSUPPORTED_FS:
+                        result += String("Unsupported FS");
+                        break;
+                    default:
+                        result += String("Unknown");
+                        break;
+                }
+                break;
+            case USB_STORAGE_FS_TYPE:
+                switch((uint)value[index])
+                {
+                    case (uint)USB_FS_TYPE::FAT32:
+                        result += String("FAT32");
+                        break;
+                    case (uint)USB_FS_TYPE::EXFAT:
+                        result += String("exFAT");
+                        break;
+                    case (uint)USB_FS_TYPE::OTHER:
+                        result += String("Other");
+                        break;
+                    default:
+                        result += String("Unknown");
+                        break;
+                }
+                break;
+            case USB_STORAGE_FORMAT_TARGET:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case (uint)USB_FORMAT_TARGET::FAT32:
+                        result += String("FAT32");
+                        break;
+                    case (uint)USB_FORMAT_TARGET::EXFAT:
+                        result += String("exFAT");
+                        break;
+                    default:
+                        result += String("Unknown");
                         break;
                 }
                 break;

@@ -6,6 +6,7 @@
 #include "osc-server.h"
 #include "wsm.h"
 #include "artnet.h"
+#include "usb-storage.h"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ class CtrlServer : public X32Base
         
         OscServer* osc_server;
         WSM* wsm;
+        UsbStorage* usb_storage;
         
         void my_handler(int s);
 
