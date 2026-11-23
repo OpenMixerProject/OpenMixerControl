@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenX32 · M32 — 800×480 UI prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="console">
+      <header id="topbar">
+        <div class="brand"><span class="brand-mark">X</span><span class="brand-name">OPENX32<span class="brand-sub">/M32</span></span></div>
+        <nav id="tabs">
+          <button class="tab" data-act="page" data-v="overview">OVER</button>
+          <button class="tab" data-act="page" data-v="channel">CHAN</button>
+          <button class="tab" data-act="page" data-v="eq">EQ</button>
+          <button class="tab" data-act="page" data-v="dyn">DYN</button>
+          <button class="tab" data-act="page" data-v="aux">AUX</button>
+          <button class="tab" data-act="page" data-v="assign">MAP</button>
+          <button class="tab" data-act="page" data-v="monitor">MON</button>
+          <button class="tab" data-act="page" data-v="routing">ROUTE</button>
+          <button class="tab" data-act="page" data-v="delay">DLY</button>
+          <button class="tab" data-act="page" data-v="meter">MET</button>
+          <button class="tab" data-act="page" data-v="fx">FX</button>
+          <button class="tab" data-act="page" data-v="card">CARD</button>
+          <button class="tab" data-act="page" data-v="macro">MACRO</button>
+          <button class="tab" data-act="page" data-v="scenes">SCENE</button>
+          <button class="tab" data-act="page" data-v="setup">CFG</button>
+          <button class="tab" data-act="page" data-v="about">SYS</button>
+        </nav>
+        <div class="status"><span class="led"></span><span id="clock">00:00</span><span class="status-sep">/</span><span id="rate">48k</span></div>
+      </header>
+
+      <aside id="softkeys">
+        <button class="soft" data-act="soft" data-v="sel"><b>SEL</b><span>select</span></button>
+        <button class="soft" data-act="soft" data-v="mute"><b>MUTE</b><span>channel</span></button>
+        <button class="soft" data-act="soft" data-v="solo"><b>SOLO</b><span>channel</span></button>
+        <button class="soft" data-act="soft" data-v="prev"><b>◀</b><span>bank</span></button>
+        <button class="soft" data-act="soft" data-v="next"><b>▶</b><span>bank</span></button>
+        <button class="soft" data-act="soft" data-v="eq"><b>EQ</b><span>view</span></button>
+        <button class="soft" data-act="soft" data-v="dyn"><b>DYN</b><span>view</span></button>
+        <button class="soft" data-act="soft" data-v="aux"><b>AUX</b><span>sends</span></button>
+        <button class="soft" data-act="soft" data-v="assign"><b>MAP</b><span>fader bank</span></button>
+        <button class="soft" data-act="soft" data-v="monitor"><b>MON</b><span>listen</span></button>
+        <button class="soft" data-act="soft" data-v="macro"><b>MAC</b><span>macro</span></button>
+        <button class="soft" data-act="soft" data-v="delay"><b>DLY</b><span>align</span></button>
+        <button class="soft" data-act="soft" data-v="setup"><b>CFG</b><span>show setup</span></button>
+        <button class="soft" data-act="soft" data-v="overview"><b>HOME</b><span>overview</span></button>
+      </aside>
+
+      <main id="screen"></main>
+
+      <footer id="bottombar"></footer>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

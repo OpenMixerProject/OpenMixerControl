@@ -28,6 +28,7 @@
 #include "page-about.h"
 #include "page-scenes.h"
 #include "page-prototypegui.h"
+#include "page-showconfig.h"
 #include "lcd-menu.h"
 
 #include "surfaceelement.h"
@@ -368,6 +369,7 @@ void CtrlClient::InitPagesAndGUI()
 	pages[X32_PAGE::ABOUT] = new PageAbout(pagebasepar);
 	pages[X32_PAGE::DEBUG] = new PageDebug(pagebasepar);
 	pages[X32_PAGE::PROTOTYPEGUI] = new PagePrototypeGui(pagebasepar);
+	pages[X32_PAGE::SHOW_CONFIG] = new PageShowConfig(pagebasepar);
 	pages[X32_PAGE::LIBRARY] = new PageLibrary(pagebasepar);
 	pages[X32_PAGE::EFFECTS] = new PageEffects(pagebasepar);
 	pages[X32_PAGE::SCENES] = new PageScenes(pagebasepar);
@@ -2201,7 +2203,8 @@ void CtrlClient::SimulatorButton()
 			config->Set(ACTIVE_PAGE, (uint)SETUP);
 			break;
 		case 55:
-			//ShowPage(MONITOR);
+			// SHOW CONFIG / FADER MAP
+			config->Set(ACTIVE_PAGE, (uint)SHOW_CONFIG);
 			break;
 		case 56:
 			//ShowPage(SCENES);

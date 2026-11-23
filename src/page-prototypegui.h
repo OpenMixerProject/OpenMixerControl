@@ -15,6 +15,7 @@ class PagePrototypeGui: public Page
     public:
         PagePrototypeGui(PageBaseParameter* pagebasepar) : Page(pagebasepar) {
             prevPage = X32_PAGE::DEBUG;
+            nextPage = X32_PAGE::SHOW_CONFIG;
             tabLayer0 = objects.maintab;
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;

@@ -54,6 +54,7 @@ enum class X32_PAGE :int
         ABOUT,
         DEBUG,
         PROTOTYPEGUI,
+        SHOW_CONFIG,
     LIBRARY,
     EFFECTS,
     SCENES,
