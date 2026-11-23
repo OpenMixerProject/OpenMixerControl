@@ -4,6 +4,7 @@
 
 
 #include <list>
+#include <vector>
 
 #include "base.h"
 #include "spi-event.h"
@@ -32,7 +33,7 @@
 // defines for SPI-communication with DSPs
 #define SPI_MAX_RX_PAYLOAD_SIZE 200 // 197 int-values + * + # + parameter
 #define SPI_RX_BUFFER_SIZE      (SPI_MAX_RX_PAYLOAD_SIZE * 3) // store up to 3 payload-sets
-#define SPI_TX_BUFFER_SIZE      30000
+#define SPI_TX_BUFFER_SIZE      4096
 #define SPI_TX_MAX_WORD_COUNT   50  // multiband-compressor sends 41 values at once, so set to 50 to be safe
 typedef enum {
 	LOOKING_FOR_START_MARKER,
@@ -60,9 +61,9 @@ typedef struct {
 } sSpiTxBufferElement;
 
 typedef struct {
-  sSpiTxBufferElement buffer[SPI_TX_BUFFER_SIZE];
-  int head;
-  int level; // tail will be calculated based on the level
+  std::vector<sSpiTxBufferElement> buffer;
+  int head = 0;
+  int level = 0; // tail will be calculated based on the level
 } sSpiTxRingBuffer;
 
 namespace OMC
