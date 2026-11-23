@@ -64,6 +64,27 @@ class PageShowConfig : public Page
         char statusMsg[96] = {};
         bool toggles[200] = {};
 
+        // The six physical rotary encoders mirror the first six on-screen
+        // knobs of the current page. Values are kept per page rebuild.
+        struct KnobState
+        {
+            lv_obj_t* label = nullptr;
+            char unit[16] = {};
+            float value = 0;
+            float step = 1;
+            bool numeric = false;
+        };
+        static constexpr int MAX_KNOBS = 40;
+        KnobState knobs[MAX_KNOBS] = {};
+        int knobCount = 0;
+
+        // Clickable page widgets in creation order, used by arrow-key focus.
+        static constexpr int MAX_FOCUS = 256;
+        lv_obj_t* focusObjs[MAX_FOCUS] = {};
+        int focusCodes[MAX_FOCUS] = {};
+        int focusCount = 0;
+        int focusIdx = -1;
+
         static const char* TAB_LABELS[16];
         static const char* PAGE_TITLES[16];
         static const char* PAGE_HEAD_NOTE[16];
@@ -105,6 +126,14 @@ class PageShowConfig : public Page
             return l;
         }
 
+        static void RegisterFocus(lv_obj_t* o, int code)
+        {
+            if (!self || code < 0 || self->focusCount >= MAX_FOCUS) return;
+            self->focusObjs[self->focusCount] = o;
+            self->focusCodes[self->focusCount] = code;
+            ++self->focusCount;
+        }
+
         static lv_obj_t* Button(lv_obj_t* parent, int x, int y, int w, int h,
                                 const char* text, int code)
         {
@@ -122,7 +151,11 @@ class PageShowConfig : public Page
             lv_label_set_text(l, text);
             lv_obj_set_style_text_font(l, &lv_font_montserrat_10, LV_PART_MAIN);
             lv_obj_set_style_text_color(l, lv_color_hex(C_TXT), LV_PART_MAIN);
-            if (code >= 0) lv_obj_add_event_cb(b, Clicked, LV_EVENT_CLICKED, (void*)(intptr_t)code);
+            if (code >= 0)
+            {
+                lv_obj_add_event_cb(b, Clicked, LV_EVENT_CLICKED, (void*)(intptr_t)code);
+                RegisterFocus(b, code);
+            }
             return b;
         }
 
@@ -148,7 +181,34 @@ class PageShowConfig : public Page
             lv_obj_t* o = Box(parent, x, y, w, h, 0x16191c, 0x30363c, 1);
             lv_obj_add_flag(o, LV_OBJ_FLAG_CLICKABLE);
             lv_obj_add_event_cb(o, Clicked, LV_EVENT_CLICKED, (void*)(intptr_t)code);
+            RegisterFocus(o, code);
             return o;
+        }
+
+        static void ParseKnobValue(const char* text, KnobState& s)
+        {
+            s.label = nullptr;
+            s.unit[0] = 0;
+            s.value = 0;
+            s.step = 1;
+            s.numeric = false;
+            const char* p = text;
+            while (*p == ' ') ++p;
+            float v = 0;
+            int used = 0;
+            if (sscanf(p, "%f%n", &v, &used) >= 1 && used > 0)
+            {
+                s.numeric = true;
+                s.value = v;
+                snprintf(s.unit, sizeof(s.unit), "%s", p + used);
+                if (strstr(s.unit, "dB")) s.step = 0.5f;
+            }
+            else
+            {
+                // Non numeric values (e.g. "C" for centre pan) become a
+                // percentage once the matching encoder is turned.
+                s.value = 50;
+            }
         }
 
         static lv_obj_t* Knob(lv_obj_t* parent, int x, int y, int d,
@@ -170,7 +230,13 @@ class PageShowConfig : public Page
             lv_obj_set_style_radius(k, d / 2, LV_PART_MAIN);
             Box(k, d / 2 - 1, 3, 2, d / 3, color, color, 0);
             Label(c, 0, d + 2, d, label, C_DIM, nullptr, LV_TEXT_ALIGN_CENTER);
-            Label(c, 0, d + 15, d, val, C_AMBER_S, nullptr, LV_TEXT_ALIGN_CENTER);
+            lv_obj_t* valLabel = Label(c, 0, d + 15, d, val, C_AMBER_S, nullptr, LV_TEXT_ALIGN_CENTER);
+            if (self && self->knobCount < MAX_KNOBS)
+            {
+                KnobState& s = self->knobs[self->knobCount++];
+                ParseKnobValue(val, s);
+                s.label = valLabel;
+            }
             return c;
         }
 
@@ -254,6 +320,48 @@ class PageShowConfig : public Page
             Refresh();
         }
 
+        void UpdateKnob(int index, int amount)
+        {
+            if (index < 0 || index >= knobCount || !knobs[index].label) return;
+            KnobState& s = knobs[index];
+            s.value += amount * s.step;
+            if (s.value > 999) s.value = 999;
+            if (s.value < -99) s.value = -99;
+            if (s.numeric) lv_label_set_text_fmt(s.label, "%g%s", s.value, s.unit);
+            else lv_label_set_text_fmt(s.label, "%d%%", (int)s.value);
+            snprintf(statusMsg, sizeof(statusMsg), "KNOB %d %+d", index + 1, amount);
+        }
+
+        void MoveFocus(int dir)
+        {
+            if (activeTab == 5)
+            {
+                selectedSlot = (selectedSlot + dir + 12) % 12;
+                snprintf(statusMsg, sizeof(statusMsg), "SLOT %02d", selectedSlot + 1);
+                Refresh();
+                return;
+            }
+            if (!focusCount)
+            {
+                snprintf(statusMsg, sizeof(statusMsg), "NO ITEMS");
+                Refresh();
+                return;
+            }
+            if (focusIdx >= 0 && focusIdx < focusCount && focusObjs[focusIdx])
+                lv_obj_set_style_border_color(focusObjs[focusIdx], lv_color_hex(0x30363c), LV_PART_MAIN);
+            focusIdx = (focusIdx + dir + focusCount) % focusCount;
+            lv_obj_set_style_border_color(focusObjs[focusIdx], lv_color_hex(C_AMBER), LV_PART_MAIN);
+            snprintf(statusMsg, sizeof(statusMsg), "FOCUS %d/%d - X SELECT", focusIdx + 1, focusCount);
+            Refresh();
+        }
+
+        void ActivateFocus()
+        {
+            if (activeTab == 5) return;
+            if (focusIdx >= 0 && focusIdx < focusCount)
+                HandleClick(focusCodes[focusIdx], focusObjs[focusIdx]);
+        }
+
         void SwitchTab(int tab)
         {
             if (tab < 0 || tab > 15) return;
@@ -267,6 +375,9 @@ class PageShowConfig : public Page
             lv_obj_clean(body);
             headNote = nullptr;
             bankBtns[0] = slotCells[0] = slotNames[0] = listLabels[0] = listBtns[0] = nullptr;
+            knobCount = 0;
+            focusCount = 0;
+            focusIdx = -1;
             BuildPage(activeTab);
             snprintf(statusMsg, sizeof(statusMsg), "TAB %s", TAB_LABELS[activeTab]);
             Refresh();
@@ -1027,9 +1138,24 @@ class PageShowConfig : public Page
             if (overlay) lv_obj_add_flag(overlay, LV_OBJ_FLAG_HIDDEN);
         }
 
-        static void CycleTabStatic()
+        static bool IsVisible()
         {
-            if (overlay && self) self->SwitchTab((self->activeTab + 1) % 16);
+            return overlay && !lv_obj_has_flag(overlay, LV_OBJ_FLAG_HIDDEN);
+        }
+
+        static void CycleTabStatic(int dir = 1)
+        {
+            if (overlay && self) self->SwitchTab((self->activeTab + dir + 16) % 16);
+        }
+
+        static void MoveFocusStatic(int dir)
+        {
+            if (overlay && self) self->MoveFocus(dir);
+        }
+
+        static void ActivateFocusStatic()
+        {
+            if (overlay && self) self->ActivateFocus();
         }
 
         PageShowConfig(PageBaseParameter* pagebasepar) : Page(pagebasepar)
@@ -1050,45 +1176,70 @@ class PageShowConfig : public Page
             if (!overlay) BuildOverlay();
             lv_obj_clear_flag(overlay, LV_OBJ_FLAG_HIDDEN);
             lv_obj_move_foreground(overlay);
-            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, "Bank");
-            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_2, "Slot");
-            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_2);
-            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6);
+            // All six rotary encoders and their push buttons drive the
+            // overlay. Encoders 1/2 stay bank/slot on the FADER MAP page and
+            // become knobs 1/2 everywhere else.
+            const char* encNames[6] = { "Bank/K1", "Slot/K2", "Knob 3", "Knob 4", "Knob 5", "Knob 6" };
+            for (int i = 0; i < 6; ++i)
+                config->SurfaceBindCustom(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_1, i), encNames[i]);
+            for (int i = 0; i < 6; ++i)
+                config->SurfaceBindCustom(config->CalcSurfaceElementId(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, i));
             Refresh();
         }
 
         void OnChangeCustomEncoder(SurfaceElementId id, int amount) override
         {
-            switch (id)
+            int index = (int)id - (int)SurfaceElementId::DISPLAY_ENCODER_1;
+            if (index < 0 || index > 5) return;
+            if (index < 2 && activeTab == 5)
             {
-                case SurfaceElementId::DISPLAY_ENCODER_1:
+                if (index == 0)
+                {
                     activeBank = (activeBank + amount + 120) % 12;
-                    snprintf(statusMsg, sizeof(statusMsg), "Encoder 1 bank");
-                    break;
-                case SurfaceElementId::DISPLAY_ENCODER_2:
+                    snprintf(statusMsg, sizeof(statusMsg), "BANK %s", BANK_NAMES[activeBank]);
+                }
+                else
+                {
                     selectedSlot = (selectedSlot + amount + 120) % 12;
-                    snprintf(statusMsg, sizeof(statusMsg), "Encoder 2 slot");
-                    break;
-                default: return;
+                    snprintf(statusMsg, sizeof(statusMsg), "SLOT %02d", selectedSlot + 1);
+                }
             }
+            else UpdateKnob(index, amount);
             Refresh();
         }
 
         void OnChangeCustomButton(SurfaceElementId id) override
         {
-            switch (id)
+            int index = (int)id - (int)SurfaceElementId::DISPLAY_ENCODER_BUTTON_1;
+            if (index < 0 || index > 5) return;
+            if (activeTab == 5)
             {
-                case SurfaceElementId::DISPLAY_ENCODER_BUTTON_2:
+                if (index == 1)
+                {
                     snprintf(slotLabel[activeBank][selectedSlot], 16, "CH %02d", activeBank * 12 + selectedSlot + 1);
-                    snprintf(statusMsg, sizeof(statusMsg), "Button 2 applied");
-                    break;
-                case SurfaceElementId::DISPLAY_ENCODER_BUTTON_6:
+                    snprintf(statusMsg, sizeof(statusMsg), "SLOT APPLIED");
+                }
+                else if (index == 5)
+                {
                     for (int i = 0; i < 12; ++i) slotLabel[activeBank][i][0] = 0;
                     activeBank = 0; selectedSlot = 0;
-                    snprintf(statusMsg, sizeof(statusMsg), "Button 6 reset");
-                    break;
-                default: return;
+                    snprintf(statusMsg, sizeof(statusMsg), "MAP RESET");
+                }
+                else snprintf(statusMsg, sizeof(statusMsg), "ENC BTN %d", index + 1);
             }
+            else if (index == 1)
+            {
+                ActivateFocus();
+                if (!statusMsg[0]) snprintf(statusMsg, sizeof(statusMsg), "ITEM SELECTED");
+            }
+            else if (index == 5)
+            {
+                if (focusIdx >= 0 && focusIdx < focusCount && focusObjs[focusIdx])
+                    lv_obj_set_style_border_color(focusObjs[focusIdx], lv_color_hex(0x30363c), LV_PART_MAIN);
+                focusIdx = -1;
+                snprintf(statusMsg, sizeof(statusMsg), "FOCUS CLEARED");
+            }
+            else snprintf(statusMsg, sizeof(statusMsg), "ENC BTN %d", index + 1);
             Refresh();
         }
 };

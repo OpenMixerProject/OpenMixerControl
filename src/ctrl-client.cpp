@@ -2221,17 +2221,21 @@ void CtrlClient::SimulatorButton()
 		case 48:
 			config->Set(ACTIVE_PAGE, (uint)DEBUG);
 			break;
-		case 17:
-			config->Refresh(DISPLAY_UP);
+		case 17: // Up
+			if (PageShowConfig::IsVisible()) PageShowConfig::MoveFocusStatic(-1);
+			else config->Refresh(DISPLAY_UP);
 			break;
-		case 18:
-			config->Refresh(DISPLAY_DOWN);
+		case 18: // Down
+			if (PageShowConfig::IsVisible()) PageShowConfig::MoveFocusStatic(1);
+			else config->Refresh(DISPLAY_DOWN);
 			break;
-		case 20:
-			config->Refresh(DISPLAY_LEFT);
+		case 20: // Left
+			if (PageShowConfig::IsVisible()) PageShowConfig::CycleTabStatic(-1);
+			else config->Refresh(DISPLAY_LEFT);
 			break;
-		case 19:
-			config->Refresh(DISPLAY_RIGHT);
+		case 19: // Right
+			if (PageShowConfig::IsVisible()) PageShowConfig::CycleTabStatic(1);
+			else config->Refresh(DISPLAY_RIGHT);
 			break;
 		case 113: // Q
 			ProcessSurface(X32_BOARD_MAIN, 'e', 0x09, 1); // Encoder 1 up

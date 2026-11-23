@@ -27,8 +27,15 @@ programmatically in `OnInit()`.
 
 - Press `7` in the SDL2 simulator to open the page directly.
 - Or navigate: Setup > Prototype GUI > (next page) SHOW CONFIG.
-- Encoder 1: select bank (1-12). Encoder 2: select slot (1-12).
-- Button 2: apply selected slot to the first input bank. Button 6: reset.
+- Left/Right arrows: previous/next tab in the overlay (normal OMC page
+  navigation when the overlay is hidden).
+- Up/Down arrows: move the highlighted item; on FADER MAP they move the
+  selected slot.
+- Encoders 1-6: turn the first six on-screen knobs of the current page. On
+  FADER MAP, encoders 1/2 still select bank/slot. Simulator keys: `Q`/`A`,
+  `W`/`S`, `E`/`D`, `R`/`F`, `T`/`G`, `Z`/`H`.
+- Button 2 (`X`): apply the slot on FADER MAP, otherwise activate the
+  focused item. Button 6 (`N`): reset the map or clear the focus.
 
 ## Build
 
