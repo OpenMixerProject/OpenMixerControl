@@ -120,8 +120,8 @@ void CtrlClient::Init()
 			display = lv_sdl_window_create(DISPLAY_RESOLUTION_X, DISPLAY_RESOLUTION_Y);		
 			lv_sdl_window_set_title(display, "OpenX32 - omc - Development Simulator");
 			keyboard = lv_sdl_keyboard_create();
-			//mouse = lv_sdl_mouse_create();
-			//mouse_wheel = lv_sdl_mousewheel_create();
+			mouse = lv_sdl_mouse_create();
+			mouse_wheel = lv_sdl_mousewheel_create();
 
 			// call this before "ui_init()"
 			ui_create_groups();
