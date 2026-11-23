@@ -88,6 +88,7 @@ class CtrlClient : public X32Base
 
         void SetLcdDark(uint8_t p_boardId, uint8_t lcdIndex);
         void UpdateMeters();
+        uint8_t CalcChannelStripMeter(SurfaceElementId elementId);
         void setLedChannelIndicator_Rack();        
         void setLedChannelIndicator_Core();        
         uint8_t CalcPreampMeter_FullOrCompact(uint8_t channel);
