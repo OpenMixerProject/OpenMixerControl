@@ -2,3 +2,4 @@ src/lv_conf.h
 build/
 lib_ext
 src/version.h
+scene0.json
