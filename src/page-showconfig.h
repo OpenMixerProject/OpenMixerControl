@@ -969,10 +969,15 @@ class PageShowConfig : public Page
 
             // The vertical soft-key rail was removed: it duplicated the tabs.
 
-            lv_obj_t* screen = Box(overlay, 55, 43, 744, 404, 0x0e0f11, 0x000000, 0);
+            // The freed 55 px soft-key column is now part of the central screen.
+            // The 728 px page layout is stretched horizontally to fill 800 px.
+            lv_obj_t* screen = Box(overlay, 0, 43, 800, 404, 0x0e0f11, 0x000000, 0);
             body = lv_obj_create(screen);
-            lv_obj_set_pos(body, 8, 6);
+            lv_obj_set_pos(body, 0, 6);
             lv_obj_set_size(body, 728, 398);
+            lv_obj_set_style_transform_pivot_x(body, 0, LV_PART_MAIN);
+            lv_obj_set_style_transform_pivot_y(body, 0, LV_PART_MAIN);
+            lv_obj_set_style_transform_scale_x(body, 281, LV_PART_MAIN); // 281/256 = 800/728
             lv_obj_set_style_bg_opa(body, LV_OPA_TRANSP, LV_PART_MAIN);
             lv_obj_set_style_border_width(body, 0, LV_PART_MAIN);
             lv_obj_set_style_pad_all(body, 0, LV_PART_MAIN);
