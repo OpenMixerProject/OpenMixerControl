@@ -234,6 +234,20 @@ class PageShowConfig : public Page
                               (lv_obj_t*)lv_event_get_target(e));
         }
 
+        // A transparent strip above the tab buttons makes the whole tab row
+        // clickable, even if a short label is clipped by the narrow 34 px tabs.
+        static void TabStripClicked(lv_event_t* e)
+        {
+            if (!self) return;
+            lv_indev_t* indev = lv_event_get_indev(e);
+            if (!indev) indev = lv_indev_active();
+            if (!indev) return;
+            lv_point_t p;
+            lv_indev_get_point(indev, &p);
+            if (p.x < 141 || p.x >= 694) return;
+            self->SwitchTab((p.x - 141) * 16 / 553);
+        }
+
         void Note(const char* text)
         {
             snprintf(statusMsg, sizeof(statusMsg), "%s", text);
@@ -245,10 +259,10 @@ class PageShowConfig : public Page
             if (tab < 0 || tab > 15) return;
             activeTab = tab;
             for (int i = 0; i < 16; ++i) BtnLook(tabBtns[i], i == activeTab, true);
-            for (int i = 0; i < 14; ++i) BtnLook(softBtns[i], false);
+            for (int i = 0; i < 14; ++i) if (softBtns[i]) BtnLook(softBtns[i], false);
             int soft = -1;
             for (int i = 0; i < 14; ++i) if (SOFT_TAB[i] == activeTab) soft = i;
-            if (soft >= 0) BtnLook(softBtns[soft], true);
+            if (soft >= 0 && softBtns[soft]) BtnLook(softBtns[soft], true);
 
             lv_obj_clean(body);
             headNote = nullptr;
@@ -923,7 +937,8 @@ class PageShowConfig : public Page
             lv_obj_add_flag(overlay, LV_OBJ_FLAG_CLICKABLE);
             lv_obj_add_flag(overlay, LV_OBJ_FLAG_HIDDEN);
 
-            lv_obj_t* top = Box(overlay, 0, 0, 800, 34, 0x202328, 0x15171a, 0);
+            // The horizontal tab bar is shifted down to leave room above it.
+            lv_obj_t* top = Box(overlay, 0, 8, 800, 34, 0x202328, 0x15171a, 0);
             lv_obj_set_style_border_side(top, LV_BORDER_SIDE_BOTTOM, LV_PART_MAIN);
             lv_obj_t* mark = Box(top, 7, 7, 20, 20, C_AMBER, C_AMBER, 0);
             Label(mark, 0, 2, 20, "X", 0x151515, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
@@ -941,27 +956,22 @@ class PageShowConfig : public Page
             Label(top, 757, 11, 8, "/", C_DIMMER);
             Label(top, 769, 11, 24, "48k", C_DIM);
 
-            lv_obj_t* soft = Box(overlay, 0, 34, 54, 414, 0x15171a, 0x000000, 0);
-            lv_obj_set_style_border_side(soft, LV_BORDER_SIDE_RIGHT, LV_PART_MAIN);
-            for (int i = 0; i < 14; ++i)
-            {
-                lv_obj_t* b = lv_btn_create(soft);
-                lv_obj_set_pos(b, 5, 5 + i * 29);
-                lv_obj_set_size(b, 45, 27);
-                lv_obj_set_style_bg_color(b, lv_color_hex(0x252930), LV_PART_MAIN);
-                lv_obj_set_style_border_color(b, lv_color_hex(0x3b4148), LV_PART_MAIN);
-                lv_obj_set_style_border_width(b, 1, LV_PART_MAIN);
-                lv_obj_set_style_pad_all(b, 0, LV_PART_MAIN);
-                lv_obj_set_style_radius(b, 0, LV_PART_MAIN);
-                lv_obj_add_event_cb(b, Clicked, LV_EVENT_CLICKED, (void*)(intptr_t)(500 + i));
-                Label(b, 0, 4, 45, SOFT_LABELS[i][0], C_TXT, nullptr, LV_TEXT_ALIGN_CENTER);
-                Label(b, 0, 16, 45, SOFT_LABELS[i][1], C_DIM, nullptr, LV_TEXT_ALIGN_CENTER);
-                softBtns[i] = b;
-            }
+            // Transparent hit area over the tab row (created last = on top).
+            lv_obj_t* tabStrip = lv_obj_create(top);
+            lv_obj_set_pos(tabStrip, 141, 0);
+            lv_obj_set_size(tabStrip, 553, 34);
+            lv_obj_set_style_bg_opa(tabStrip, LV_OPA_TRANSP, LV_PART_MAIN);
+            lv_obj_set_style_border_width(tabStrip, 0, LV_PART_MAIN);
+            lv_obj_set_style_pad_all(tabStrip, 0, LV_PART_MAIN);
+            lv_obj_clear_flag(tabStrip, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_add_flag(tabStrip, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_add_event_cb(tabStrip, TabStripClicked, LV_EVENT_CLICKED, nullptr);
 
-            lv_obj_t* screen = Box(overlay, 55, 35, 744, 412, 0x0e0f11, 0x000000, 0);
+            // The vertical soft-key rail was removed: it duplicated the tabs.
+
+            lv_obj_t* screen = Box(overlay, 55, 43, 744, 404, 0x0e0f11, 0x000000, 0);
             body = lv_obj_create(screen);
-            lv_obj_set_pos(body, 8, 7);
+            lv_obj_set_pos(body, 8, 6);
             lv_obj_set_size(body, 728, 398);
             lv_obj_set_style_bg_opa(body, LV_OPA_TRANSP, LV_PART_MAIN);
             lv_obj_set_style_border_width(body, 0, LV_PART_MAIN);
