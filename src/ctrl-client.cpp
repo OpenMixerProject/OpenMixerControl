@@ -2209,7 +2209,8 @@ void CtrlClient::SimulatorButton()
 			config->Set(ACTIVE_PAGE, (uint)SHOW_CONFIG);
 			break;
 		case 56:
-			//ShowPage(SCENES);
+			// Next tab in the show-first UI overlay
+			PageShowConfig::CycleTabStatic();
 			break;
 		case 40899:
 			config->Toggle(DISPLAY_UTILITY);
