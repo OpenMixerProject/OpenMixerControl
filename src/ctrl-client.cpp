@@ -38,6 +38,8 @@
 
 #include "artnet.h"
 
+#include "../lib_ext/doctest/doctest/doctest.h"
+
 namespace OMC
 {
 
@@ -1631,31 +1633,27 @@ void CtrlClient::UpdateMeters()
 	{
 		for (uint8_t i = 0; i < 8; i++)
 		{
-			SurfaceBindingParameter* binding_board_l = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i));
-			if (binding_board_l)
-			{
-				uint8_t meter6info = helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding_board_l->mp_index));
-				surface->SetMeterLed(X32_BOARD_L, i, meter6info);
-			}
+			surface->SetMeterLed(X32_BOARD_L, i, CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i)));
 
 			if (config->IsModelX32Full())
 			{
-				SurfaceBindingParameter* binding_board_m = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i));
-				if (binding_board_m)
-				{
-					uint8_t meter6info = helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding_board_m->mp_index));
-					surface->SetMeterLed(X32_BOARD_M, i, meter6info);
-				}
+				surface->SetMeterLed(X32_BOARD_M, i, CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_M_VUMETER_1 + i)));
 			}
 
-			SurfaceBindingParameter* binding_board_r = config->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i));
-			if (binding_board_r)
-			{
-				uint8_t meter6info = helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding_board_r->mp_index));
-				surface->SetMeterLed(X32_BOARD_R, i, meter6info);
-			}
+			surface->SetMeterLed(X32_BOARD_R, i, CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i)));
 		}
 	}
+}
+
+uint8_t CtrlClient::CalcChannelStripMeter(SurfaceElementId elementId)
+{
+	SurfaceBindingParameter* binding = config->GetSurfaceBinding(elementId);
+	if (binding && binding->mp_action == MixerparameterAction::VUMETER && binding->mp_index < MAX_VCHANNELS)
+	{
+		return helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding->mp_index));
+	}
+
+	return 0;
 }
 
 
@@ -2299,6 +2297,68 @@ void CtrlClient::SimulatorButton()
 			break;
 	}
 	#endif
+}
+
+TEST_CASE("CtrlClient::CalcChannelStripMeter ignores unbound VU meters on DCA, DMX, and FLEX banks")
+{
+	auto testState = std::make_unique<State>();
+	testState->bodyless = true;
+	auto testHelper = std::make_unique<Helper>();
+	auto testConfig = std::make_unique<Config>("X32", testHelper.get(), false);
+	auto basepar = std::make_unique<X32BaseParameter>(nullptr, testConfig.get(), testState.get(), testHelper.get());
+
+	auto testSurface = std::make_unique<Surface>(basepar.get());
+	testSurface->Init(nullptr, nullptr);
+	auto testClient = std::make_unique<CtrlClient>(basepar.get());
+
+	// Simulate active signal on Channel 1 (index 0, default XLR1) and Bus 1
+	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -6, 0);
+	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -18, (uint)X32_VCHANNEL_BLOCK::BUS);
+
+	const uint8_t ch1Meter = testHelper->GetMeter6Info(-6);
+	const uint8_t bus1Meter = testHelper->GetMeter6Info(-18);
+	REQUIRE(ch1Meter != 0);
+	REQUIRE(bus1Meter != 0);
+
+	// Channel bank 1-8: strip 1 shows Channel 1 meter, strips 2-8 are silent
+	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::CH1_8);
+	CHECK(testClient->CalcChannelStripMeter(SurfaceElementId::BOARD_L_VUMETER_1) == ch1Meter);
+	for (uint8_t i = 1; i < 8; i++)
+	{
+		CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i)) == 0);
+	}
+
+	// Bus bank 1-8: strip 1 shows Bus 1 meter, strips 2-8 are silent
+	testSurface->LoadBank(OMCBankTarget::BusSection, OMCBankId::BUS1_8);
+	CHECK(testClient->CalcChannelStripMeter(SurfaceElementId::BOARD_R_VUMETER_1) == bus1Meter);
+	for (uint8_t i = 1; i < 8; i++)
+	{
+		CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i)) == 0);
+	}
+
+	// DCA bank: none of the 8 strips have a VU-meter binding, so Channel 1 (XLR1) must not light them up
+	testSurface->LoadBank(OMCBankTarget::BusSection, OMCBankId::DCA);
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_R_VUMETER_1 + i)) == 0);
+	}
+
+	// DMX bank: VU meters are unbound and must stay off
+	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::REMOTE1);
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i)) == 0);
+	}
+
+	// FLEX bank (e.g. DCA Spill with 1 channel): only the bound strip meters, remaining strips stay off
+	testSurface->ResetBank(OMCBankId::FLEX1);
+	testSurface->SetChannelstripBinding(testSurface->GetBank(OMCBankId::FLEX1), 0, 0);
+	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::FLEX1);
+	CHECK(testClient->CalcChannelStripMeter(SurfaceElementId::BOARD_L_VUMETER_1) == ch1Meter);
+	for (uint8_t i = 1; i < 8; i++)
+	{
+		CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i)) == 0);
+	}
 }
 
 }
