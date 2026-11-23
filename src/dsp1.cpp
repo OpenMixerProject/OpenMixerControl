@@ -593,12 +593,12 @@ void DSP1::CallbackStateMachine() {
         case 3:
             // process received SPI-Data
             while (spi->HasNextEvent()) {
-                SpiEvent* spiEvent = spi->GetNextEvent();
+                SpiEvent spiEvent = spi->GetNextEvent();
 
-                if (spiEvent->dsp == 0) {
-                    callbackDsp1(spiEvent->classId, spiEvent->channel, spiEvent->index, spiEvent->valueCount, spiEvent->values);
+                if (spiEvent.dsp == 0) {
+                    callbackDsp1(spiEvent.classId, spiEvent.channel, spiEvent.index, spiEvent.valueCount, spiEvent.values);
                 } else {
-                    callbackDsp2(spiEvent->classId, spiEvent->channel, spiEvent->index, spiEvent->valueCount, spiEvent->values);
+                    callbackDsp2(spiEvent.classId, spiEvent.channel, spiEvent.index, spiEvent.valueCount, spiEvent.values);
                 }
             }
             UpdateVuMeter(50);
