@@ -453,6 +453,8 @@ void CtrlClient::syncGuiOrLcd() {
 
 	if (config->HasParameterChanged(ACTIVE_PAGE)){
 		Page* newPage = pages.at((X32_PAGE)config->GetUint(ACTIVE_PAGE));
+		if ((X32_PAGE)config->GetUint(ACTIVE_PAGE) != X32_PAGE::SHOW_CONFIG)
+			PageShowConfig::HideOverlay();
 		newPage->Show();
 	}
 
