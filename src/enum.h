@@ -123,6 +123,7 @@ enum class MP_UOM {
     CARD_AUDIO_SOURCE,
     PANORAMA,
     BANKING_EQ,
+    DYNAMICS_KNEE,
 };
 
 enum class MP_VALUE_TYPE {
@@ -502,8 +503,11 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    // 282..285 reserved for Butterworth low-cut slope / high-cut (feat/butterworth-lowcut-highcut)
+    CHANNEL_DYNAMICS_KNEE = 286,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 287
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

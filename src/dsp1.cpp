@@ -458,35 +458,40 @@ void DSP1::SendCompressor(uint8_t chanIndex)
 
     using enum MP_ID;
 
-    float values[7];
+    float values[9];
 
     float samplerate = (float)config->GetUint(SAMPLERATE);
     float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
 
-    // threshold
-    //values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
-    values[0] = config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex); // send threshold as dB value, DSP will convert it to linear value for 32-bit fixed point representation
+    // threshold in dBFS (DSP compares against its own dBFS level estimate)
+    values[0] = config->GetFloat(CHANNEL_DYNAMICS_TRESHOLD, chanIndex);
 
-    // pre-calculated ratio
-    values[1] = (1.0f - 1.0f / config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex));
+    // pre-calculated slope (1 - 1/ratio)
+    float slope = (1.0f - 1.0f / config->GetFloat(CHANNEL_DYNAMICS_RATIO, chanIndex));
+    values[1] = slope;
 
-    // makeup
-    values[2] = pow(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
+    // makeup (linear)
+    values[2] = powf(10.0f, config->GetFloat(CHANNEL_DYNAMICS_MAKEUP, chanIndex)/20.0f);
 
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
-    // ln(10%) - ln(90%) = -2.197224577
-    // attack (envelope is recalculated every sample)
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[3] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex)));
+    // ln(10%) - ln(90%) = -2.197224577 (additional factor of 1000.0f converts ms -> seconds)
+    // An attack of 0 ms sends coeff 1.0f, which makes the DSP use instant block-peak attack.
+    float attackMs  = config->GetFloat(CHANNEL_DYNAMICS_ATTACK, chanIndex);
+    float releaseMs = config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex);
+    values[3] = (attackMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * attackMs)));
     // hold (hold-timer is calculated every 16 samples, hence every 333 microseconds)
     values[4] = config->GetFloat(CHANNEL_DYNAMICS_HOLD, chanIndex) * bufferrate / 1000.0f;
-    // release (envelope is recalculated every sample)
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[5] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_DYNAMICS_RELEASE, chanIndex)));
+    values[5] = (releaseMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * releaseMs)));
 
-    values[6] = config->GetBool(CHANNEL_COMPRESSOR_ENABLE, chanIndex) ? 1.0f : 0.0f;
+    // pre-calculated quadratic soft-knee parameters (zero divisions on SHARC)
+    uint8_t kneeLevel = (uint8_t)config->GetUint(CHANNEL_DYNAMICS_KNEE, chanIndex);
+    float kneeWidth   = FxMath::GetCompressorKneeWidthDb(kneeLevel);
+    values[6] = 0.5f * kneeWidth;                                            // kneeHalf
+    values[7] = (kneeWidth > 0.0f) ? (-slope / (2.0f * kneeWidth)) : 0.0f;   // kneeCoeff
 
-    spi->QueueDspData(0, 'c', chanIndex, 0, 7, &values[0]);
+    values[8] = config->GetBool(CHANNEL_COMPRESSOR_ENABLE, chanIndex) ? 1.0f : 0.0f;
+
+    spi->QueueDspData(0, 'c', chanIndex, 0, 9, &values[0]);
 }
 
 void DSP1::SetInputDelay(uint chanIndex)

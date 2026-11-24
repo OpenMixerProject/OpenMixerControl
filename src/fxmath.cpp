@@ -23,6 +23,7 @@
 */
 
 #include "fxmath.h"
+#include "../lib_ext/doctest/doctest/doctest.h"
 
 namespace OMC
 {
@@ -257,6 +258,50 @@ void FxMath::RecalcFilterCoefficients_LR24(sLR24* LR24) {
   LR24->b[2] = (6.0 * wc4 - 8.0 * wc2 * k2 + 6.0 * k4) * norm;
   LR24->b[3] = (4.0 * (wc4 - sq_tmp1 + sq_tmp2 - k4)) * norm;
   LR24->b[4] = (k4 - 2.0 * sq_tmp1 + wc4 - 2.0 * sq_tmp2 + 4.0 * wc2 * k2) * norm;
+}
+
+// Compressor knee width per knee setting: 0 = Hard, 1..5 = Soft 1..5
+float FxMath::GetCompressorKneeWidthDb(uint8_t kneeLevel) {
+    static const float kneeWidths[DYNAMICS_KNEE_MAX + 1] = { 0.0f, 6.0f, 12.0f, 18.0f, 26.0f, 36.0f };
+    if (kneeLevel > DYNAMICS_KNEE_MAX) {
+        kneeLevel = DYNAMICS_KNEE_MAX;
+    }
+    return kneeWidths[kneeLevel];
+}
+
+// Static compressor curve, same quadratic soft knee as the DSP1 compressor
+float FxMath::CalcCompressorOutputDb(float inputDb, float thresholdDb, float ratio, uint8_t kneeLevel) {
+    float slope = 1.0f - (1.0f / ratio);
+    float kneeWidth = GetCompressorKneeWidthDb(kneeLevel);
+    float kneeHalf = 0.5f * kneeWidth;
+    float overshoot = inputDb - thresholdDb;
+
+    if (overshoot >= kneeHalf) {
+        if (overshoot > 0.0f) {
+            return inputDb - (overshoot * slope);
+        }
+        return inputDb;
+    } else if (overshoot > -kneeHalf) {
+        float u = overshoot + kneeHalf;
+        return inputDb - (slope / (2.0f * kneeWidth)) * (u * u);
+    }
+    return inputDb;
+}
+
+TEST_CASE("FxMath - Compressor 6-stage knee (0 to 36 dB)")
+{
+    CHECK(FxMath::GetCompressorKneeWidthDb(0) == 0.0f);
+    CHECK(FxMath::GetCompressorKneeWidthDb(5) == 36.0f);
+    CHECK(FxMath::GetCompressorKneeWidthDb(99) == 36.0f);
+
+    // At threshold (-18 dB, ratio 99:1): Hard knee gives no reduction, Soft 5 (W=36) gives -S*W/8 = -4.4545 dB
+    CHECK(FxMath::CalcCompressorOutputDb(-18.0f, -18.0f, 99.0f, 0) == doctest::Approx(-18.0f).epsilon(0.01f));
+    CHECK(FxMath::CalcCompressorOutputDb(-18.0f, -18.0f, 99.0f, 5) == doctest::Approx(-22.4545f).epsilon(0.05f));
+
+    // Well above the knee the curve follows the ratio: -6 dB in, -18 dB threshold, 4:1 -> -15 dB out
+    CHECK(FxMath::CalcCompressorOutputDb(-6.0f, -18.0f, 4.0f, 3) == doctest::Approx(-15.0f).epsilon(0.01f));
+    // Well below the knee there is no reduction
+    CHECK(FxMath::CalcCompressorOutputDb(-40.0f, -18.0f, 4.0f, 5) == doctest::Approx(-40.0f).epsilon(0.01f));
 }
 
 void FxMath::fxCalcParameters_Reverb(float data[], float roomSizeMs, float rt60, float feedbackLowPassFreq, float dry, float wet) {

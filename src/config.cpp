@@ -793,6 +793,15 @@ namespace OMC
         ->DefMinMaxStandard_Float(DYNAMICS_RELEASE_MIN, DYNAMICS_RELEASE_MAX, 150.0f, 0)
         ->DefOSC("ch_dyn_release");
 
+        DefParameter(CHANNEL_DYNAMICS_KNEE, cat, "Knee", MAX_VCHANNELS)
+        ->DefNameShort("Knee")
+        ->DefUOM(MP_UOM::DYNAMICS_KNEE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, DYNAMICS_KNEE_MAX, 0)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_dyn_knee");
+
         // EQ
         cat = MP_CAT::CHANNEL_EQ;
 
