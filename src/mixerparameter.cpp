@@ -75,6 +75,8 @@ namespace OMC
             case BANKING_EQ:
                 return GetUnitOfMeasurement(false, index, isResetLabel);
                 break;
+            case GATE_MODE:
+                return GetUnitOfMeasurement(false, index, isResetLabel);
             default:
                 return String(value_float, decimal_places) + GetUnitOfMeasurement(false, index, isResetLabel);
         }            
@@ -126,6 +128,26 @@ String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool 
                         break;
                     default:
                         result += "Unknown EQ Bank";
+                        break;
+                }
+                break;
+            case GATE_MODE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 0:
+                        result += String("Gate");
+                        break;
+                    case 1:
+                        result += String("Exp 2:1");
+                        break;
+                    case 2:
+                        result += String("Exp 3:1");
+                        break;
+                    case 3:
+                        result += String("Exp 4:1");
+                        break;
+                    default:
+                        result += String("Gate");
                         break;
                 }
                 break;

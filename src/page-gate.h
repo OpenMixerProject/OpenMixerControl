@@ -48,6 +48,8 @@ class PageGate: public Page {
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_ATTACK);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_HOLD);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_RELEASE);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_MODE);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_GATE_MODE);
         }
 
         void OnChange(bool force_update) override
@@ -56,7 +58,7 @@ class PageGate: public Page {
 
             uint chanIndex = config->GetUint(SELECTED_CHANNEL);
 
-            if (config->HasParametersChanged({CHANNEL_GATE_ATTACK, CHANNEL_GATE_HOLD, CHANNEL_GATE_RANGE, CHANNEL_GATE_RELEASE, CHANNEL_GATE_TRESHOLD}, chanIndex) ||
+            if (config->HasParametersChanged({CHANNEL_GATE_ATTACK, CHANNEL_GATE_HOLD, CHANNEL_GATE_RANGE, CHANNEL_GATE_RELEASE, CHANNEL_GATE_TRESHOLD, CHANNEL_GATE_MODE}, chanIndex) ||
                 config->HasParameterChanged(SELECTED_CHANNEL) ||
                 force_update)
             {
@@ -148,16 +150,14 @@ class PageGate: public Page {
 
             memset(&gateValue[0], 0, sizeof(gateValue));
 
+            float threshold = config->GetFloat(CHANNEL_GATE_TRESHOLD, selectedChannelIndex);
+            float range = config->GetFloat(CHANNEL_GATE_RANGE, selectedChannelIndex);
+            uint8_t gateMode = (uint8_t)config->GetUint(CHANNEL_GATE_MODE, selectedChannelIndex);
+
             for (uint16_t pixel = 0; pixel < 200; pixel++) {
                 inputLevel = (60.0f * ((float)pixel/199.0f)) - 60.0f; // from -60 dB to 0 dB
 
-                if (inputLevel >= config->GetFloat(CHANNEL_GATE_TRESHOLD, selectedChannelIndex)) {
-                    // above threshold
-                    outputLevel = inputLevel;
-                }else{
-                    // below threshold -> apply reduction
-                    outputLevel = inputLevel - config->GetFloat(CHANNEL_GATE_RANGE, selectedChannelIndex);
-                }
+                outputLevel = FxMath::CalcGateOutputDb(inputLevel, threshold, range, gateMode);
 
                 // scale outputLevel to -6000 .. 0
                 gateValue[pixel] = outputLevel * 100.0f;

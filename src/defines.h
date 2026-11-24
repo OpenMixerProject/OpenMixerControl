@@ -73,6 +73,7 @@ typedef unsigned int uint;
 #define GATE_HOLD_MAX                2000.0f // ms
 #define GATE_RELEASE_MIN                5.0f // ms
 #define GATE_RELEASE_MAX             4000.0f // ms
+#define GATE_MODE_MAX                      3 // 0=Gate, 1=Exp 2:1, 2=Exp 3:1, 3=Exp 4:1
 
 #define DYNAMICS_THRESHOLD_MIN            -60.0f // dB
 #define DYNAMICS_THRESHOLD_MAX              0.0f // dB

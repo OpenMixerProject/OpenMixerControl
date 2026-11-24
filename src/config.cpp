@@ -748,6 +748,15 @@ namespace OMC
         ->DefMinMaxStandard_Float(GATE_RELEASE_MIN, GATE_RELEASE_MAX, 250.0f, 0)
         ->DefOSC("ch_gate_release");
 
+        DefParameter(CHANNEL_GATE_MODE, cat, "Mode", MAX_VCHANNELS)
+        ->DefNameShort("GtMod")
+        ->DefUOM(MP_UOM::GATE_MODE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, GATE_MODE_MAX, 0)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_gate_mode");
+
         // dynamics
         cat = MP_CAT::CHANNEL_DYNAMICS;
 
