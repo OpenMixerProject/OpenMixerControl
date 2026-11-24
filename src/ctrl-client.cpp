@@ -1949,9 +1949,11 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 							break;
 						case MixerparameterAction::CUSTOM:
 						{
-							Page* curent_page = pages[(X32_PAGE)config->GetUint(MP_ID::ACTIVE_PAGE)];
-							curent_page->ChangeCustomButton(button->GetId());
+							Page* target_page = pages[(X32_PAGE)config->GetUint(MP_ID::ACTIVE_PAGE)];
+							if (PageShowConfig::IsVisible()) target_page = pages[X32_PAGE::SHOW_CONFIG];
+							target_page->ChangeCustomButton(button->GetId());
 						}
+						break;
 						case MixerparameterAction::DMX:
 							// a button is pressed
 							break;
@@ -2067,8 +2069,9 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 					break;
 				case MixerparameterAction::CUSTOM:
 					{
-						Page* curent_page = pages[(X32_PAGE)config->GetUint(MP_ID::ACTIVE_PAGE)];
-						curent_page->ChangeCustomEncoder(encoder->GetId(), amount);
+						Page* target_page = pages[(X32_PAGE)config->GetUint(MP_ID::ACTIVE_PAGE)];
+						if (PageShowConfig::IsVisible()) target_page = pages[X32_PAGE::SHOW_CONFIG];
+						target_page->ChangeCustomEncoder(encoder->GetId(), amount);
 					}
 					break;
 				case MixerparameterAction::DMX:

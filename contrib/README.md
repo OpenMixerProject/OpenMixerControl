@@ -45,6 +45,9 @@ programmatically in `OnInit()`.
 - The DELAY / ALIGNMENT page uses an enlarged two-column grid. The buttons in
   DELAY EDIT switch between INPUT 1-14, INPUT 15+, OUTPUT 1-14, OUTPUT 15+
   and AUX 1-8, so every channel stays reachable without shrinking the text.
+  Select a channel (click it or press `X` while focused), then turn encoder 1
+  to change its delay by 0.1 ms steps; encoder 2 moves to the next channel and
+  encoders 3-6 apply the 0/1/5/10 ms presets.
 
 ## Build
 

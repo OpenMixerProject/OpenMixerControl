@@ -75,8 +75,11 @@ class PageShowConfig : public Page
         // DELAY page: one enlarged 14-cell grid that can address every input,
         // output and AUX channel by switching group instead of losing size.
         int delayGroup = 0;
+        int delaySelected = 0;
+        float delayMs[28] = {};
         lv_obj_t* delayCells[28] = {};
         lv_obj_t* delayTitles[2] = {};
+        lv_obj_t* delayMeta[3] = {};
         lv_obj_t* delayGroupBtns[5] = {};
 
         // The six physical rotary encoders mirror the first six on-screen
@@ -397,6 +400,7 @@ class PageShowConfig : public Page
             dhcpBtn = nullptr;
             for (int i = 0; i < 28; ++i) delayCells[i] = nullptr;
             for (int i = 0; i < 2; ++i) delayTitles[i] = nullptr;
+            for (int i = 0; i < 3; ++i) delayMeta[i] = nullptr;
             for (int i = 0; i < 5; ++i) delayGroupBtns[i] = nullptr;
             knobCount = 0;
             focusCount = 0;
@@ -418,6 +422,55 @@ class PageShowConfig : public Page
             {
                 lv_label_set_text(lv_obj_get_child(dhcpBtn, 0), dhcp ? "DHCP ON" : "DHCP OFF");
                 BtnLook(dhcpBtn, dhcp, true);
+            }
+        }
+
+        int DelayChannelNumber(int index)
+        {
+            static const int starts[5] = {0, 14, 0, 14, 0};
+            static const int counts[5] = {14, 10, 14, 2, 8};
+            int p = index / 14;
+            int i = index % 14;
+            int half = (counts[delayGroup] + 1) / 2;
+            int offset = p ? half : 0;
+            return starts[delayGroup] + offset + i + 1;
+        }
+
+        void RefreshDelay(bool announce = false)
+        {
+            for (int i = 0; i < 28; ++i)
+            {
+                lv_obj_t* cell = delayCells[i];
+                if (!cell) continue;
+                lv_label_set_text_fmt(lv_obj_get_child(cell, 1), "%.2f m", delayMs[i] * 0.343f);
+                lv_label_set_text_fmt(lv_obj_get_child(cell, 2), "%.1f ms", delayMs[i]);
+                lv_label_set_text_fmt(lv_obj_get_child(cell, 3), "%.2f f", delayMs[i] * 0.025f);
+                bool selected = (i == delaySelected) && !lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_style_bg_color(cell, lv_color_hex(selected ? C_AMBER_D : 0x16191c), LV_PART_MAIN);
+                lv_obj_set_style_border_color(cell, lv_color_hex(selected ? C_AMBER : 0x30363c), LV_PART_MAIN);
+            }
+            float ms = delayMs[delaySelected];
+            if (delayMeta[0]) lv_label_set_text_fmt(delayMeta[0], "%.2f m", ms * 0.343f);
+            if (delayMeta[1]) lv_label_set_text_fmt(delayMeta[1], "%.1f ms", ms);
+            if (delayMeta[2]) lv_label_set_text_fmt(delayMeta[2], "%.2f f", ms * 0.025f);
+            if (knobCount > 0 && knobs[0].label)
+                lv_label_set_text_fmt(knobs[0].label, "%.1f ms", ms);
+            if (announce)
+                snprintf(statusMsg, sizeof(statusMsg), "CH %02d SELECTED", DelayChannelNumber(delaySelected));
+        }
+
+        void MoveDelaySelection(int dir)
+        {
+            for (int n = 1; n <= 28; ++n)
+            {
+                int idx = ((delaySelected + dir * n) % 28 + 28) % 28;
+                lv_obj_t* cell = delayCells[idx];
+                if (cell && !lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN))
+                {
+                    delaySelected = idx;
+                    RefreshDelay(true);
+                    return;
+                }
             }
         }
 
@@ -459,6 +512,8 @@ class PageShowConfig : public Page
             }
             for (int i = 0; i < 5; ++i)
                 if (delayGroupBtns[i]) BtnLook(delayGroupBtns[i], i == delayGroup, true);
+            delaySelected = 0;
+            RefreshDelay();
             snprintf(statusMsg, sizeof(statusMsg), "DELAY GROUP %s", names[delayGroup]);
         }
 
@@ -512,6 +567,27 @@ class PageShowConfig : public Page
                 char buf[40];
                 snprintf(buf, sizeof(buf), "CELL %d %s", i + 1, toggles[i] ? "ON" : "OFF");
                 Note(buf);
+                return;
+            }
+            if (code >= 1000 && code < 1028)
+            {
+                int idx = code - 1000;
+                if (delayCells[idx] && !lv_obj_has_flag(delayCells[idx], LV_OBJ_FLAG_HIDDEN))
+                {
+                    delaySelected = idx;
+                    RefreshDelay(true);
+                }
+                Refresh();
+                return;
+            }
+            if (code >= 1230 && code < 1234)
+            {
+                static const float presets[4] = {0.0f, 1.0f, 5.0f, 10.0f};
+                delayMs[delaySelected] = presets[code - 1230];
+                RefreshDelay();
+                snprintf(statusMsg, sizeof(statusMsg), "CH %02d DELAY %.1f ms",
+                         DelayChannelNumber(delaySelected), delayMs[delaySelected]);
+                Refresh();
                 return;
             }
             if (code >= 1000)
@@ -876,10 +952,14 @@ class PageShowConfig : public Page
             delayGroupBtns[2] = Button(ed, 104, 20, 46, 18, groups[2], 1222);
             delayGroupBtns[3] = Button(ed, 8, 42, 44, 18, groups[3], 1223);
             delayGroupBtns[4] = Button(ed, 56, 42, 44, 18, groups[4], 1224);
-            Knob(ed, 160, 14, 42, "DELAY", "0.0 ms", C_AMBER, &lv_font_montserrat_12);
-            Label(ed, 214, 26, 100, "0.00 m", C_TXT, &lv_font_montserrat_14);
-            Label(ed, 314, 26, 100, "0.0 ms", C_TXT, &lv_font_montserrat_14);
-            Label(ed, 414, 26, 100, "0.00 f", C_TXT, &lv_font_montserrat_14);
+            lv_obj_t* delayKnob = Knob(ed, 160, 14, 42, "DELAY", "0.0 ms", C_AMBER, &lv_font_montserrat_12);
+            // The knob value needs more room than the 42 px dial itself.
+            lv_obj_t* knobValue = lv_obj_get_child(delayKnob, 2);
+            lv_obj_set_width(knobValue, 62);
+            lv_obj_set_x(knobValue, -10);
+            delayMeta[0] = Label(ed, 214, 26, 100, "0.00 m", C_TXT, &lv_font_montserrat_14);
+            delayMeta[1] = Label(ed, 314, 26, 100, "0.0 ms", C_TXT, &lv_font_montserrat_14);
+            delayMeta[2] = Label(ed, 414, 26, 100, "0.00 f", C_TXT, &lv_font_montserrat_14);
             for (int i = 0; i < 4; ++i)
                 Button(ed, 520 + i * 48, 24, 44, 24,
                        i == 0 ? "0ms" : i == 1 ? "1ms" : i == 2 ? "5ms" : "10ms",
@@ -1333,6 +1413,27 @@ class PageShowConfig : public Page
                 {
                     selectedSlot = (selectedSlot + amount + 120) % 12;
                     snprintf(statusMsg, sizeof(statusMsg), "SLOT %02d", selectedSlot + 1);
+                }
+            }
+            else if (activeTab == 8)
+            {
+                if (index == 0)
+                {
+                    delayMs[delaySelected] += amount * 0.1f;
+                    if (delayMs[delaySelected] < 0.0f) delayMs[delaySelected] = 0.0f;
+                    if (delayMs[delaySelected] > 999.0f) delayMs[delaySelected] = 999.0f;
+                    RefreshDelay();
+                    snprintf(statusMsg, sizeof(statusMsg), "CH %02d DELAY %.1f ms",
+                             DelayChannelNumber(delaySelected), delayMs[delaySelected]);
+                }
+                else if (index == 1) MoveDelaySelection(amount);
+                else
+                {
+                    static const float presets[4] = {0.0f, 1.0f, 5.0f, 10.0f};
+                    delayMs[delaySelected] = presets[index - 2];
+                    RefreshDelay();
+                    snprintf(statusMsg, sizeof(statusMsg), "CH %02d DELAY %.1f ms",
+                             DelayChannelNumber(delaySelected), delayMs[delaySelected]);
                 }
             }
             else UpdateKnob(index, amount);
