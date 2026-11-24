@@ -23,6 +23,7 @@
 */
 
 #include "fxmath.h"
+#include "../lib_ext/doctest/doctest/doctest.h"
 
 namespace OMC
 {
@@ -420,6 +421,48 @@ void FxMath::fxCalcParameters_DynamicEQ(float data[], int band, int type, float 
   float fs = (float)config->GetUint(MP_ID::SAMPLERATE)/(16.0f); // 16 samples per buffer
   data[9] = 1.0f - exp(-1000.0f / (fs * attack)); // convert ms to coeff
   data[10] = 1.0f - exp(-1000.0f / (fs * release)); // convert ms to coeff
+}
+
+// Expander slope sent to DSP1: 0 = Hard Gate (0.0f selects the gate), 1 = Exp 2:1, 2 = Exp 3:1, 3 = Exp 4:1
+float FxMath::GetGateExpanderSlope(uint8_t mode) {
+    static const float slopes[GATE_MODE_MAX + 1] = { 0.0f, 1.0f, 2.0f, 3.0f };
+    if (mode > GATE_MODE_MAX) {
+        mode = 0;
+    }
+    return slopes[mode];
+}
+
+// Static gate / expander curve, same as the DSP1 gate
+float FxMath::CalcGateOutputDb(float inputDb, float thresholdDb, float rangeDb, uint8_t mode) {
+    if (inputDb >= thresholdDb) {
+        return inputDb;
+    }
+
+    float expSlope = GetGateExpanderSlope(mode);
+    if (expSlope == 0.0f) {
+        // Hard Gate: drop by full range below threshold
+        return inputDb - rangeDb;
+    }
+
+    // Downward Expander: attenuate by (inputDb - thresholdDb) * expSlope, limited to the range
+    float attenDb = (inputDb - thresholdDb) * expSlope;
+    if (attenDb < -rangeDb) {
+        attenDb = -rangeDb;
+    }
+    return inputDb + attenDb;
+}
+
+TEST_CASE("FxMath - Gate and downward expander curves")
+{
+    CHECK(FxMath::GetGateExpanderSlope(0) == 0.0f);
+    CHECK(FxMath::GetGateExpanderSlope(3) == 3.0f);
+    CHECK(FxMath::GetGateExpanderSlope(99) == 0.0f);
+
+    CHECK(FxMath::CalcGateOutputDb(-10.0f, -20.0f, 40.0f, 1) == doctest::Approx(-10.0f).epsilon(0.01f));  // above threshold
+    CHECK(FxMath::CalcGateOutputDb(-30.0f, -20.0f, 40.0f, 0) == doctest::Approx(-70.0f).epsilon(0.01f));  // hard gate
+    CHECK(FxMath::CalcGateOutputDb(-30.0f, -20.0f, 40.0f, 1) == doctest::Approx(-40.0f).epsilon(0.01f));  // Exp 2:1
+    CHECK(FxMath::CalcGateOutputDb(-30.0f, -20.0f, 40.0f, 3) == doctest::Approx(-60.0f).epsilon(0.01f));  // Exp 4:1
+    CHECK(FxMath::CalcGateOutputDb(-70.0f, -20.0f, 40.0f, 1) == doctest::Approx(-110.0f).epsilon(0.01f)); // limited to range
 }
 
 }

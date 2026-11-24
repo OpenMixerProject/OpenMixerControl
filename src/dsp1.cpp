@@ -344,31 +344,42 @@ void DSP1::SendGate(uint chanIndex)
 
     float samplerate = (float)config->GetUint(SAMPLERATE);
     float bufferrate = samplerate/(float)DSP_SAMPLES_IN_BUFFER;
-    float values[6];
+    float values[9];
 
-    // threshold
-    values[0] = (pow(2.0f, 31.0f) - 1.0f) * pow(10.0f, config->GetFloat(CHANNEL_GATE_TRESHOLD, chanIndex)/20.0f); // send threshold as linear value for 32-bit fixed point representation
+    float thresholdDb = config->GetFloat(CHANNEL_GATE_TRESHOLD, chanIndex);
+    float rangeDb     = config->GetFloat(CHANNEL_GATE_RANGE, chanIndex);
+    uint8_t gateMode  = (uint8_t)config->GetUint(CHANNEL_GATE_MODE, chanIndex);
+
+    // threshold for the hard gate: the DSP compares the sum of squares of one block
+    // (DSP_SAMPLES_IN_BUFFER samples, 32-bit fixed point scale) against this value, so no sqrtf() is needed
+    float thresholdLin = (powf(2.0f, 31.0f) - 1.0f) * powf(10.0f, thresholdDb / 20.0f);
+    values[0] = (float)DSP_SAMPLES_IN_BUFFER * thresholdLin * thresholdLin;
 
     // gainmin
     // range of 60dB means that we will reduce the signal on active gate by 60dB. We have to convert logarithmic dB-value into linear value for gain
-    values[1] = 1.0f / pow(10.0f, config->GetFloat(CHANNEL_GATE_RANGE, chanIndex)/20.0f);
+    values[1] = 1.0f / powf(10.0f, rangeDb / 20.0f);
 
     // coeff_attack (envelope is recalculated every sample)
     // to get a smooth behaviour, we will use a low-pass with a damping to get 10%/90% changes within the desired time
-    // ln(10%) - ln(90%) = -2.197224577
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[2] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex)));
+    // ln(10%) - ln(90%) = -2.197224577 (additional factor of 1000.0f converts ms -> seconds)
+    float attackMs = config->GetFloat(CHANNEL_GATE_ATTACK, chanIndex);
+    values[2] = (attackMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * attackMs)));
 
     // hold_ticks (recalculated every 16 samples, hence 333 microseconds)
     values[3] = config->GetFloat(CHANNEL_GATE_HOLD, chanIndex) * bufferrate / 1000.0f;
 
     // coeff_release (envelope is recalculated every sample)
-    // we are using -2.19722 with an additional factor of 1000.0f converts ms -> seconds)
-    values[4] = 1.0f - exp(-2197.22457734f/(samplerate * config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex)));
+    float releaseMs = config->GetFloat(CHANNEL_GATE_RELEASE, chanIndex);
+    values[4] = (releaseMs <= 0.01f) ? 1.0f : (1.0f - expf(-2197.22457734f / (samplerate * releaseMs)));
 
-    values[5] = config->GetBool(CHANNEL_GATE_ENABLE, chanIndex) ? 1.0f : 0.0f;
+    // downward expander parameters (expanderSlope 0.0f selects the hard gate)
+    values[5] = thresholdDb;
+    values[6] = -rangeDb;
+    values[7] = FxMath::GetGateExpanderSlope(gateMode);
 
-    spi->QueueDspData(0, 'g', chanIndex, 0, 6, &values[0]);
+    values[8] = config->GetBool(CHANNEL_GATE_ENABLE, chanIndex) ? 1.0f : 0.0f;
+
+    spi->QueueDspData(0, 'g', chanIndex, 0, 9, &values[0]);
 }
 
 void DSP1::SendLowcut(uint8_t chan)

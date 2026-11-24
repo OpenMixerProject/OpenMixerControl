@@ -29,6 +29,10 @@ class FxMath : X32Base {
         void fxCalcParameters_MultibandCompressor(float data[], int channel, int band, float threshold, float ratio, float attack, float hold, float release, float makeup);
         void fxCalcParameters_MultibandCompressorFreq(float data[], int channel, float freq[4]);
         void fxCalcParameters_DynamicEQ(float data[], int band, int type, float frequency, float staticGain, float maxDynamicGain, float Q, float threshold, float ratio, float attack, float release);
+
+        // channel gate / downward expander
+        static float GetGateExpanderSlope(uint8_t mode);
+        static float CalcGateOutputDb(float inputDb, float thresholdDb, float rangeDb, uint8_t mode);
 };
 
 }
