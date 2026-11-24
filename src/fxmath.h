@@ -19,6 +19,8 @@ class FxMath : X32Base {
         float CalcPhaseResponse_PEQ(float a0, float a1, float a2, float b0, float b1, float b2, float f, float fs);
         void RecalcFilterCoefficients_LR12(sLR12* LR12);
         void RecalcFilterCoefficients_LR24(sLR24* LR24);
+        static float GetCompressorKneeWidthDb(uint8_t kneeLevel);
+        static float CalcCompressorOutputDb(float inputDb, float thresholdDb, float ratio, uint8_t kneeLevel);
 
         // functions for FX-Rack
         void fxCalcParameters_Reverb(float data[], float roomSizeMs, float rt60, float feedbackLowPassFreq, float dry, float wet);

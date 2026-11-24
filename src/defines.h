@@ -86,6 +86,7 @@ typedef unsigned int uint;
 #define DYNAMICS_HOLD_MAX           2000.0f // ms
 #define DYNAMICS_RELEASE_MIN          5.0f // ms
 #define DYNAMICS_RELEASE_MAX        4000.0f // ms
+#define DYNAMICS_KNEE_MAX                  5 // 0=Hard, 1..5=increasing soft knee (0/6/12/18/26/36 dB)
 
 #define MAX_FX_SLOTS                    8
 

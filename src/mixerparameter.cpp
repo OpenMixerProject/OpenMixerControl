@@ -72,6 +72,7 @@ namespace OMC
                 }else{
                     return "<C>";
                 }
+            case DYNAMICS_KNEE:
             case BANKING_EQ:
                 return GetUnitOfMeasurement(false, index, isResetLabel);
                 break;
@@ -398,6 +399,32 @@ String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool 
                         break;
                     case 1:
                         result += String("CARD");
+                        break;
+                }
+                break;
+            case DYNAMICS_KNEE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 0:
+                        result += String("Hard");
+                        break;
+                    case 1:
+                        result += String("Soft 1");
+                        break;
+                    case 2:
+                        result += String("Soft 2");
+                        break;
+                    case 3:
+                        result += String("Soft 3");
+                        break;
+                    case 4:
+                        result += String("Soft 4");
+                        break;
+                    case 5:
+                        result += String("Soft 5");
+                        break;
+                    default:
+                        result += String("Hard");
                         break;
                 }
                 break;

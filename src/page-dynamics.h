@@ -47,6 +47,7 @@ class PageDynamics: public Page {
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_TRESHOLD);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_COMPRESSOR_ENABLE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_RATIO);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_2, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_KNEE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_MAKEUP);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_ATTACK);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_DYNAMICS_HOLD);
@@ -57,7 +58,7 @@ class PageDynamics: public Page {
         {
             uint chanIndex = config->GetUint(SELECTED_CHANNEL);
 
-            if (config->HasParametersChanged({CHANNEL_DYNAMICS_ATTACK, CHANNEL_DYNAMICS_HOLD, CHANNEL_DYNAMICS_RATIO, CHANNEL_DYNAMICS_RELEASE, CHANNEL_DYNAMICS_TRESHOLD}, chanIndex) ||
+            if (config->HasParametersChanged({CHANNEL_DYNAMICS_ATTACK, CHANNEL_DYNAMICS_HOLD, CHANNEL_DYNAMICS_RATIO, CHANNEL_DYNAMICS_RELEASE, CHANNEL_DYNAMICS_TRESHOLD, CHANNEL_DYNAMICS_KNEE}, chanIndex) ||
                 config->HasParameterChanged(SELECTED_CHANNEL) ||
                 force_update)
             {
@@ -151,17 +152,12 @@ class PageDynamics: public Page {
             
             float threshold = config->GetFloat(MP_ID::CHANNEL_DYNAMICS_TRESHOLD, selectedChannelIndex);
             float ratio = config->GetFloat(MP_ID::CHANNEL_DYNAMICS_RATIO, selectedChannelIndex);
+            uint8_t kneeLevel = (uint8_t)config->GetUint(MP_ID::CHANNEL_DYNAMICS_KNEE, selectedChannelIndex);
 
             for (uint16_t pixel = 0; pixel < 200; pixel++) {
                 inputLevel = (60.0f * ((float)pixel/199.0f)) - 60.0f; // from -60 dB to 0 dB
 
-                if (inputLevel < threshold) {
-                    // below threshold
-                    outputLevel = inputLevel;
-                }else{
-                    // above threshold -> calculate overshoot (inputLevel - comp->threshold) and take ratio into account
-                    outputLevel = threshold + ((inputLevel - threshold) / ratio);
-                }
+                outputLevel = FxMath::CalcCompressorOutputDb(inputLevel, threshold, ratio, kneeLevel);
 
                 // scale outputLevel to -6000 .. 0
                 compValue[pixel] = outputLevel * 100.0f;
