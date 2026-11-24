@@ -64,6 +64,21 @@ class PageShowConfig : public Page
         char statusMsg[96] = {};
         bool toggles[200] = {};
 
+        // SETUP > NETWORK: static IP editor. The values stay in the UI layer;
+        // wiring them to the mixer's network configuration is a later step.
+        int ipOctets[4] = {192, 168, 1, 100};
+        int ipSelected = 0;
+        bool dhcp = false;
+        lv_obj_t* ipCells[4] = {};
+        lv_obj_t* dhcpBtn = nullptr;
+
+        // DELAY page: one enlarged 14-cell grid that can address every input,
+        // output and AUX channel by switching group instead of losing size.
+        int delayGroup = 0;
+        lv_obj_t* delayCells[28] = {};
+        lv_obj_t* delayTitles[2] = {};
+        lv_obj_t* delayGroupBtns[5] = {};
+
         // The six physical rotary encoders mirror the first six on-screen
         // knobs of the current page. Values are kept per page rebuild.
         struct KnobState
@@ -135,7 +150,8 @@ class PageShowConfig : public Page
         }
 
         static lv_obj_t* Button(lv_obj_t* parent, int x, int y, int w, int h,
-                                const char* text, int code)
+                                const char* text, int code,
+                                const lv_font_t* font = nullptr)
         {
             lv_obj_t* b = lv_btn_create(parent);
             lv_obj_set_pos(b, x, y);
@@ -149,7 +165,7 @@ class PageShowConfig : public Page
             lv_obj_center(l);
             lv_label_set_long_mode(l, LV_LABEL_LONG_CLIP);
             lv_label_set_text(l, text);
-            lv_obj_set_style_text_font(l, &lv_font_montserrat_10, LV_PART_MAIN);
+            lv_obj_set_style_text_font(l, font ? font : &lv_font_montserrat_10, LV_PART_MAIN);
             lv_obj_set_style_text_color(l, lv_color_hex(C_TXT), LV_PART_MAIN);
             if (code >= 0)
             {
@@ -160,12 +176,13 @@ class PageShowConfig : public Page
         }
 
         static lv_obj_t* Panel(lv_obj_t* parent, int x, int y, int w, int h,
-                               const char* title, const char* accent = nullptr)
+                               const char* title, const char* accent = nullptr,
+                               const lv_font_t* font = nullptr)
         {
             lv_obj_t* p = Box(parent, x, y, w, h, C_PANEL, C_LINE, 1);
             int aw = w < 150 ? 70 : (w < 250 ? 100 : 174);
-            Label(p, 6, 4, w - aw - 12, title, C_DIM);
-            if (accent) Label(p, w - aw - 6, 4, aw, accent, C_AMBER, nullptr, LV_TEXT_ALIGN_RIGHT);
+            Label(p, 6, 4, w - aw - 12, title, C_DIM, font);
+            if (accent) Label(p, w - aw - 6, 4, aw, accent, C_AMBER, font, LV_TEXT_ALIGN_RIGHT);
             return p;
         }
 
@@ -212,7 +229,8 @@ class PageShowConfig : public Page
         }
 
         static lv_obj_t* Knob(lv_obj_t* parent, int x, int y, int d,
-                              const char* label, const char* val, uint32_t color = C_AMBER)
+                              const char* label, const char* val, uint32_t color = C_AMBER,
+                              const lv_font_t* font = nullptr)
         {
             lv_obj_t* c = lv_obj_create(parent);
             lv_obj_set_pos(c, x, y);
@@ -229,8 +247,8 @@ class PageShowConfig : public Page
             lv_obj_set_style_border_width(k, 2, LV_PART_MAIN);
             lv_obj_set_style_radius(k, d / 2, LV_PART_MAIN);
             Box(k, d / 2 - 1, 3, 2, d / 3, color, color, 0);
-            Label(c, 0, d + 2, d, label, C_DIM, nullptr, LV_TEXT_ALIGN_CENTER);
-            lv_obj_t* valLabel = Label(c, 0, d + 15, d, val, C_AMBER_S, nullptr, LV_TEXT_ALIGN_CENTER);
+            Label(c, 0, d + 2, d, label, C_DIM, font, LV_TEXT_ALIGN_CENTER);
+            lv_obj_t* valLabel = Label(c, 0, d + 15, d, val, C_AMBER_S, font, LV_TEXT_ALIGN_CENTER);
             if (self && self->knobCount < MAX_KNOBS)
             {
                 KnobState& s = self->knobs[self->knobCount++];
@@ -375,6 +393,11 @@ class PageShowConfig : public Page
             lv_obj_clean(body);
             headNote = nullptr;
             bankBtns[0] = slotCells[0] = slotNames[0] = listLabels[0] = listBtns[0] = nullptr;
+            for (int i = 0; i < 4; ++i) ipCells[i] = nullptr;
+            dhcpBtn = nullptr;
+            for (int i = 0; i < 28; ++i) delayCells[i] = nullptr;
+            for (int i = 0; i < 2; ++i) delayTitles[i] = nullptr;
+            for (int i = 0; i < 5; ++i) delayGroupBtns[i] = nullptr;
             knobCount = 0;
             focusCount = 0;
             focusIdx = -1;
@@ -383,9 +406,66 @@ class PageShowConfig : public Page
             Refresh();
         }
 
+        void RefreshNetwork()
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                if (!ipCells[i]) continue;
+                lv_label_set_text_fmt(lv_obj_get_child(ipCells[i], 0), "%03d", ipOctets[i]);
+                BtnLook(ipCells[i], i == ipSelected, true);
+            }
+            if (dhcpBtn)
+            {
+                lv_label_set_text(lv_obj_get_child(dhcpBtn, 0), dhcp ? "DHCP ON" : "DHCP OFF");
+                BtnLook(dhcpBtn, dhcp, true);
+            }
+        }
+
+        void ApplyDelayGroup()
+        {
+            static const int starts[5] = {0, 14, 0, 14, 0};
+            static const int counts[5] = {14, 10, 14, 2, 8};
+            static const char* names[5] = {"IN 1-14", "IN 15+", "OUT 1-14", "OUT 15+", "AUX 1-8"};
+            static const char* kinds[3] = {"INPUT", "OUTPUT", "AUX"};
+            int start = starts[delayGroup];
+            int count = counts[delayGroup];
+            int half = (count + 1) / 2;
+            const char* kind = kinds[delayGroup < 2 ? 0 : (delayGroup < 4 ? 1 : 2)];
+            for (int p = 0; p < 2; ++p)
+            {
+                int offset = p ? half : 0;
+                int n = p ? count - half : (count < half ? count : half);
+                if (n < 0) n = 0;
+                if (delayTitles[p])
+                {
+                    if (n == 1)
+                        lv_label_set_text_fmt(delayTitles[p], "%s %02d DELAY", kind, start + offset + 1);
+                    else
+                        lv_label_set_text_fmt(delayTitles[p], "%s %02d-%02d DELAY",
+                                              kind, start + offset + 1, start + offset + n);
+                }
+                for (int i = 0; i < 14; ++i)
+                {
+                    lv_obj_t* cell = delayCells[p * 14 + i];
+                    if (!cell) continue;
+                    if (i < n)
+                    {
+                        lv_obj_clear_flag(cell, LV_OBJ_FLAG_HIDDEN);
+                        lv_label_set_text_fmt(lv_obj_get_child(cell, 0), "%02d CH %02d",
+                                              start + offset + i + 1, start + offset + i + 1);
+                    }
+                    else lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
+                }
+            }
+            for (int i = 0; i < 5; ++i)
+                if (delayGroupBtns[i]) BtnLook(delayGroupBtns[i], i == delayGroup, true);
+            snprintf(statusMsg, sizeof(statusMsg), "DELAY GROUP %s", names[delayGroup]);
+        }
+
         void HandleClick(int code, lv_obj_t* target = nullptr)
         {
             if (code >= 600 && code < 616) { SwitchTab(code - 600); return; }
+            if (code >= 1220 && code < 1225) { delayGroup = code - 1220; ApplyDelayGroup(); Refresh(); return; }
             if (code >= 700 && code < 708)
             {
                 int r = code - 700;
@@ -393,6 +473,31 @@ class PageShowConfig : public Page
                 char buf[64];
                 snprintf(buf, sizeof(buf), "ROW %d %s", r + 1, toggles[r] ? "ON" : "OFF");
                 Note(buf);
+                return;
+            }
+            if (code >= 710 && code < 718)
+            {
+                if (code < 714)
+                {
+                    ipSelected = code - 710;
+                    RefreshNetwork();
+                    snprintf(statusMsg, sizeof(statusMsg), "IP OCTET %d SELECTED", ipSelected + 1);
+                }
+                else if (code < 716)
+                {
+                    int step = code == 715 ? 1 : -1;
+                    ipOctets[ipSelected] = (ipOctets[ipSelected] + step + 256) % 256;
+                    RefreshNetwork();
+                    snprintf(statusMsg, sizeof(statusMsg), "IP %03d.%03d.%03d.%03d",
+                             ipOctets[0], ipOctets[1], ipOctets[2], ipOctets[3]);
+                }
+                else
+                {
+                    dhcp = !dhcp;
+                    RefreshNetwork();
+                    snprintf(statusMsg, sizeof(statusMsg), dhcp ? "DHCP ON" : "DHCP OFF");
+                }
+                Refresh();
                 return;
             }
             if (code >= 800 && code < 1000)
@@ -742,29 +847,44 @@ class PageShowConfig : public Page
         void BuildDelay()
         {
             PageHead(PAGE_HEAD_NOTE[8]);
-            lv_obj_t* in = Panel(body, 0, 26, 361, 302, "INPUT DELAY", "M / MS / FRAMES");
-            lv_obj_t* out = Panel(body, 367, 26, 361, 302, "OUTPUT DELAY", "M / MS / FRAMES");
+            // Two columns of seven channels per side double the vertical room
+            // of the original 14-row list without losing any channel.
+            lv_obj_t* in = Panel(body, 0, 26, 361, 280, "INPUT DELAY", "M / MS / FRAMES", &lv_font_montserrat_12);
+            lv_obj_t* out = Panel(body, 367, 26, 361, 280, "OUTPUT DELAY", "M / MS / FRAMES", &lv_font_montserrat_12);
+            delayTitles[0] = lv_obj_get_child(in, 0);
+            delayTitles[1] = lv_obj_get_child(out, 0);
             for (int p = 0; p < 2; ++p)
             {
                 lv_obj_t* par = p ? out : in;
                 for (int i = 0; i < 14; ++i)
                 {
-                    lv_obj_t* row = ClickBox(par, 6, 22 + i * 19, 349, 17, 1000 + p * 20 + i);
-                    Label(row, 4, 2, 150, "", C_DIM);
-                    lv_label_set_text_fmt(lv_obj_get_child(row, 0), "%02d CH %02d", i + 1, i + 1);
-                    Label(row, 160, 2, 60, "0.00 m", C_DIM);
-                    Label(row, 225, 2, 60, "0.0 ms", C_DIM);
-                    Label(row, 290, 2, 55, "0.00 f", C_DIM);
+                    int col = i / 7;
+                    int row = i % 7;
+                    lv_obj_t* cell = ClickBox(par, 6 + col * 175, 22 + row * 36, 170, 34, 1000 + p * 20 + i);
+                    delayCells[p * 14 + i] = cell;
+                    Label(cell, 4, 1, 162, "", C_TXT, &lv_font_montserrat_14);
+                    lv_label_set_text_fmt(lv_obj_get_child(cell, 0), "%02d CH %02d", i + 1, i + 1);
+                    Label(cell, 4, 18, 52, "0.00 m", C_DIM, &lv_font_montserrat_12);
+                    Label(cell, 58, 18, 52, "0.0 ms", C_DIM, &lv_font_montserrat_12);
+                    Label(cell, 112, 18, 54, "0.00 f", C_DIM, &lv_font_montserrat_12);
                 }
             }
-            lv_obj_t* ed = Panel(body, 0, 334, 728, 64, "DELAY EDIT", "48 kHz / 343 m/s / 25 FPS");
-            Button(ed, 8, 22, 52, 16, "INPUT", 1220);
-            Button(ed, 64, 22, 52, 16, "OUTPUT", 1221);
-            Knob(ed, 130, 12, 34, "DELAY", "0.0 ms");
-            Label(ed, 200, 22, 90, "0.00 m", C_TXT);
-            Label(ed, 300, 22, 90, "0.0 ms", C_TXT);
-            Label(ed, 400, 22, 90, "0.00 f", C_TXT);
-            for (int i = 0; i < 4; ++i) Button(ed, 520 + i * 50, 22, 46, 16, i == 0 ? "0ms" : i == 1 ? "1ms" : i == 2 ? "5ms" : "10ms", 1230 + i);
+            lv_obj_t* ed = Panel(body, 0, 312, 728, 86, "DELAY EDIT", "48 kHz / 343 m/s / 25 FPS", &lv_font_montserrat_12);
+            const char* groups[5] = {"IN 1-14", "IN 15+", "OUT1-14", "OUT15+", "AUX 1-8"};
+            delayGroupBtns[0] = Button(ed, 8, 20, 44, 18, groups[0], 1220);
+            delayGroupBtns[1] = Button(ed, 56, 20, 44, 18, groups[1], 1221);
+            delayGroupBtns[2] = Button(ed, 104, 20, 46, 18, groups[2], 1222);
+            delayGroupBtns[3] = Button(ed, 8, 42, 44, 18, groups[3], 1223);
+            delayGroupBtns[4] = Button(ed, 56, 42, 44, 18, groups[4], 1224);
+            Knob(ed, 160, 14, 42, "DELAY", "0.0 ms", C_AMBER, &lv_font_montserrat_12);
+            Label(ed, 214, 26, 100, "0.00 m", C_TXT, &lv_font_montserrat_14);
+            Label(ed, 314, 26, 100, "0.0 ms", C_TXT, &lv_font_montserrat_14);
+            Label(ed, 414, 26, 100, "0.00 f", C_TXT, &lv_font_montserrat_14);
+            for (int i = 0; i < 4; ++i)
+                Button(ed, 520 + i * 48, 24, 44, 24,
+                       i == 0 ? "0ms" : i == 1 ? "1ms" : i == 2 ? "5ms" : "10ms",
+                       1230 + i, &lv_font_montserrat_12);
+            ApplyDelayGroup();
         }
 
         void BuildMeter()
@@ -894,7 +1014,18 @@ class PageShowConfig : public Page
             Button(l, 6, 182, 174, 20, "HIDE UNUSED ON", 1370);
             const char* presets[5] = {"DEFAULT","BAND","CORO","THEATRE","MIN"};
             for (int i = 0; i < 5; ++i) Button(l, 6 + (i % 2) * 88, 212 + (i / 2) * 24, 84, 20, presets[i], 1380 + i);
-            Label(l, 6, 292, 174, "SETUP DEFINES WHAT EXISTS.", C_DIM);
+            Label(l, 6, 246, 174, "NETWORK / IP ADDRESS", C_AMBER);
+            for (int i = 0; i < 4; ++i)
+            {
+                ipCells[i] = ClickBox(l, 6 + i * 43, 262, 40, 20, 710 + i);
+                Label(ipCells[i], 0, 3, 40, "", C_TXT, nullptr, LV_TEXT_ALIGN_CENTER);
+            }
+            Label(l, 6, 288, 174, "MASK 255.255.255.0", C_DIM);
+            Label(l, 6, 304, 174, "GW 192.168.001.001", C_DIM);
+            Button(l, 6, 324, 52, 20, "-", 714);
+            Button(l, 64, 324, 52, 20, "+", 715);
+            dhcpBtn = Button(l, 122, 324, 58, 20, "DHCP OFF", 716);
+            RefreshNetwork();
             lv_obj_t* c = Panel(body, 192, 26, 308, 338, "INPUT CHANNELS / MONO-STEREO", "24 ACTIVE");
             for (int i = 0; i < 24; ++i)
             {

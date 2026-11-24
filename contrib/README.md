@@ -37,6 +37,15 @@ programmatically in `OnInit()`.
 - Button 2 (`X`): apply the slot on FADER MAP, otherwise activate the
   focused item. Button 6 (`N`): reset the map or clear the focus.
 
+## Page notes
+
+- SETUP has a NETWORK / IP ADDRESS block: select an octet and use `-` / `+`
+  to edit it, or toggle DHCP. This is a UI-only value for now; connecting it
+  to the mixer's network configuration is a later step.
+- The DELAY / ALIGNMENT page uses an enlarged two-column grid. The buttons in
+  DELAY EDIT switch between INPUT 1-14, INPUT 15+, OUTPUT 1-14, OUTPUT 15+
+  and AUX 1-8, so every channel stays reachable without shrinking the text.
+
 ## Build
 
 ```bash
