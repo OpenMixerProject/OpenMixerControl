@@ -342,6 +342,12 @@ void Page::SyncEncoderWidget(SurfaceElementId elementIdEncoder, SurfaceElementId
                 {
                     text = parameter_button->GetResetLabel(index);
                 }
+                else if (action == MixerparameterAction::CHANGE ||
+                         action == MixerparameterAction::CHANGE_SELECTED_CHANNEL ||
+                         action == MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL)
+                {
+                    text = parameter_button->GetNameShort() + ": " + parameter_button->GetFormatedValue(index);
+                }
                 else
                 {
                     text = parameter_button->GetName();

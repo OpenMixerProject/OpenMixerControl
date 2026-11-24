@@ -806,8 +806,39 @@ namespace OMC
         ->DefUOM(MP_UOM::HZ)
         ->DefStepmode(1) // frequency mode
         ->DefStepsize(1)
-        ->DefMinMaxStandard_Float(20.0f, 400.0f, 0.0f)
+        ->DefMinMaxStandard_Float(LOWCUT_FREQ_MIN, LOWCUT_FREQ_MAX, LOWCUT_FREQ_DEFAULT)
         ->DefOSC("ch_locut_freq");
+
+        DefParameter(CHANNEL_LOWCUT_SLOPE, cat, "LC Slope", MAX_VCHANNELS)
+        ->DefNameShort("Slope")
+        ->DefUOM(MP_UOM::FILTER_SLOPE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, LOWCUT_SLOPE_MAX, 1)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_locut_slope");
+
+        DefParameter(CHANNEL_HIGHCUT_ENABLE, cat, "Highcut Enable", MAX_VCHANNELS)
+        ->DefNameShort("HC En")
+        ->DefStandard_Bool(false)
+        ->DefOSC("ch_hicut");
+
+        DefParameter(CHANNEL_HIGHCUT_FREQ, cat, "Highcut", MAX_VCHANNELS)
+        ->DefNameShort("HC Fr")
+        ->DefUOM(MP_UOM::HZ)
+        ->DefStepmode(1) // frequency mode
+        ->DefStepsize(1)
+        ->DefMinMaxStandard_Float(HIGHCUT_FREQ_MIN, HIGHCUT_FREQ_MAX, HIGHCUT_FREQ_DEFAULT)
+        ->DefOSC("ch_hicut_freq");
+
+        DefParameter(CHANNEL_HIGHCUT_SLOPE, cat, "HC Slope", MAX_VCHANNELS)
+        ->DefNameShort("HC Sl")
+        ->DefUOM(MP_UOM::HIGHCUT_SLOPE)
+        ->DefHideEncoderSlider()
+        ->DefHideEncoderReset()
+        ->DefMinMaxStandard_Uint(0, HIGHCUT_SLOPE_MAX, 0)
+        ->DefCycleMode(1, 1)
+        ->DefOSC("ch_hicut_slope");
 
         DefParameter(CHANNEL_EQ_ENABLE, cat, "EQ Enable", MAX_VCHANNELS)
         ->DefNameShort("EQ En")

@@ -418,6 +418,7 @@ void Mixer::Sync()
     
             dsp->SendEQ(changedIndex);
             dsp->SendLowcut(changedIndex);
+            dsp->SendHighcut(changedIndex);
         }
     }
 

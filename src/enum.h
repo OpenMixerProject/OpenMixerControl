@@ -123,6 +123,8 @@ enum class MP_UOM {
     CARD_AUDIO_SOURCE,
     PANORAMA,
     BANKING_EQ,
+    FILTER_SLOPE,
+    HIGHCUT_SLOPE,
 };
 
 enum class MP_VALUE_TYPE {
@@ -502,8 +504,13 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    CHANNEL_LOWCUT_SLOPE = 282,
+    CHANNEL_HIGHCUT_ENABLE = 283,
+    CHANNEL_HIGHCUT_FREQ = 284,
+    CHANNEL_HIGHCUT_SLOPE = 285,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 286
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!
