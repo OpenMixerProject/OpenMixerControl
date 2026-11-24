@@ -49,6 +49,12 @@ typedef struct{
 } sTouchControl;
 
 typedef struct {
+	// biquad filter-coefficients (a = numerator zeros, b = denominator poles with b[0]=1)
+	float a[3];
+	float b[3];
+} sBiquadCoeffs;
+
+typedef struct {
 	// user-settings
 	float fc; // cutoff-frequency for high- or lowpass
 	bool isHighpass; // choose if Highpass or Lowpass

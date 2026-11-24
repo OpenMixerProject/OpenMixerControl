@@ -371,20 +371,57 @@ void DSP1::SendGate(uint chanIndex)
     spi->QueueDspData(0, 'g', chanIndex, 0, 6, &values[0]);
 }
 
+// Interleave 2 biquad sections for SHARC biquad_trans() and append the enable flag:
+// [s0.a0, s1.a0, s0.a1, s1.a1, s0.a2, s1.a2, -s0.b1, -s1.b1, -s0.b2, -s1.b2, enable]
+static void interleaveTwoBiquads(const sBiquadCoeffs sections[2], bool enabled, float values[11])
+{
+    for (uint8_t s = 0; s < 2; s++)
+    {
+        values[0 + s] = sections[s].a[0];
+        values[2 + s] = sections[s].a[1];
+        values[4 + s] = sections[s].a[2];
+        values[6 + s] = -sections[s].b[1];
+        values[8 + s] = -sections[s].b[2];
+    }
+    values[10] = enabled ? 1.0f : 0.0f;
+}
+
 void DSP1::SendLowcut(uint8_t chan)
 {
-    float values[2];
+    float fc         = config->GetFloat(CHANNEL_LOWCUT_FREQ, chan);
+    uint8_t slopeIdx = (uint8_t)config->GetUint(CHANNEL_LOWCUT_SLOPE, chan);
+    float fs         = (float)config->GetUint(SAMPLERATE);
+    bool enabled     = config->GetBool(CHANNEL_LOWCUT_ENABLE, chan);
 
-    // Source: https://www.dsprelated.com/showarticle/1769.php
-    // alpha = 1 / (1 + 2 * pi * f_c * 1/f_s)
-    // Equation for samples: output = alpha * (input + previous_output - previous_input)
-    values[0] = 1.0f / (1.0f + 2.0f * M_PI * config->GetFloat(CHANNEL_LOWCUT_FREQ, chan) * (1.0f/(float)config->GetUint(SAMPLERATE)));
-    values[1] = config->GetBool(CHANNEL_LOWCUT_ENABLE, chan) ? 1.0f : 0.0f;
+    // Butterworth HPF, 6/12/18/24 dB/oct as 2 cascaded biquads (unused section is passthrough)
+    sBiquadCoeffs sections[2];
+    fxmath->CalcLowcutBiquads(fc, slopeIdx, fs, sections);
 
-    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendLowcut() channelindex %d -> %f", chan, values[0]);
+    float values[11];
+    interleaveTwoBiquads(sections, enabled, values);
 
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendLowcut() channelindex %d -> fc=%f slope=%u en=%d", chan, (double)fc, slopeIdx, enabled);
 
-    spi->QueueDspData(0, 'e', chan, 'l', 2, &values[0]);
+    spi->QueueDspData(0, 'e', chan, 'l', 11, &values[0]);
+}
+
+void DSP1::SendHighcut(uint8_t chan)
+{
+    float fc         = config->GetFloat(CHANNEL_HIGHCUT_FREQ, chan);
+    uint8_t slopeIdx = (uint8_t)config->GetUint(CHANNEL_HIGHCUT_SLOPE, chan);
+    float fs         = (float)config->GetUint(SAMPLERATE);
+    bool enabled     = config->GetBool(CHANNEL_HIGHCUT_ENABLE, chan);
+
+    // Butterworth LPF, 12/24 dB/oct as 2 cascaded biquads (second section is passthrough for 12 dB/oct)
+    sBiquadCoeffs sections[2];
+    fxmath->CalcHighcutBiquads(fc, slopeIdx, fs, sections);
+
+    float values[11];
+    interleaveTwoBiquads(sections, enabled, values);
+
+    helper->DEBUG_DSP1(DEBUGLEVEL_NORMAL, "SendHighcut() channelindex %d -> fc=%f slope=%u en=%d", chan, (double)fc, slopeIdx, enabled);
+
+    spi->QueueDspData(0, 'e', chan, 'h', 11, &values[0]);
 }
 
 void DSP1::SendEQ(uint chanIndex)

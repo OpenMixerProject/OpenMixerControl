@@ -11,11 +11,13 @@ class FxMath : X32Base {
 
         FxMath(X32BaseParameter* basepar);
         void RecalcFilterCoefficients_PEQ(sPEQ* peq);
-        float CalcFrequencyResponse_LC(float f, float fc, float fs);
-        float CalcFrequencyResponse_HC(float f, float fc, float fs);
+        void CalcLowcutBiquads(float fc, uint8_t slopeIdx, float fs, sBiquadCoeffs sections[2]);
+        void CalcHighcutBiquads(float fc, uint8_t slopeIdx, float fs, sBiquadCoeffs sections[2]);
+        float CalcFrequencyResponse_LC(float f, float fc, float fs, uint8_t slopeIdx = 1);
+        float CalcFrequencyResponse_HC(float f, float fc, float fs, uint8_t slopeIdx = 0);
         float CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1, float b2, float f, float fs);
-        float CalcPhaseResponse_LC(float f, float fc);
-        float CalcPhaseResponse_HC(float f, float fc);
+        float CalcPhaseResponse_LC(float f, float fc, float fs, uint8_t slopeIdx = 1);
+        float CalcPhaseResponse_HC(float f, float fc, float fs, uint8_t slopeIdx = 0);
         float CalcPhaseResponse_PEQ(float a0, float a1, float a2, float b0, float b1, float b2, float f, float fs);
         void RecalcFilterCoefficients_LR12(sLR12* LR12);
         void RecalcFilterCoefficients_LR24(sLR24* LR24);

@@ -45,6 +45,7 @@ class DSP1 : X32Base {
         void SendMainSolo();
         void SendGate(uint chanIndex);
         void SendLowcut(uint8_t chan);
+        void SendHighcut(uint8_t chan);
         void SendEQ(uint chan);
         void ResetEq(uint8_t chan);
         void SendCompressor(uint8_t chanIndex);

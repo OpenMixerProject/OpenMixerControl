@@ -87,6 +87,16 @@ typedef unsigned int uint;
 #define DYNAMICS_RELEASE_MIN          5.0f // ms
 #define DYNAMICS_RELEASE_MAX        4000.0f // ms
 
+#define LOWCUT_FREQ_MIN               20.0f // Hz
+#define LOWCUT_FREQ_MAX              600.0f // Hz
+#define LOWCUT_FREQ_DEFAULT           80.0f // Hz
+#define LOWCUT_SLOPE_MAX                  3 // 0=6dB/oct, 1=12dB/oct, 2=18dB/oct, 3=24dB/oct
+
+#define HIGHCUT_FREQ_MIN            1000.0f // Hz
+#define HIGHCUT_FREQ_MAX           20000.0f // Hz
+#define HIGHCUT_FREQ_DEFAULT       20000.0f // Hz
+#define HIGHCUT_SLOPE_MAX                 1 // 0=12dB/oct, 1=24dB/oct
+
 #define MAX_FX_SLOTS                    8
 
 #define FX_REVERB_ROOMSIZE_MIN         0.0f // ms

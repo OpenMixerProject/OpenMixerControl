@@ -45,10 +45,14 @@ class PageEq: public Page {
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_FREQ);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_LOWCUT_ENABLE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_2, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_FREQ1, (uint)BANKING_EQ);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_2, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_LOWCUT_SLOPE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_3, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_GAIN1, (uint)BANKING_EQ);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_3, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_HIGHCUT_ENABLE);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_4, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_Q1, (uint)BANKING_EQ);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_4, MixerparameterAction::CHANGE, BANKING_EQ);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_5, MixerparameterAction::CHANGE__MP_INDIRECT__SELECTED_CHANNEL, CHANNEL_EQ_TYPE1, (uint)BANKING_EQ);
-            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE, BANKING_EQ);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_5, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_HIGHCUT_SLOPE);
+            config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_6, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_HIGHCUT_FREQ);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_EQ_ENABLE);
 
             DrawEq();
@@ -56,7 +60,7 @@ class PageEq: public Page {
 
         void OnChange(bool force_update) override
         {
-            if (config->HasParameterChanged(CHANNEL_LOWCUT_FREQ) ||
+            if (config->HasParametersChanged({CHANNEL_LOWCUT_FREQ, CHANNEL_LOWCUT_SLOPE, CHANNEL_LOWCUT_ENABLE, CHANNEL_HIGHCUT_FREQ, CHANNEL_HIGHCUT_SLOPE, CHANNEL_HIGHCUT_ENABLE}) ||
                 config->HasParametersChanged({MP_CAT::CHANNEL_EQ}) ||
                 config->HasParametersChanged({BANKING_EQ, SELECTED_CHANNEL}) ||
                 force_update
@@ -82,9 +86,42 @@ class PageEq: public Page {
             }
 
             bool lowCutEnabled = config->GetBool(CHANNEL_LOWCUT_ENABLE, selectedChannelIndex);
+            bool highCutEnabled = config->GetBool(CHANNEL_HIGHCUT_ENABLE, selectedChannelIndex);
             bool eqEnabled = config->GetBool(CHANNEL_EQ_ENABLE, selectedChannelIndex);
+            float fs = (float)config->GetUint(SAMPLERATE);
 
-            // calculate the filter-response between 20 Hz and 20 kHz for all 4 PEQs
+            // Precompute all filter coefficients once outside the 200-pixel loop
+            sBiquadCoeffs lcSections[2];
+            if (lowCutEnabled)
+            {
+                fxmath->CalcLowcutBiquads(
+                    config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex),
+                    (uint8_t)config->GetUint(CHANNEL_LOWCUT_SLOPE, selectedChannelIndex),
+                    fs,
+                    lcSections
+                );
+            }
+
+            sBiquadCoeffs hcSections[2];
+            if (highCutEnabled)
+            {
+                fxmath->CalcHighcutBiquads(
+                    config->GetFloat(CHANNEL_HIGHCUT_FREQ, selectedChannelIndex),
+                    (uint8_t)config->GetUint(CHANNEL_HIGHCUT_SLOPE, selectedChannelIndex),
+                    fs,
+                    hcSections
+                );
+            }
+
+            if (eqEnabled)
+            {
+                for (uint8_t i_peq = 0; i_peq < MAX_CHAN_EQS; i_peq++)
+                {
+                    fxmath->RecalcFilterCoefficients_PEQ(&state->rChannel[selectedChannelIndex].peq[i_peq]);
+                }
+            }
+
+            // calculate the filter-response between 20 Hz and 20 kHz for LowCut, HighCut, and all 4 PEQs
             float eqValue[200];
             float freq;
 
@@ -96,10 +133,18 @@ class PageEq: public Page {
             for (uint16_t pixel = 0; pixel < 200; pixel++) {
                 freq = 20.0f * powf(1000.0f, ((float)pixel/199.0f));
 
-                // LowCut
+                // LowCut (6/12/18/24 dB/oct)
                 if (lowCutEnabled)
                 {
-                    eqValue[pixel] += fxmath->CalcFrequencyResponse_LC(freq, config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex), config->GetUint(SAMPLERATE));
+                    eqValue[pixel] += fxmath->CalcFrequencyResponse_PEQ(lcSections[0].a[0], lcSections[0].a[1], lcSections[0].a[2], lcSections[0].b[1], lcSections[0].b[2], freq, fs);
+                    eqValue[pixel] += fxmath->CalcFrequencyResponse_PEQ(lcSections[1].a[0], lcSections[1].a[1], lcSections[1].a[2], lcSections[1].b[1], lcSections[1].b[2], freq, fs);
+                }
+
+                // HighCut (12/24 dB/oct)
+                if (highCutEnabled)
+                {
+                    eqValue[pixel] += fxmath->CalcFrequencyResponse_PEQ(hcSections[0].a[0], hcSections[0].a[1], hcSections[0].a[2], hcSections[0].b[1], hcSections[0].b[2], freq, fs);
+                    eqValue[pixel] += fxmath->CalcFrequencyResponse_PEQ(hcSections[1].a[0], hcSections[1].a[1], hcSections[1].a[2], hcSections[1].b[1], hcSections[1].b[2], freq, fs);
                 }
 
                 if (eqEnabled)
@@ -109,8 +154,6 @@ class PageEq: public Page {
                     {
                         sPEQ* peq = &state->rChannel[selectedChannelIndex].peq[i_peq];
 
-                        fxmath->RecalcFilterCoefficients_PEQ(peq);
-
                         eqValue[pixel] += fxmath->CalcFrequencyResponse_PEQ(
                             peq->a[0],
                             peq->a[1],
@@ -118,7 +161,7 @@ class PageEq: public Page {
                             peq->b[1],
                             peq->b[2],
                             freq,
-                            config->GetUint(SAMPLERATE)
+                            fs
                         );
                     }
                 }
@@ -133,10 +176,18 @@ class PageEq: public Page {
                 freq = 20.0f * powf(1000.0f, ((float)pixel/199.0f));
                 float phase = 0.0f;
 
-                // LowCut
+                // LowCut (6/12/18/24 dB/oct)
                 if (lowCutEnabled)
                 {
-                    phase += fxmath->CalcPhaseResponse_LC(freq, config->GetFloat(CHANNEL_LOWCUT_FREQ, selectedChannelIndex));
+                    phase += fxmath->CalcPhaseResponse_PEQ(lcSections[0].a[0], lcSections[0].a[1], lcSections[0].a[2], 1.0f, lcSections[0].b[1], lcSections[0].b[2], freq, fs);
+                    phase += fxmath->CalcPhaseResponse_PEQ(lcSections[1].a[0], lcSections[1].a[1], lcSections[1].a[2], 1.0f, lcSections[1].b[1], lcSections[1].b[2], freq, fs);
+                }
+
+                // HighCut (12/24 dB/oct)
+                if (highCutEnabled)
+                {
+                    phase += fxmath->CalcPhaseResponse_PEQ(hcSections[0].a[0], hcSections[0].a[1], hcSections[0].a[2], 1.0f, hcSections[0].b[1], hcSections[0].b[2], freq, fs);
+                    phase += fxmath->CalcPhaseResponse_PEQ(hcSections[1].a[0], hcSections[1].a[1], hcSections[1].a[2], 1.0f, hcSections[1].b[1], hcSections[1].b[2], freq, fs);
                 }
 
                 if (eqEnabled)
@@ -154,7 +205,7 @@ class PageEq: public Page {
                             peq->b[1],
                             peq->b[2],
                             freq,
-                            config->GetUint(SAMPLERATE));
+                            fs);
                     }
                 }
 

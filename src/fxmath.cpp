@@ -23,6 +23,7 @@
 */
 
 #include "fxmath.h"
+#include "../lib_ext/doctest/doctest/doctest.h"
 
 namespace OMC
 {
@@ -136,13 +137,106 @@ void FxMath::RecalcFilterCoefficients_PEQ(sPEQ* peq) {
   }
 }
 
-float FxMath::CalcFrequencyResponse_LC(float f, float fc, float fs) {
-  float numerator = f / fc;
-  return 10.0f * log10( numerator / sqrt(1 + numerator * numerator) );
+static void calcPassthroughBiquad(sBiquadCoeffs* s) {
+  s->a[0] = 1.0f;
+  s->a[1] = 0.0f;
+  s->a[2] = 0.0f;
+  s->b[0] = 1.0f;
+  s->b[1] = 0.0f;
+  s->b[2] = 0.0f;
 }
 
-float FxMath::CalcFrequencyResponse_HC(float f, float fc, float fs) {
-  return 10.0f * log10( 1.0f/sqrt( 1.0f + pow(f/fc, 2.0f) ) );
+static void calcFirstOrderHPF(double K, sBiquadCoeffs* s) {
+  double norm = 1.0 / (1.0 + K);
+  s->a[0] = (float)norm;
+  s->a[1] = (float)(-norm);
+  s->a[2] = 0.0f;
+  s->b[0] = 1.0f;
+  s->b[1] = (float)((K - 1.0) * norm);
+  s->b[2] = 0.0f;
+}
+
+static void calcSecondOrderHPF(double K, double Q, sBiquadCoeffs* s) {
+  double K2 = K * K;
+  double norm = 1.0 / (1.0 + K / Q + K2);
+  s->a[0] = (float)(1.0 * norm);
+  s->a[1] = (float)(-2.0 * norm);
+  s->a[2] = (float)(1.0 * norm);
+  s->b[0] = 1.0f;
+  s->b[1] = (float)(2.0 * (K2 - 1.0) * norm);
+  s->b[2] = (float)((1.0 - K / Q + K2) * norm);
+}
+
+static void calcSecondOrderLPF(double K, double Q, sBiquadCoeffs* s) {
+  double K2 = K * K;
+  double norm = 1.0 / (1.0 + K / Q + K2);
+  s->a[0] = (float)(K2 * norm);
+  s->a[1] = (float)(2.0 * K2 * norm);
+  s->a[2] = (float)(K2 * norm);
+  s->b[0] = 1.0f;
+  s->b[1] = (float)(2.0 * (K2 - 1.0) * norm);
+  s->b[2] = (float)((1.0 - K / Q + K2) * norm);
+}
+
+// Bilinear-transform prewarp K = tan(pi * fc / fs), with fc kept inside a safe range
+static double calcPrewarp(float fc, float fs, double minFc) {
+  double clampedFc = (double)fc;
+  if (clampedFc < minFc) clampedFc = minFc;
+  if (clampedFc > (double)fs * 0.45) clampedFc = (double)fs * 0.45;
+  return tan(PI * clampedFc / (double)fs);
+}
+
+// Q of the k-th complex-conjugate pole pair of an N-th order Butterworth filter:
+// poles lie at theta_k = pi*(2k + 1)/(2N), giving Q_k = 1 / (2 * sin(theta_k))
+static double butterworthQ(int k, int order) {
+  double theta = (double)PI * (double)(2 * k + 1) / (2.0 * (double)order);
+  return 1.0 / (2.0 * sin(theta));
+}
+
+// Butterworth HPF of order slopeIdx + 1 (6/12/18/24 dB/oct) as 2 biquad sections.
+// Odd orders add one real first-order pole; unused sections are passthrough.
+void FxMath::CalcLowcutBiquads(float fc, uint8_t slopeIdx, float fs, sBiquadCoeffs sections[2]) {
+  double K = calcPrewarp(fc, fs, 10.0);
+  int order = (slopeIdx > LOWCUT_SLOPE_MAX) ? 4 : (int)slopeIdx + 1;
+
+  calcPassthroughBiquad(&sections[0]);
+  calcPassthroughBiquad(&sections[1]);
+
+  int secIdx = 0;
+  for (int k = 0; k < order / 2; k++) {
+    calcSecondOrderHPF(K, butterworthQ(k, order), &sections[secIdx++]);
+  }
+  if ((order & 1) != 0) {
+    calcFirstOrderHPF(K, &sections[secIdx++]);
+  }
+}
+
+// Butterworth LPF, 12 dB/oct (slopeIdx 0, 2nd order) or 24 dB/oct (slopeIdx 1, 4th order) as 2 biquad sections.
+// For 12 dB/oct the second section is passthrough.
+void FxMath::CalcHighcutBiquads(float fc, uint8_t slopeIdx, float fs, sBiquadCoeffs sections[2]) {
+  double K = calcPrewarp(fc, fs, 20.0);
+  int order = (slopeIdx >= HIGHCUT_SLOPE_MAX) ? 4 : 2;
+
+  calcPassthroughBiquad(&sections[0]);
+  calcPassthroughBiquad(&sections[1]);
+
+  for (int k = 0; k < order / 2; k++) {
+    calcSecondOrderLPF(K, butterworthQ(k, order), &sections[k]);
+  }
+}
+
+float FxMath::CalcFrequencyResponse_LC(float f, float fc, float fs, uint8_t slopeIdx) {
+  sBiquadCoeffs sections[2];
+  CalcLowcutBiquads(fc, slopeIdx, fs, sections);
+  return CalcFrequencyResponse_PEQ(sections[0].a[0], sections[0].a[1], sections[0].a[2], sections[0].b[1], sections[0].b[2], f, fs)
+       + CalcFrequencyResponse_PEQ(sections[1].a[0], sections[1].a[1], sections[1].a[2], sections[1].b[1], sections[1].b[2], f, fs);
+}
+
+float FxMath::CalcFrequencyResponse_HC(float f, float fc, float fs, uint8_t slopeIdx) {
+  sBiquadCoeffs sections[2];
+  CalcHighcutBiquads(fc, slopeIdx, fs, sections);
+  return CalcFrequencyResponse_PEQ(sections[0].a[0], sections[0].a[1], sections[0].a[2], sections[0].b[1], sections[0].b[2], f, fs)
+       + CalcFrequencyResponse_PEQ(sections[1].a[0], sections[1].a[1], sections[1].a[2], sections[1].b[1], sections[1].b[2], f, fs);
 }
 
 float FxMath::CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1, float b2, float f, float fs) {
@@ -174,13 +268,52 @@ float FxMath::CalcFrequencyResponse_PEQ(float a0, float a1, float a2,  float b1,
 */
 }
 
-float FxMath::CalcPhaseResponse_LC(float f, float fc) {
-    // Phase = arctan(fc / f)
-    return atan2f(fc, f);
+float FxMath::CalcPhaseResponse_LC(float f, float fc, float fs, uint8_t slopeIdx) {
+    sBiquadCoeffs sections[2];
+    CalcLowcutBiquads(fc, slopeIdx, fs, sections);
+    return CalcPhaseResponse_PEQ(sections[0].a[0], sections[0].a[1], sections[0].a[2], 1.0f, sections[0].b[1], sections[0].b[2], f, fs)
+         + CalcPhaseResponse_PEQ(sections[1].a[0], sections[1].a[1], sections[1].a[2], 1.0f, sections[1].b[1], sections[1].b[2], f, fs);
 }
-float FxMath::CalcPhaseResponse_HC(float f, float fc) {
-    // Phase = arctan(-f / fc)
-    return atan2f(-f, fc);
+
+float FxMath::CalcPhaseResponse_HC(float f, float fc, float fs, uint8_t slopeIdx) {
+    sBiquadCoeffs sections[2];
+    CalcHighcutBiquads(fc, slopeIdx, fs, sections);
+    return CalcPhaseResponse_PEQ(sections[0].a[0], sections[0].a[1], sections[0].a[2], 1.0f, sections[0].b[1], sections[0].b[2], f, fs)
+         + CalcPhaseResponse_PEQ(sections[1].a[0], sections[1].a[1], sections[1].a[2], 1.0f, sections[1].b[1], sections[1].b[2], f, fs);
+}
+
+TEST_CASE("FxMath - Butterworth LowCut 6/12/18/24 dB/oct and HighCut 12/24 dB/oct")
+{
+    X32BaseParameter bp(nullptr, nullptr, nullptr, nullptr);
+    FxMath fx(&bp);
+    const float fs = 48000.0f;
+
+    // Butterworth: -3.01 dB at fc for every order, flat in the passband, N*6 dB/oct below fc
+    const float lcOctaveBelow[LOWCUT_SLOPE_MAX + 1] = { -6.99f, -12.30f, -18.13f, -24.10f };
+    for (uint8_t slope = 0; slope <= LOWCUT_SLOPE_MAX; slope++) {
+        CAPTURE(slope);
+        CHECK(fx.CalcFrequencyResponse_LC(200.0f, 200.0f, fs, slope) == doctest::Approx(-3.0103f).epsilon(0.05f));
+        CHECK(fx.CalcFrequencyResponse_LC(4000.0f, 200.0f, fs, slope) == doctest::Approx(0.0f).epsilon(0.05f));
+        CHECK(fx.CalcFrequencyResponse_LC(100.0f, 200.0f, fs, slope) == doctest::Approx(lcOctaveBelow[slope]).epsilon(0.02f));
+    }
+
+    for (uint8_t slope = 0; slope <= HIGHCUT_SLOPE_MAX; slope++) {
+        CAPTURE(slope);
+        CHECK(fx.CalcFrequencyResponse_HC(4000.0f, 4000.0f, fs, slope) == doctest::Approx(-3.0103f).epsilon(0.05f));
+        CHECK(fx.CalcFrequencyResponse_HC(100.0f, 4000.0f, fs, slope) == doctest::Approx(0.0f).epsilon(0.02f));
+    }
+    // one octave above fc (bilinear warping adds a little extra attenuation)
+    CHECK(fx.CalcFrequencyResponse_HC(2000.0f, 1000.0f, fs, 0) == doctest::Approx(-12.30f).epsilon(0.03f));
+    CHECK(fx.CalcFrequencyResponse_HC(2000.0f, 1000.0f, fs, 1) == doctest::Approx(-24.10f).epsilon(0.03f));
+
+    // 12 dB/oct high-cut leaves the second section as passthrough
+    sBiquadCoeffs sections[2];
+    fx.CalcHighcutBiquads(4000.0f, 0, fs, sections);
+    CHECK(sections[1].a[0] == 1.0f);
+    CHECK(sections[1].a[1] == 0.0f);
+    CHECK(sections[1].b[1] == 0.0f);
+    fx.CalcHighcutBiquads(4000.0f, 1, fs, sections);
+    CHECK(sections[1].a[0] != 1.0f);
 }
 
 float FxMath::CalcPhaseResponse_PEQ(float a0, float a1, float a2, float b0, float b1, float b2, float f, float fs) {

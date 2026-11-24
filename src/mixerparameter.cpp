@@ -73,6 +73,8 @@ namespace OMC
                     return "<C>";
                 }
             case BANKING_EQ:
+            case FILTER_SLOPE:
+            case HIGHCUT_SLOPE:
                 return GetUnitOfMeasurement(false, index, isResetLabel);
                 break;
             default:
@@ -108,6 +110,37 @@ String Mixerparameter::GetUnitOfMeasurement(bool spaceInFront, uint index, bool 
                 break;
             case SECONDS:
                 result += "s"; // this will automatically be converted to ms or minutes
+                break;
+            case FILTER_SLOPE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 0:
+                        result += String("6 dB/oct");
+                        break;
+                    case 1:
+                        result += String("12 dB/oct");
+                        break;
+                    case 2:
+                        result += String("18 dB/oct");
+                        break;
+                    case 3:
+                        result += String("24 dB/oct");
+                        break;
+                    default:
+                        result += String("12 dB/oct");
+                        break;
+                }
+                break;
+            case HIGHCUT_SLOPE:
+                switch((uint) (isResetLabel ? value_standard : value[index]))
+                {
+                    case 1:
+                        result += String("24 dB/oct");
+                        break;
+                    default:
+                        result += String("12 dB/oct");
+                        break;
+                }
                 break;
             case BANKING_EQ:
                 switch ((uint) (isResetLabel ? value_standard : value[index]))
