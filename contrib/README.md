@@ -55,3 +55,17 @@ programmatically in `OnInit()`.
 ./compile.sh TARGET_PC_SDL2
 ./build/pc_sdl2/omc -b
 ```
+
+`compile-cross.sh` builds all targets from clean, downloading the required
+cross toolchains into `$HOME/.cache/omc-cross` (override with
+`OMC_CROSS_CACHE`). It uses Debian's armel GCC 14 for `TARGET_XM32` and Arm
+GNU Toolchain 15.2 for `TARGET_WING`.
+
+```bash
+./compile-cross.sh TARGET_PC_SDL2
+./compile-cross.sh TARGET_XM32
+./compile-cross.sh TARGET_WING
+./compile-cross.sh all
+```
+
+Set `JOBS` to change the number of parallel make jobs (default: 4).
