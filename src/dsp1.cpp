@@ -593,12 +593,12 @@ void DSP1::CallbackStateMachine() {
         case 3:
             // process received SPI-Data
             while (spi->HasNextEvent()) {
-                SpiEvent* spiEvent = spi->GetNextEvent();
+                SpiEvent spiEvent = spi->GetNextEvent();
 
-                if (spiEvent->dsp == 0) {
-                    callbackDsp1(spiEvent->classId, spiEvent->channel, spiEvent->index, spiEvent->valueCount, spiEvent->values);
+                if (spiEvent.dsp == 0) {
+                    callbackDsp1(spiEvent.classId, spiEvent.channel, spiEvent.index, spiEvent.valueCount, spiEvent.values);
                 } else {
-                    callbackDsp2(spiEvent->classId, spiEvent->channel, spiEvent->index, spiEvent->valueCount, spiEvent->values);
+                    callbackDsp2(spiEvent.classId, spiEvent.channel, spiEvent.index, spiEvent.valueCount, spiEvent.values);
                 }
             }
             UpdateVuMeter(50);
@@ -994,8 +994,8 @@ void DSP1::DSP2_SendOscillatorValues() {
     float values[4];
     values[0] = dsp2Oscillator[0].frequency;
     values[1] = dsp2Oscillator[1].frequency;
-    values[2] = dsp2Oscillator[0].volume;
-    values[3] = dsp2Oscillator[1].volume;
+    values[2] = dsp2Oscillator[0].volume * 2147483647.0f;
+    values[3] = dsp2Oscillator[1].volume * 2147483647.0f;
     spi->QueueDspData(1, 'a', 'o', 0, 4, values);
 }
 

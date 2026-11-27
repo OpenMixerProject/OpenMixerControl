@@ -1268,7 +1268,7 @@ void SPI::ProcessRxData(uint8_t dsp) {
                     uint8_t index      = ((spiRxRingBuffer[dsp].payload[0] & 0x00FF0000) >> 16);
                     uint8_t valueCount = ((spiRxRingBuffer[dsp].payload[0] & 0xFF000000) >> 24);
 
-                    eventBuffer.push_back(new SpiEvent(dsp, classId, channel, index, valueCount, &spiRxRingBuffer[dsp].payload[1]));
+                    eventBuffer.emplace_back(dsp, classId, channel, index, valueCount, &spiRxRingBuffer[dsp].payload[1]);
                     spiRxRingBuffer[dsp].state = LOOKING_FOR_START_MARKER; // reset state
                 }else{
                     // error: end-marker not found
@@ -1287,8 +1287,8 @@ bool SPI::HasNextEvent(){
     return eventBuffer.size() > 0;
 }
 
-SpiEvent* SPI::GetNextEvent(){
-    SpiEvent* event = eventBuffer.back();
+SpiEvent SPI::GetNextEvent(){
+    SpiEvent event = eventBuffer.back();
     eventBuffer.pop_back();
     return event;
 }

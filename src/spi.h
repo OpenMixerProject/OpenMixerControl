@@ -90,7 +90,7 @@ class SPI : public X32Base {
     sSpiTxRingBuffer spiTxRingBuffer[2]; // for both DSPs
     int spiDspHandle[2];
     int spiFpgaHandle;
-    std::list<SpiEvent*> eventBuffer;
+    std::deque<SpiEvent> eventBuffer;
 
     void toggleFpgaProgramnPin(uint32_t assertTime, uint32_t waitTime);
     void setFpgaChipSelectPin(bool state);
@@ -129,7 +129,7 @@ class SPI : public X32Base {
     void ProcessRxData(uint8_t dsp);
 
     bool HasNextEvent();
-    SpiEvent* GetNextEvent();
+    SpiEvent GetNextEvent();
 };
 
 
