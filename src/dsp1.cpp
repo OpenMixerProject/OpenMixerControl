@@ -69,7 +69,8 @@ bool DSP1::ChannelHasAdjustableGain(uint chanIndex)
     {
         // this channel gets its input from the FPGA. Now check if it has an adjustable gain
         if (((dspChannelFpgaSource >= FPGA_INPUT_IDX_XLR) && (dspChannelFpgaSource < FPGA_INPUT_IDX_XLR + 32)) ||
-            (dspChannelFpgaSource >= FPGA_INPUT_IDX_AES50A && dspChannelFpgaSource < FPGA_INPUT_IDX_AES50A + 48))
+            (dspChannelFpgaSource >= FPGA_INPUT_IDX_AES50A && dspChannelFpgaSource < FPGA_INPUT_IDX_AES50A + 48) ||
+            (dspChannelFpgaSource >= FPGA_INPUT_IDX_AES50B && dspChannelFpgaSource < FPGA_INPUT_IDX_AES50B + 48))
         {
             return true;
         }
