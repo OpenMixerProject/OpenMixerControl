@@ -3630,6 +3630,12 @@ namespace OMC
             );
         }
 
+        auto owned = owned_surface_bindings.find(surfaceelement_id);
+        if (owned != owned_surface_bindings.end() && &owned->second != binding_parameter)
+        {
+            owned_surface_bindings.erase(owned);
+        }
+
         if (surface_binding->contains(surfaceelement_id))
         {
             // Binding already exists -> overwrite it
@@ -3646,9 +3652,10 @@ namespace OMC
 
     void Config::SurfaceBind(SurfaceElementId surfaceelement_id, MixerparameterAction action, MP_ID mixerparaemter_id, uint mixerparameter_index, uint extra_value)
     {
-        SurfaceBindingParameter* binding_parameter = new SurfaceBindingParameter();
-        binding_parameter->FillBindingParameter(action, mixerparaemter_id, mixerparameter_index, extra_value);
-        SurfaceBindParameter(surfaceelement_id, binding_parameter);
+        auto& binding_parameter = owned_surface_bindings[surfaceelement_id];
+        binding_parameter.FillBindingParameter(action, mixerparaemter_id, mixerparameter_index, extra_value);
+        binding_parameter.custom_label = "";
+        SurfaceBindParameter(surfaceelement_id, &binding_parameter);
     }
 
     void Config::SurfaceUnbind(SurfaceElementId surfaceelement_id)
@@ -3657,14 +3664,15 @@ namespace OMC
         {
             surface_binding->erase(surfaceelement_id);
         }
+        owned_surface_bindings.erase(surfaceelement_id);
     }
 
     void Config::SurfaceBindCustom(SurfaceElementId surfaceelement_id, String labeltext)
     {
-        SurfaceBindingParameter* binding_parameter = new SurfaceBindingParameter();
-        binding_parameter->FillBindingParameter(MixerparameterAction::CUSTOM, NONE, 0);
-        binding_parameter->custom_label = labeltext;
-        SurfaceBindParameter(surfaceelement_id, binding_parameter);
+        auto& binding_parameter = owned_surface_bindings[surfaceelement_id];
+        binding_parameter.FillBindingParameter(MixerparameterAction::CUSTOM, NONE, 0);
+        binding_parameter.custom_label = labeltext;
+        SurfaceBindParameter(surfaceelement_id, &binding_parameter);
     }
 
     bool Config::HasAnySurfaceBindingChanged()
