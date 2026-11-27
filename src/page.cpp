@@ -307,7 +307,21 @@ void Page::SyncEncoderWidget(SurfaceElementId elementIdEncoder, SurfaceElementId
                     else 
                     {
                         lv_obj_set_flag(lvgl_encoder_widget->Slider, LV_OBJ_FLAG_HIDDEN, false);
-                        lv_slider_set_value(lvgl_encoder_widget->Slider, parameter->GetPercent(index), LV_ANIM_OFF);          
+                        if (id == MP_ID::CHANNEL_STEREO_WIDTH)
+                        {
+                            // show the stereo width as a range around the center
+                            int width = (int)parameter->GetPercent(index);
+                            lv_slider_set_mode(lvgl_encoder_widget->Slider, LV_SLIDER_MODE_RANGE);
+                            lv_slider_set_range(lvgl_encoder_widget->Slider, 0, 100);
+                            lv_slider_set_start_value(lvgl_encoder_widget->Slider, (100 - width) / 2, LV_ANIM_OFF);
+                            lv_slider_set_value(lvgl_encoder_widget->Slider, (100 - width) / 2 + width, LV_ANIM_OFF);
+                        }
+                        else
+                        {
+                            lv_slider_set_mode(lvgl_encoder_widget->Slider, LV_SLIDER_MODE_NORMAL);
+                            lv_slider_set_range(lvgl_encoder_widget->Slider, -2, 101);
+                            lv_slider_set_value(lvgl_encoder_widget->Slider, parameter->GetPercent(index), LV_ANIM_OFF);
+                        }
                     }
                 }
             }
@@ -318,6 +332,16 @@ void Page::SyncEncoderWidget(SurfaceElementId elementIdEncoder, SurfaceElementId
     if (surface_binding_button == 0 || surface_binding_button->mp_action == MixerparameterAction::NONE)
     {
         ClearEncoderButton(lvgl_encoder_widget);
+    }
+    else if (surface_binding_button->mp_action == MixerparameterAction::CUSTOM)
+    {
+        if (!force)
+        {
+            return;
+        }
+
+        lv_label_set_text(lvgl_encoder_widget->ButtonLabel, surface_binding_button->custom_label.c_str());
+        remove_style_label_bg_yellow(lvgl_encoder_widget->ButtonLabel);
     }
     else
     {

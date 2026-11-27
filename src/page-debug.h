@@ -20,7 +20,7 @@ class PageDebug: public Page
             tabLayer0 = objects.maintab;
             tabIndex0 = 3;
             tabLayer1 = objects.setuptab;
-            tabIndex1 = 4;
+            tabIndex1 = 5;
 
             osc_client = new OscClient(pagebasepar);
         }

@@ -36,6 +36,10 @@ namespace OMC
             value_float *= 100.0f;
         }
 
+        if (parameter_id == MP_ID::CHANNEL_STEREO_WIDTH && value_float < 0.5f) {
+            return "Mono";
+        }
+
         switch (unitOfMeasurement)
         {
             case TAPPOINT:

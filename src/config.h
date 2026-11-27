@@ -56,6 +56,14 @@ namespace OMC
             // old
             OMC_MODEL _model;
 
+            // Stereo linking
+            bool isSyncingStereoLink = false;
+            bool IsStereoLinkParameter(MP_ID mp);
+            bool GetStereoLinkPair(uint vchannel, MP_ID& link, uint& pair);
+            void ApplyStereoLink(MP_ID mp, uint index, bool wasLinked);
+            void CopyToStereoPeer(MP_ID mp, uint from, uint to);
+            void ApplyStereoPanWidth(uint vchannel);
+
         public:
 
             std::set<std::string> oscCapabilities;
@@ -114,6 +122,12 @@ namespace OMC
             void Toggle(MP_ID mp, uint index = 0);
             void Refresh(MP_ID mp, uint index = 0);
             void Reset(MP_ID mp, uint index = 0);
+
+            // Stereo linking of neighbouring vChannels
+            uint GetStereoLinkLeft(MP_ID link, uint pair);
+            bool GetStereoPeer(uint vchannel, uint& peer);
+            bool IsStereoLinkedRight(uint vchannel);
+            bool IsStereoPanActive(uint vchannel);
 
             MP_ID ParameterCalcId(SurfaceBindingParameter* binding_parameter);
             uint ParameterCalcIndex(SurfaceBindingParameter* binding_parameter);

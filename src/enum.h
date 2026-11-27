@@ -51,6 +51,7 @@ enum class X32_PAGE :int
         // sub-pages of setup
         SETUP_CARD,
         SETUP_SURFACE,
+        SETUP_MIXER_CONFIG,
         ABOUT,
         DEBUG,
         PROTOTYPEGUI,
@@ -502,8 +503,15 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    // Stereo linking
+    CHANNEL_LINKED = 282,
+    BUS_LINKED = 283,
+    MATRIX_LINKED = 284,
+    CHANNEL_STEREO_PAN = 285,
+    CHANNEL_STEREO_WIDTH = 286,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 287
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

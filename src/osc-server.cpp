@@ -179,8 +179,7 @@ namespace OMC
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Value: %s", index, str);
 
-                            parameter->Set(str, index);
-                            config->SetParameterChanged(parameter->GetId(), index);
+                            config->Set(parameter->GetId(), String(str), index);
                         }
                         else if (osc_format == "f")
                         {
@@ -189,8 +188,7 @@ namespace OMC
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Value: %f", index, value);
 
-                            parameter->Set(value, index);
-                            config->SetParameterChanged(parameter->GetId(), index);
+                            config->Set(parameter->GetId(), value, index);
                         }
                         else 
                         {
@@ -207,8 +205,7 @@ namespace OMC
 
                             helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d Amount: %d", index, amount);
 
-                            parameter->Change(amount, index);
-                            config->SetParameterChanged(parameter->GetId(), index);
+                            config->Change(parameter->GetId(), amount, index);
                         }
                         else
                         {
@@ -222,8 +219,7 @@ namespace OMC
 
                         helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
 
-                        parameter->Toggle(index);
-                        config->SetParameterChanged(parameter->GetId(), index);
+                        config->Toggle(parameter->GetId(), index);
                     }
                     else if (address[0] == "reset")
                     {
@@ -232,8 +228,7 @@ namespace OMC
 
                         helper->DEBUG_OSC(DEBUGLEVEL_TRACE, "  Index: %d", index);
 
-                        parameter->Reset(index);
-                        config->SetParameterChanged(parameter->GetId(), index);
+                        config->Reset(parameter->GetId(), index);
                     }
                 }
                 else if (found > 1) 

@@ -80,6 +80,7 @@ class CtrlClient : public X32Base
         void syncGuiOrLcd();
         void syncSurface(bool fullSync);
         
+        void SetBalanceText(char* balanceText, uint channelIndex);
         void SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex);
         void SetLcdFromAssign(uint8_t p_boardId, uint8_t lcdIndex, SurfaceElementId element_id);
         void GetAssignLcdText(LcdData *data, SurfaceElementId encoder, SurfaceElementId upper_button, SurfaceElementId lower_button);

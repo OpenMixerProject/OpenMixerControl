@@ -24,6 +24,7 @@
 #include "page-setup.h"
 #include "page-setup-card.h"
 #include "page-setup-surface.h"
+#include "page-setup-mixer-config.h"
 #include "page-debug.h"
 #include "page-about.h"
 #include "page-scenes.h"
@@ -367,6 +368,7 @@ void CtrlClient::InitPagesAndGUI()
 	pages[X32_PAGE::SETUP] = new PageSetup(pagebasepar);
 	pages[X32_PAGE::SETUP_CARD] = new PageSetupCard(pagebasepar);
 	pages[X32_PAGE::SETUP_SURFACE] = new PageSetupSurface(pagebasepar);
+	pages[X32_PAGE::SETUP_MIXER_CONFIG] = new PageSetupMixerConfig(pagebasepar);
 	pages[X32_PAGE::ABOUT] = new PageAbout(pagebasepar);
 	pages[X32_PAGE::DEBUG] = new PageDebug(pagebasepar);
 	pages[X32_PAGE::PROTOTYPEGUI] = new PagePrototypeGui(pagebasepar);
@@ -516,6 +518,12 @@ void CtrlClient::syncSurface(bool fullSync)
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
 		bool faderBankChanged = false;
+
+		if (config->HasParametersChanged({CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED}))
+		{
+			surface->UpdateStereoLinkedBanks();
+			faderBankChanged = true;
+		}
 
 		if (config->HasParameterChanged(BANKING_INPUT))
 		{
@@ -919,18 +927,18 @@ void CtrlClient::syncSurface(bool fullSync)
 					switch(config->GetUint(CHANNEL_LCD_MODE))
 					{
 						case 0:
-							if (config->HasParametersChanged({CHANNEL_PANORAMA, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED	}, binding_parameter->mp_index) ||
-								config->HasParameterChanged(CHANNEL_LCD_MODE)
+							if (config->HasParametersChanged({CHANNEL_PANORAMA, CHANNEL_STEREO_PAN, CHANNEL_STEREO_WIDTH, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED	}, binding_parameter->mp_index) ||
+								config->HasParametersChanged({CHANNEL_LCD_MODE, CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED})
 							)
 							{
 								hasChanged = true;
 							}
 							break;
 						case 1:
-							if (config->HasParametersChanged({CHANNEL_PHASE_INVERT, CHANNEL_VOLUME, CHANNEL_PANORAMA, CHANNEL_GAIN,	CHANNEL_GATE_TRESHOLD,
+							if (config->HasParametersChanged({CHANNEL_PHASE_INVERT, CHANNEL_VOLUME, CHANNEL_PANORAMA, CHANNEL_STEREO_PAN, CHANNEL_STEREO_WIDTH, CHANNEL_GAIN,	CHANNEL_GATE_TRESHOLD,
 									CHANNEL_DYNAMICS_TRESHOLD, CHANNEL_PHANTOM, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED }, binding_parameter->mp_index) ||
 								config->HasParametersChanged({MP_CAT::CHANNEL_EQ}, binding_parameter->mp_index) || 
-								config->HasParameterChanged(CHANNEL_LCD_MODE)
+								config->HasParametersChanged({CHANNEL_LCD_MODE, CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED})
 							)
 							{
 								hasChanged = true;
@@ -1284,6 +1292,41 @@ void CtrlClient::SetLcdFromArtnet(uint8_t p_boardId, uint8_t lcdIndex, uint8_t a
 	delete data;
 }
 
+// Draws the panorama as "---|---". Stereo pairs with reduced width additionally show their edges as ':'
+void CtrlClient::SetBalanceText(char* balanceText, uint channelIndex)
+{
+	using enum MP_ID;
+
+	auto position = [](float balance) -> uint8_t
+	{
+		if (balance < -70) { return 0; }
+		if (balance < -40) { return 1; }
+		if (balance < -10) { return 2; }
+		if (balance > 70) { return 6; }
+		if (balance > 40) { return 5; }
+		if (balance > 10) { return 4; }
+		return 3;
+	};
+
+	bool stereo = config->IsStereoPanActive(channelIndex);
+	float balance = config->GetFloat(stereo ? CHANNEL_STEREO_PAN : CHANNEL_PANORAMA, channelIndex);
+	uint8_t center = position(balance);
+
+	if (stereo && config->GetFloat(CHANNEL_STEREO_WIDTH, channelIndex) < 0.995f)
+	{
+		uint peerIndex;
+		config->GetStereoPeer(channelIndex, peerIndex);
+		uint8_t left = position(config->GetFloat(CHANNEL_PANORAMA, min(channelIndex, peerIndex)));
+		uint8_t right = position(config->GetFloat(CHANNEL_PANORAMA, max(channelIndex, peerIndex)));
+		if (left == center && left > 0) { left--; }
+		if (right == center && right < 6) { right++; }
+		balanceText[left] = ':';
+		balanceText[right] = ':';
+	}
+
+	balanceText[center] = '|';
+}
+
 void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex)
 {
 	using enum MP_ID;
@@ -1311,24 +1354,8 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 
 				// Volume / Panorama
 
-				float balance = config->GetFloat(CHANNEL_PANORAMA, channelIndex);
-				
 				char balanceText[8] = "-------";
-				if (balance < -70){
-					balanceText[0] = '|';
-				} else if (balance < -40){
-					balanceText[1] = '|';
-				} else if (balance < -10){
-					balanceText[2] = '|';
-				} else if (balance > 70){
-					balanceText[6] = '|';
-				} else if (balance > 40){
-					balanceText[5] = '|';
-				} else if (balance > 10){
-					balanceText[4] = '|';
-				} else {
-					balanceText[3] = '|';
-				}
+				SetBalanceText(balanceText, channelIndex);
 				data->texts[textIndex].text = balanceText;    
 				data->texts[textIndex].size = 0;
 				data->texts[textIndex].x = 0;
@@ -1369,7 +1396,9 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 				data->texts[0].y = 0;
 
 				// Phanton / Invert / Gate / Dynamics / EQ active
+				uint peerIndex;
 				data->texts[1].text =
+					String(config->GetStereoPeer(channelIndex, peerIndex) ? "ST " : "") +
 					String(config->GetBool(CHANNEL_PHANTOM, channelIndex) ? "48V " : "    ") +
 					String(config->GetBool(CHANNEL_PHASE_INVERT, channelIndex) ? "@ " : "  ") +
 					String(config->GetFloat(CHANNEL_GATE_TRESHOLD, channelIndex) > -80.0f ? "G " : "  ") +
@@ -1382,24 +1411,8 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 
 				// Volume / Panorama
 
-				float balance = config->GetFloat(CHANNEL_PANORAMA, channelIndex);
-				
 				char balanceText[8] = "-------";
-				if (balance < -70){
-					balanceText[0] = '|';
-				} else if (balance < -40){
-					balanceText[1] = '|';
-				} else if (balance < -10){
-					balanceText[2] = '|';
-				} else if (balance > 70){
-					balanceText[6] = '|';
-				} else if (balance > 40){
-					balanceText[5] = '|';
-				} else if (balance > 10){
-					balanceText[4] = '|';
-				} else {
-					balanceText[3] = '|';
-				}
+				SetBalanceText(balanceText, channelIndex);
 
 				float volume = config->GetFloat(CHANNEL_VOLUME, channelIndex);
 				if (volume > -100) {

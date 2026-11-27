@@ -72,6 +72,7 @@ class Surface : public X32Base
         X32FaderBank* GetLoadedBank(OMCBankTarget target);
         X32FaderBank* GetBank(OMCBankId id);
         void SetChannelstripBinding(X32FaderBank *bank, uint i, uint chanIndex);
+        void UpdateStereoLinkedBanks();
         void LoadDefaultSurfaceBinding();
         void LoadMainFaderSurfaceBinding();
         void ResetBank(OMCBankId id);

@@ -553,7 +553,68 @@ void Surface::LoadBank(OMCBankTarget target, OMCBankId id)
 		}
 	}
 
-    bankloaded.insert({target, id});
+    bankloaded[target] = id;
+}
+
+// Hide the right channel of stereo linked pairs: the following channels move up to close the gap
+void Surface::UpdateStereoLinkedBanks()
+{
+	if (!config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
+	{
+		return;
+	}
+
+	auto fillBank = [this](OMCBankId id, uint first, uint end, uint skip)
+	{
+		vector<uint> visible;
+		for (uint vchannel = first; vchannel < end; vchannel++)
+		{
+			if (!config->IsStereoLinkedRight(vchannel))
+			{
+				visible.push_back(vchannel);
+			}
+		}
+
+		X32FaderBank* bank = banks[(uint)id];
+		for (uint i = 0; i < 8; i++)
+		{
+			if (skip + i < visible.size())
+			{
+				SetChannelstripBinding(bank, i, visible[skip + i]);
+			}
+			else
+			{
+				bank->channelstrip[i]->select->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+				bank->channelstrip[i]->vumeter->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+				bank->channelstrip[i]->solo->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+				bank->channelstrip[i]->lcd->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+				bank->channelstrip[i]->mute->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+				bank->channelstrip[i]->fader->FillBindingParameter(MixerparameterAction::NONE, NONE, 0);
+			}
+		}
+	};
+
+	const uint channels = (uint)X32_VCHANNEL_BLOCK::NORMAL;
+	const uint aux = (uint)X32_VCHANNEL_BLOCK::AUX;
+	const uint bus = (uint)X32_VCHANNEL_BLOCK::BUS;
+	const uint matrix = (uint)X32_VCHANNEL_BLOCK::MATRIX;
+
+	fillBank(OMCBankId::CH1_8, channels, aux, 0);
+	fillBank(OMCBankId::CH9_16, channels, aux, 8);
+	fillBank(OMCBankId::CH17_24, channels, aux, 16);
+	fillBank(OMCBankId::CH25_32, channels, aux, 24);
+	fillBank(OMCBankId::AUX_USB, aux, (uint)X32_VCHANNEL_BLOCK::FXRET, 0);
+	fillBank(OMCBankId::BUS1_8, bus, matrix, 0);
+	fillBank(OMCBankId::BUS9_16, bus, matrix, 8);
+	// Matrix 1-6 followed by Special and Main Sub
+	fillBank(OMCBankId::MATRIX_MAIN, matrix, (uint)X32_VCHANNEL_BLOCK::DCA, 0);
+
+	// rebind the loaded banks to the surface
+	auto loaded = bankloaded;
+	for (auto const& [target, id] : loaded)
+	{
+		LoadBank(target, id);
+	}
 }
 
 void Surface::LoadAssignBank(X32AssignBankId bankId)

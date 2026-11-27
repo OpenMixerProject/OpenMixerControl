@@ -63,6 +63,11 @@ typedef unsigned int uint;
 #define BUS_SENDS 16
 #define ASSING_BINDINGS 20
 
+// stereo linkable pairs of neighbouring vChannels
+#define STEREO_LINK_PAIRS_CHANNEL 20 // 16 channel pairs + 4 aux pairs
+#define STEREO_LINK_PAIRS_BUS 8
+#define STEREO_LINK_PAIRS_MATRIX 3
+
 #define GATE_THRESHOLD_MIN            -80.0f // dB
 #define GATE_THRESHOLD_MAX              0.0f // dB
 #define GATE_RANGE_MIN                  3.0f // dB
