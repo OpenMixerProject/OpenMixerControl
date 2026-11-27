@@ -60,7 +60,7 @@ namespace OMC
             bool isSyncingStereoLink = false;
             void ApplyStereoLink(MP_ID mp, uint index, int oldLink);
             void ChangeStereoLink(uint vchannel, int oldLink);
-            void UnlinkStereoPair(uint vchannel, uint peer);
+            void UnlinkStereoPair(uint vchannel);
             void CopyToStereoPeer(MP_ID mp, uint from, uint to);
 
         public:
@@ -127,8 +127,10 @@ namespace OMC
             bool GetStereoPeer(uint vchannel, uint& peer);
             bool IsStereoLinkedRight(uint vchannel);
             float GetEffectivePan(uint vchannel);
+            float GetStereoBalanceGain(uint vchannel);
+            void RepairStereoLinks();
             int GetStereoMeter(uint vchannel);
-            String GetChannelLabel(uint vchannel);
+            String GetChannelLabel(uint vchannel, bool single = false);
             bool GetSendTarget(uint vchannel, uint send, uint& target);
 
             MP_ID ParameterCalcId(SurfaceBindingParameter* binding_parameter);

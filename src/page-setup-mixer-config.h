@@ -146,8 +146,18 @@ class PageSetupMixerConfig: public Page
                     return;
                 }
                 uint left = min(vchannel, peer);
-                message = String("Link ") + config->GetChannelLabel(vchannel) + " with " + config->GetChannelLabel(peer) + "?\n" +
-                    config->GetChannelLabel(left + 1) + " takes over the settings of " + config->GetChannelLabel(left) + ", the faders are closed.";
+                message = String("Link ") + config->GetChannelLabel(vchannel, true) + " with " + config->GetChannelLabel(peer, true) + "?\n" +
+                    config->GetChannelLabel(left + 1, true) + " takes over the settings of " + config->GetChannelLabel(left, true) + ", the faders are closed.";
+
+                // linking can break up the pair the neighbour belongs to
+                uint other;
+                for (uint channel : {vchannel, peer})
+                {
+                    if (config->GetStereoPeer(channel, other))
+                    {
+                        message += String("\n") + config->GetChannelLabel(channel) + " is unlinked.";
+                    }
+                }
             }
 
             pending_vchannel = vchannel;

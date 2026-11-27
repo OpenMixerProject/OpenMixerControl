@@ -93,8 +93,9 @@ float DSP1::CompensateGainAndVolume(float targetGainDb, float targetVolumeDb)
 // set the general volume of one of the 40 DSP-channels, 8 FX-Returns and all Mixbusses
 void DSP1::SendChannelVolume(uint chanIndex)
 {
-    // stereo linked channels get their pan from balance and width of the pair
+    // stereo linked channels get their pan from the width of the pair, the balance attenuates one side
     float pan = config->GetEffectivePan(chanIndex);
+    float balanceGain = config->GetStereoBalanceGain(chanIndex);
     float balanceLeft = helper->Saturate(100.0f - pan, 0.0f, 100.0f) / 100.0f;
     float balanceRight = helper->Saturate(pan + 100.0f, 0.0f, 100.0f) / 100.0f;
     float volumeLR = config->GetFloat(CHANNEL_VOLUME, chanIndex);
@@ -128,8 +129,8 @@ void DSP1::SendChannelVolume(uint chanIndex)
         trim_pu = pow(10.0f, trim/20.0f);
     }
 
-    float volumeLR_pu = pow(10.0f, volumeLR/20.0f);
-    float volumeSub_pu = pow(10.0f, volumeSub/20.0f);
+    float volumeLR_pu = pow(10.0f, volumeLR/20.0f) * balanceGain;
+    float volumeSub_pu = pow(10.0f, volumeSub/20.0f) * balanceGain;
 
 
     // apply DCAs if enabled
@@ -191,6 +192,7 @@ void DSP1::SendChannelSend(uint chanIndex)
         if (config->GetSendTarget(chanIndex, i_mixbus, target) && config->GetStereoPeer(target, targetPeer))
         {
             float pan = config->GetEffectivePan(chanIndex);
+            values[i_mixbus] *= config->GetStereoBalanceGain(chanIndex);
             values[i_mixbus] *= (targetPeer > target)
                 ? helper->Saturate(100.0f - pan, 0.0f, 100.0f) / 100.0f
                 : helper->Saturate(pan + 100.0f, 0.0f, 100.0f) / 100.0f;

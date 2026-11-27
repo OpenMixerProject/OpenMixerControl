@@ -74,14 +74,23 @@ namespace OMC
         char rxData[500];
         int bytes_available = 0;
         
-        // check for bytes in UDP-buffer
-        ioctl(UdpHandle, FIONREAD, &bytes_available);
-        
-        if (bytes_available > 0)
+        // read all waiting messages (bounded), so a burst of updates from the server does not pile up
+        for (uint messages = 0; messages < 64; messages++)
         {
+            // check for bytes in UDP-buffer (size of the next datagram)
+            ioctl(UdpHandle, FIONREAD, &bytes_available);
+            if (bytes_available <= 0)
+            {
+                break;
+            }
+
             socklen_t serverAddrLen = sizeof(ServerAddr);
         
-            size_t len = recvfrom(UdpHandle, rxData, bytes_available, MSG_WAITALL, (struct sockaddr *) &ServerAddr, &serverAddrLen);
+            ssize_t len = recvfrom(UdpHandle, rxData, sizeof(rxData), 0, (struct sockaddr *) &ServerAddr, &serverAddrLen);
+            if (len <= 0)
+            {
+                break;
+            }
 
             tosc_message osc;
             if (!tosc_parseMessage(&osc, rxData, len))

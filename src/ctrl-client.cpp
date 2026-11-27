@@ -512,6 +512,41 @@ void CtrlClient::syncGuiOrLcd() {
 	}
 }
 
+// binds the channels of a DCA group to the FLEX banks, a stereo pair takes one strip
+void CtrlClient::FillDcaSpill(uint i)
+{
+	uint nextSurfaceChannelStrip = 0;
+
+	// reset the banks to default blank
+	surface->ResetBank(OMCBankId::FLEX1);
+	surface->ResetBank(OMCBankId::FLEX2);
+	surface->ResetBank(OMCBankId::FLEX3);
+
+	// loop through all channels
+	for (uint chanIndex = 0; chanIndex < MAX_VCHANNELS; chanIndex++)
+	{
+		X32FaderBank* banktoUse = (nextSurfaceChannelStrip < 8) ? surface->GetBank(OMCBankId::FLEX1) : surface->GetBank(OMCBankId::FLEX2);
+
+		// a stereo pair is spilled as one channel
+		if (config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex) && !config->IsStereoLinkedRight(chanIndex))
+		{
+			// channel is part of the spilled DCA Group -> bind it to the next free channel strip in the bank
+			surface->SetChannelstripBinding(banktoUse, nextSurfaceChannelStrip % 8, chanIndex);
+		 	
+			nextSurfaceChannelStrip++;
+		}	
+		
+		if (config->IsModelX32FullOrM32() && nextSurfaceChannelStrip > 16)
+		{
+			break;
+		}
+		if (config->IsModelX32CompactOrProducerOrM32R() && nextSurfaceChannelStrip > 8)
+		{
+			break;
+		}
+	}
+}
+
 // sync mixer state to Surface
 void CtrlClient::syncSurface(bool fullSync)
 {
@@ -526,6 +561,22 @@ void CtrlClient::syncSurface(bool fullSync)
 	if (stereoLinkChanged)
 	{
 		surface->UpdateStereoLinkedBanks();
+
+		// a running DCA spill shows the new pairs as well
+		for (uint i = 0; preSpillLoadedBank != OMCBankId::None && i < DCA_GROUPS; i++)
+		{
+			if (config->GetBool(config->MpCalcId(DCA_GROUP_1_MASTER, i)))
+			{
+				FillDcaSpill(i);
+			}
+		}
+
+		// the hidden right channel can not stay selected
+		uint selected = config->GetUint(SELECTED_CHANNEL);
+		if (config->IsStereoLinkedRight(selected))
+		{
+			config->Set(SELECTED_CHANNEL, selected - 1);
+		}
 	}
 
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
@@ -654,36 +705,7 @@ void CtrlClient::syncSurface(bool fullSync)
 
 						helper->DEBUG_SURFACE(DEBUGLEVEL_NORMAL, "DCA Spill");
 
-						uint nextSurfaceChannelStrip = 0;
-
-						// reset the banks to default blank
-						surface->ResetBank(OMCBankId::FLEX1);
-						surface->ResetBank(OMCBankId::FLEX2);
-						surface->ResetBank(OMCBankId::FLEX3);
-
-						// loop through all channels
-						for (uint chanIndex = 0; chanIndex < MAX_VCHANNELS; chanIndex++)
-						{
-							X32FaderBank* banktoUse = (nextSurfaceChannelStrip < 8) ? surface->GetBank(OMCBankId::FLEX1) : surface->GetBank(OMCBankId::FLEX2);
-
-							// a stereo pair is spilled as one channel
-							if (config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex) && !config->IsStereoLinkedRight(chanIndex))
-							{
-								// channel is part of the spilled DCA Group -> bind it to the next free channel strip in the bank
-								surface->SetChannelstripBinding(banktoUse, nextSurfaceChannelStrip % 8, chanIndex);
-							 	
-								nextSurfaceChannelStrip++;
-							}	
-							
-							if (config->IsModelX32FullOrM32() && nextSurfaceChannelStrip > 16)
-							{
-								break;
-							}
-							if (config->IsModelX32CompactOrProducerOrM32R() && nextSurfaceChannelStrip > 8)
-							{
-								break;
-							}
-						}
+						FillDcaSpill(i);
 
 						preSpillLoadedBank = (OMCBankId)config->GetUint(BANKING_INPUT);
 						config->Set(BANKING_INPUT, (uint)OMCBankId::FLEX1);
@@ -2408,10 +2430,10 @@ TEST_CASE("Surface::UpdateStereoLinkedBanks hides the second channel of a stereo
 	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 2) == 3);
 	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 7) == 8);
 
-	// the VU meter of the pair shows the sum of both channels
-	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 1);
-	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 2);
-	CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + 1)) == testHelper->GetMeter6Info(-7));
+	// the VU meter of the pair shows the louder channel
+	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -30, 1);
+	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -3, 2);
+	CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + 1)) == testHelper->GetMeter6Info(-3));
 
 	// the last bank has one strip less
 	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::CH25_32);

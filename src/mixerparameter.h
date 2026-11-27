@@ -428,6 +428,11 @@ class Mixerparameter
             CheckIndex(index);
             CheckNotReadonly();
 
+            if (value_type == MP_VALUE_TYPE::INT)
+            {
+                newValue = roundf(newValue);
+            }
+
             if (newValue > value_max) {
                 newValue = value_max;
             } else if (newValue < value_min) {

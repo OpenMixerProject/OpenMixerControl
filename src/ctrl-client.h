@@ -80,6 +80,7 @@ class CtrlClient : public X32Base
 
         void syncGuiOrLcd();
         void syncSurface(bool fullSync);
+        void FillDcaSpill(uint dca);
         
         void SetBalanceText(char* balanceText, uint channelIndex);
         void SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t channelIndex);

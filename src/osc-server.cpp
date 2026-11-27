@@ -161,6 +161,22 @@ namespace OMC
                     SendUdpPacket(TxMessage, size);
                     return;
                 }
+                if (address.size() == 3 && address[0] == "subscribe" && address[1] == "meters" && address[2] == "1")
+                {
+                    // meters are only sent to clients that ask for them, renew within 10 seconds
+                    if (osc_format != "f") { return; }
+                    in_addr_t ip = ClientAddr.sin_addr.s_addr;
+                    bool enable = tosc_getNextFloat(&osc) >= 0.5f;
+                    if (enable && (meterObservers.contains(ip) || meterObservers.size() < 16))
+                    {
+                        if (!meterObservers.contains(ip)) { sentMeters.clear(); } // a new client gets all levels
+                        meterObservers[ip] = std::chrono::steady_clock::now();
+                    }
+                    else { meterObservers.erase(ip); enable = false; }
+                    int size = tosc_writeMessage(TxMessage, sizeof(TxMessage), "/subscribe/meters/1", "f", enable ? 1.0f : 0.0f);
+                    SendUdpPacket(TxMessage, size);
+                    return;
+                }
                 if (address.size() != 3) { return; }
 
                 // Find matching Mixerparameter
@@ -298,6 +314,11 @@ namespace OMC
             if (now - it->second >= std::chrono::seconds(10)) { it = surfaceObservers.erase(it); }
             else { ++it; }
         }
+        for (auto it = meterObservers.begin(); it != meterObservers.end(); )
+        {
+            if (now - it->second >= std::chrono::seconds(10)) { it = meterObservers.erase(it); }
+            else { ++it; }
+        }
     }
 
     void OscServer::ObserveSurface(SurfaceElement* element, const char* action, float value)
@@ -372,38 +393,58 @@ namespace OMC
     }
 
 
-    // sends the meters of all channels as /meter/ch/<n> in dBFS
-    // a stereo pair is one channel: it sends left, right and their sum, its second channel is left out
+    // sends the meters of all channels as /meter/ch/<n> in dBFS to the clients that subscribed to them
+    // a stereo pair is one channel: it sends left, right and the louder of both, its second channel is left out
+    // only levels that changed since the last call are sent
     void OscServer::SyncMeters()
     {
-        if (!hasClients)
+        ExpireObservers();
+        if (meterObservers.empty())
         {
             return;
         }
 
-        for (uint vchannel = 0; vchannel < MAX_VCHANNELS; vchannel++)
+        for (uint vchannel = 0; vchannel < (uint)X32_VCHANNEL_BLOCK::SPECIAL; vchannel++)
         {
             if (config->IsStereoLinkedRight(vchannel))
             {
                 continue;
             }
 
-            String path = String("/meter/ch/") + String(vchannel + 1);
-            float level = config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, vchannel);
+            vector<float> levels = { (float)config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, vchannel) };
             uint peer;
-            int len;
             if (config->GetStereoPeer(vchannel, peer))
             {
-                len = tosc_writeMessage(TxMessage, 450, path.c_str(), "fff", level, (float)config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, peer), (float)config->GetStereoMeter(vchannel));
+                levels.push_back(config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, peer));
+                levels.push_back(config->GetStereoMeter(vchannel));
             }
-            else
+
+            auto sent = sentMeters.find(vchannel);
+            if (sent != sentMeters.end() && sent->second == levels)
             {
-                len = tosc_writeMessage(TxMessage, 450, path.c_str(), "f", level);
+                continue;
             }
-            SendUdpPacket(TxMessage, len);
+            sentMeters[vchannel] = levels;
+
+            String path = String("/meter/ch/") + String(vchannel + 1);
+            int len = (levels.size() == 1)
+                ? tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "f", levels[0])
+                : tosc_writeMessage(TxMessage, sizeof(TxMessage), path.c_str(), "fff", levels[0], levels[1], levels[2]);
+            if (len <= 0)
+            {
+                continue;
+            }
+
+            for (const auto& [ip, renewed] : meterObservers)
+            {
+                sockaddr_in target{};
+                target.sin_family = AF_INET;
+                target.sin_addr.s_addr = ip;
+                target.sin_port = htons(10033);
+                sendto(UdpHandle, TxMessage, len, 0, reinterpret_cast<sockaddr*>(&target), sizeof(target));
+            }
         }
     }
-
 
     ////////////////////////////////////
     // low-level communication functions
