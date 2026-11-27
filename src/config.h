@@ -40,6 +40,7 @@ namespace OMC
 
             // surface binding
             map<SurfaceElementId, SurfaceBindingParameter*>* surface_binding;
+            map<SurfaceElementId, SurfaceBindingParameter> owned_surface_bindings;
             set<SurfaceElementId> surface_binding_changed;
 
             OMCAssignBank* assingBanks[(uint)X32AssignBankId::__ELEMENT_COUNTER_DO_NOT_MOVE];

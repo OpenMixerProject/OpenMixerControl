@@ -244,6 +244,7 @@ void SurfaceControllerWing::Reset()
     lcd->lcdIndex = 5;
     lcd->texts[0].text = "DOWN";
     SetUserLcd(lcd, 1);
+    delete lcd;
 
 }
 

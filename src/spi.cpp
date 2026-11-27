@@ -979,18 +979,21 @@ bool SPI::SendFpgaData(uint8_t txData[], uint8_t rxData[], uint8_t len) {
 }
 
 void SPI::QueueDspData(uint8_t dsp, uint8_t classId, uint8_t channel, uint8_t index, uint8_t valueCount, float values[]) {
-/*
     // check if our ringbuffer has at least one element left
-    if (spiTxRingBuffer[dsp].level == SPI_TX_BUFFER_SIZE) {
+    if (spiTxRingBuffer[dsp].level >= SPI_TX_BUFFER_SIZE) {
         // fatal error: ringbuffer is full -> throw this message away
         helper->Error("BufferOverflow in DspTxQueue!\n");
         return;
     }
-*/
+
     if (valueCount > SPI_TX_MAX_WORD_COUNT) {
         // fatal error: SPI_TX_MAX_WORD_COUNT is our maximum at the moment
         helper->Error("Attempt to write more than %d values into DspTxQueue!\n", SPI_TX_MAX_WORD_COUNT);
         return;
+    }
+
+    if (spiTxRingBuffer[dsp].buffer.empty()) {
+        spiTxRingBuffer[dsp].buffer.resize(SPI_TX_BUFFER_SIZE);
     }
 
     // queue element to the buffer
