@@ -56,7 +56,15 @@ class PageRoutingFpga: public Page
             switch (surface_element_id)
             {
                 case SurfaceElementId::DISPLAY_ENCODER_1:
-                    selection_target = helper->CheckBoundaries(selection_target, amount, 0, 6);
+                    {
+                        uint new_target = helper->CheckBoundaries(selection_target, amount, 0, 6);
+                        if (new_target != selection_target)
+                        {
+                            // sections have different sizes and offsets, so the old index may point into another section
+                            selection_index = 0;
+                        }
+                        selection_target = new_target;
+                    }
                     lv_roller_set_selected(objects.routing_fpga_target, selection_target, LV_ANIM_OFF);
                     LoadMatrix();
                     break;
