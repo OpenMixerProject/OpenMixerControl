@@ -716,7 +716,7 @@ uint8_t Fpga::fixRoutingForDifferentProductTypes(uint8_t signalSource) {
 	uint8_t signalSourceNew = signalSource;
 
 	// check if the signal source is one of the channels which change on different types of X32/M32-models
-	if (signalSource >= 0 && signalSource <= 31) {
+	if (signalSource >= 1 && signalSource <= 32) {
 		if (config->IsModelX32FullOrM32()) {
 			// Inputs 1-8 are connected to Board 1
 			// Inputs 9-16 are connected to Board 3
@@ -728,7 +728,7 @@ uint8_t Fpga::fixRoutingForDifferentProductTypes(uint8_t signalSource) {
 			// Inputs 1-8 are connected to Board 3 (reroute Board 1 to Board 3)
 			// Inputs 9-16 are connected to Board 2 (reroute Board 3 to Board 2)
 
-			if (signalSource >= 0 && signalSource <= 15) {
+			if (signalSource >= 1 && signalSource <= 16) {
 				signalSourceNew = signalSource + 16;
 			}else{
 				// Inputs 17-32 are not available on the X32Producer, so map them to zero (OFF)
@@ -738,9 +738,9 @@ uint8_t Fpga::fixRoutingForDifferentProductTypes(uint8_t signalSource) {
 			// Inputs 1-8 are connected to Board 1 (dont change anything)
 			// Inputs 9-16 are connected to Board 0 (reroute Board 3 to Board 0)
 
-			if (signalSource >= 0 && signalSource <= 15) {
+			if (signalSource >= 1 && signalSource <= 16) {
 				// XLR-Inputs 1-16 are the same, but 17-32 are the Card-Inputs 1-16
-				if (signalSource >= 8 && signalSource <= 15) {
+				if (signalSource >= 9 && signalSource <= 16) {
 					signalSourceNew = signalSource + 8; // reroute Board 3 to Board 0
 				}
 			}else{
@@ -749,7 +749,7 @@ uint8_t Fpga::fixRoutingForDifferentProductTypes(uint8_t signalSource) {
 			}
 		}else if (config->IsModelX32Rack()) {
 			// my rack seems to have the same routing as the X32Fullsize, so dont change anything for these models as the FPGA is set for this configuration
-			if (signalSource >= 16 && signalSource <= 31) {
+			if (signalSource >= 17 && signalSource <= 32) {
 				// Inputs 17-32 are not available on the X32Rack, so map them to zero (OFF)
 				signalSourceNew = 0;
 			}
