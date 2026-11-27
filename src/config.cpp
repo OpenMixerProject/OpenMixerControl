@@ -1,6 +1,7 @@
 #include "config.h"
 #include "enum.h"
 #include "fx-osc.h"
+#include "../lib_ext/doctest/doctest/doctest.h"
 
 namespace OMC
 {
@@ -223,6 +224,16 @@ namespace OMC
             Mixerparameter* parameter = GetParameter(parameter_id);
             if (parameter->GetId() == NONE) { continue; }
 
+            if (parameter_id == HEADAMP_GAIN || parameter_id == HEADAMP_PHANTOM)
+            {
+                const auto& values = entries.at(i).value;
+                for (uint j = 0; j < values.size(); j++)
+                {
+                    if (parameter->GetFloat(j) != values[j]) { Set(parameter_id, values[j], j); }
+                }
+                continue;
+            }
+
             uint entrysize = 0;
             switch(parameter->GetType())
             {
@@ -239,6 +250,30 @@ namespace OMC
             for (uint j = 0; j < entrysize; j++)
             {
                 Refresh(parameter_id, j);
+            }
+        }
+
+        if (!IsClientMode())
+        {
+            // Legacy scenes stored headamp settings on the channel. Import using the
+            // loaded routing, with the last channel winning as in the old hardware sync.
+            for (auto [channelId, inputId] : {pair{CHANNEL_GAIN, HEADAMP_GAIN}, pair{CHANNEL_PHANTOM, HEADAMP_PHANTOM}})
+            {
+                if (none_of(entries.begin(), entries.end(), [channelId](const auto& entry) { return entry.MixerparameterId == channelId; }) ||
+                    any_of(entries.begin(), entries.end(), [inputId](const auto& entry) { return entry.MixerparameterId == inputId; }))
+                {
+                    continue;
+                }
+                auto* channelParameter = GetParameter(channelId);
+                const auto legacyValues = channelParameter->Config_GetValue();
+                for (uint channel = 0; channel < MAX_FPGA_TO_DSP1_CHANNELS; channel++)
+                {
+                    if (uint input = ChannelHeadamp(channel))
+                    {
+                        Set(inputId, legacyValues[channel], input);
+                        channelParameter->Reset(channel);
+                    }
+                }
             }
         }
 
@@ -646,6 +681,25 @@ namespace OMC
         ->DefStepsize(0.5f)
         ->DefMinMaxStandard_Float(CHANNEL_GAIN_MIN, CHANNEL_GAIN_MAX, 0.0f, 1)
         ->DefOSC("ch_gain");
+
+        DefParameter(HEADAMP_GAIN, MP_CAT::STATE, "Headamp Gain", NUM_INPUT_CHANNEL + 1)
+        ->DefStepsize(0.5f)
+        ->DefMinMaxStandard_Float(CHANNEL_GAIN_MIN, CHANNEL_GAIN_MAX, -2.0f, 1);
+
+        DefParameter(HEADAMP_PHANTOM, MP_CAT::STATE, "Headamp 48V", NUM_INPUT_CHANNEL + 1)
+        ->DefStandard_Bool(false);
+
+        if (!IsClientMode())
+        {
+            for (auto [channelId, inputId] : {pair{CHANNEL_GAIN, HEADAMP_GAIN}, pair{CHANNEL_PHANTOM, HEADAMP_PHANTOM}})
+            {
+                GetParameter(channelId)->SetReadOverride([this, inputId](uint channel) -> optional<float>
+                {
+                    if (uint input = ChannelHeadamp(channel)) { return GetFloat(inputId, input); }
+                    return nullopt;
+                });
+            }
+        }
         
         DefParameter(CHANNEL_VOLUME, cat, "Volume", MAX_VCHANNELS)
         ->DefNameShort("Vol")
@@ -1817,6 +1871,32 @@ namespace OMC
         return mpm[(uint)mp]->GetBlink();
     }
 
+    uint Config::ChannelHeadamp(uint channel)
+    {
+        if (channel >= MAX_FPGA_TO_DSP1_CHANNELS) { return 0; }
+        uint slot = GetUint(ROUTING_DSP_INPUT, channel);
+        if (slot < DSP_BUF_IDX_DSPCHANNEL || slot >= DSP_BUF_IDX_DSP2_FXRET) { return 0; }
+
+        uint input = GetUint(ROUTING_FPGA, FPGA_OUTPUT_IDX_DSP - 1 + slot - DSP_BUF_IDX_DSPCHANNEL);
+        if ((input >= FPGA_INPUT_IDX_XLR && input < FPGA_INPUT_IDX_XLR + 32) ||
+            (input >= FPGA_INPUT_IDX_AES50A && input < FPGA_INPUT_IDX_AES50A + 48) ||
+            (input >= FPGA_INPUT_IDX_AES50B && input < FPGA_INPUT_IDX_AES50B + 48))
+        {
+            return input;
+        }
+        return 0;
+    }
+
+    void Config::ResolveHeadampEdit(MP_ID& mp, uint& index)
+    {
+        if (IsClientMode() || (mp != CHANNEL_GAIN && mp != CHANNEL_PHANTOM)) { return; }
+        if (uint input = ChannelHeadamp(index))
+        {
+            mp = mp == CHANNEL_GAIN ? HEADAMP_GAIN : HEADAMP_PHANTOM;
+            index = input;
+        }
+    }
+
     void Config::Set(MP_ID mp, float value, uint index)
     {
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
@@ -1830,6 +1910,7 @@ namespace OMC
         else
         {
             // Process Parameter localy
+            ResolveHeadampEdit(mp, index);
             mpm[(uint)mp]->Set(value, index);
             SetParameterChanged(mp, index);
         }
@@ -1929,6 +2010,7 @@ namespace OMC
         else
         {
             // Process Parameter localy
+            ResolveHeadampEdit(mp, index);
             mpm[(uint)mp]->Change(amount, index);
             SetParameterChanged(mp, index);
         }
@@ -1947,6 +2029,7 @@ namespace OMC
         else
         {
             // Process Parameter localy
+            ResolveHeadampEdit(mp, index);
             mpm[(uint)mp]->Toggle(index);
             SetParameterChanged(mp, index);
         }
@@ -1971,7 +2054,10 @@ namespace OMC
         else
         {
             // Process Parameter localy
-            mpm[(uint)mp]->Reset(index);
+            ResolveHeadampEdit(mp, index);
+            // The channel control labels Reset as 0 dB, not the power-on headamp gain.
+            if (mp == HEADAMP_GAIN) { mpm[(uint)mp]->Set(0.0f, index); }
+            else { mpm[(uint)mp]->Reset(index); }
             SetParameterChanged(mp, index);
         }
     }
@@ -3832,5 +3918,43 @@ namespace OMC
         printf("--------------------------------------------------------\n");
         printf("\n");
         printf("\n");
+    }
+
+    TEST_CASE("Headamp settings follow the physical input across routing changes")
+    {
+        Helper helper;
+        Config config("X32", &helper, false);
+        constexpr uint firstSlot = FPGA_OUTPUT_IDX_DSP - 1;
+
+        config.Set(CHANNEL_GAIN, 4.0f, 0); // digital trim, while unrouted
+        config.Set(ROUTING_FPGA, 9, firstSlot);
+        config.Set(ROUTING_FPGA, 24, firstSlot + 1);
+        config.Set(ROUTING_DSP_INPUT, 1, 0);
+        config.Set(ROUTING_DSP_INPUT, 2, 1);
+        config.Set(CHANNEL_GAIN, 11.5f, 0);
+        config.Toggle(CHANNEL_PHANTOM, 0);
+        config.Set(CHANNEL_GAIN, 27.0f, 1);
+        config.SaveResetAndUnfreezeChangedParameterList();
+
+        config.Set(ROUTING_DSP_INPUT, 2, 0);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 0) == 27.0f);
+        CHECK_FALSE(config.GetBool(CHANNEL_PHANTOM, 0));
+
+        config.Set(ROUTING_FPGA, 9, firstSlot + 1);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 0) == 11.5f);
+        CHECK(config.GetBool(CHANNEL_PHANTOM, 0));
+        CHECK_FALSE(config.HasParametersChanged({HEADAMP_GAIN, HEADAMP_PHANTOM}));
+
+        config.Change(CHANNEL_GAIN, 3, 0);
+        config.Toggle(CHANNEL_PHANTOM, 1);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 1) == 13.0f);
+        CHECK_FALSE(config.GetBool(CHANNEL_PHANTOM, 0));
+
+        config.Set(ROUTING_DSP_INPUT, DSP_BUF_IDX_DSP2_FXRET, 0);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 0) == 4.0f);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 1) == 13.0f);
+
+        config.Reset(CHANNEL_GAIN, 1);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 1) == 0.0f);
     }
 }

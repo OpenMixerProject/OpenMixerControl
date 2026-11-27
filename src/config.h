@@ -35,6 +35,8 @@ namespace OMC
             bool MixerParameterChangelistFreeze = false;
             map<MP_ID, set<uint>>* mp_changedlist_temp = new map<MP_ID, set<uint>>();
 
+            void ResolveHeadampEdit(MP_ID& mp, uint& index);
+
             // Surfaceelements
             SurfaceElement* sem[(uint)SurfaceElementId::__ELEMENT_COUNTER_DO_NOT_MOVE] = {0};
 
@@ -68,6 +70,8 @@ namespace OMC
 
             bool Load(uint scene);
             bool Save(uint scene);
+
+            uint ChannelHeadamp(uint channel);
 
             void DefineMixerparameters();
             Mixerparameter* DefParameter(MP_ID mp_type, MP_CAT category, String name, uint count = 1);

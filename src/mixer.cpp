@@ -332,20 +332,6 @@ void Mixer::Sync()
         for (auto const& changedIndex : changedIndexes)
         {
             fpga->SendRoutingToFpga(changedIndex);
-
-            // a DSP slot got a new source: send gain/phantom to the headamp of the channels reading this slot
-            if ((changedIndex >= (FPGA_OUTPUT_IDX_DSP - 1)) && (changedIndex < (FPGA_OUTPUT_IDX_DSP - 1 + MAX_FPGA_TO_DSP1_CHANNELS)))
-            {
-                uint dspSlot = changedIndex - (FPGA_OUTPUT_IDX_DSP - 1) + 1;
-                for (uint chanIndex = 0; chanIndex < MAX_FPGA_TO_DSP1_CHANNELS; chanIndex++)
-                {
-                    if (config->GetUint(ROUTING_DSP_INPUT, chanIndex) == dspSlot)
-                    {
-                        halSendGain(chanIndex);
-                        dsp->SendChannelVolume(chanIndex);
-                    }
-                }
-            }
         }
     }
 
@@ -385,10 +371,6 @@ void Mixer::Sync()
         for (auto const& changedIndex : changedIndexes)
         {
             dsp->SetInputRouting(changedIndex);
-
-            // the channel may read a different headamp now
-            halSendGain(changedIndex);
-            dsp->SendChannelVolume(changedIndex);
         }
     }
 
@@ -402,14 +384,28 @@ void Mixer::Sync()
         }
     }
 
-    // Phantom / Gain
-    if (config->HasParameterChanged (CHANNEL_PHANTOM) || config->HasParameterChanged(CHANNEL_GAIN))
+    // Only edits to the physical input write to hardware. Routing and channel
+    // notifications merely change which settings a channel reads.
+    for (uint input : config->GetChangedParameterIndexes({HEADAMP_GAIN, HEADAMP_PHANTOM}))
     {
-        vector<uint> changedIndexes = config->GetChangedParameterIndexes({CHANNEL_PHANTOM, CHANNEL_GAIN});
-        for (auto const& changedIndex : changedIndexes)
+        halSendHeadamp(input);
+    }
+
+    for (uint channel = 0; channel < MAX_FPGA_TO_DSP1_CHANNELS; channel++)
+    {
+        uint slot = config->GetUint(ROUTING_DSP_INPUT, channel);
+        bool routeChanged = config->HasParameterChanged(ROUTING_DSP_INPUT, channel) ||
+            (slot >= DSP_BUF_IDX_DSPCHANNEL && slot < DSP_BUF_IDX_DSP2_FXRET &&
+             config->HasParameterChanged(ROUTING_FPGA, FPGA_OUTPUT_IDX_DSP - 1 + slot - DSP_BUF_IDX_DSPCHANNEL));
+        uint input = config->ChannelHeadamp(channel);
+        bool gainChanged = routeChanged || (input && config->HasParameterChanged(HEADAMP_GAIN, input));
+        bool phantomChanged = routeChanged || (input && config->HasParameterChanged(HEADAMP_PHANTOM, input));
+        if (gainChanged)
         {
-            halSendGain(changedIndex);
+            dsp->SendChannelVolume(channel);
+            config->Refresh(CHANNEL_GAIN, channel);
         }
+        if (phantomChanged) { config->Refresh(CHANNEL_PHANTOM, channel); }
     }
 
     // EQ
@@ -492,52 +488,23 @@ void Mixer::Sync()
     helper->DEBUG_MIXER(DEBUGLEVEL_NORMAL, "sync done");
 }
 
-// set the gain of the local XLR head-amp-control
-void Mixer::halSendGain(uint8_t dspChannel) {
-    // get the channel-number of the internal DSP-routing
-    uint8_t internalDspSourceIndex = config->GetUint(ROUTING_DSP_INPUT, dspChannel);
-
-    // check if we are using an external signal (possibly with gain) or DSP-internal (no gain)
-    if ((internalDspSourceIndex >= 1) && (internalDspSourceIndex <= 40)) {
-        // we are connected to one of the DSP-inputs from FPGA
-
-        // check if we are connected to a channel with gain
-        uint8_t externalDspSourceIndex = config->GetUint(ROUTING_FPGA, (FPGA_OUTPUT_IDX_DSP - 1) + (internalDspSourceIndex - 1));
-
-        // XLR-input
-        if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_XLR) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_XLR + 32)))
+void Mixer::halSendHeadamp(uint input)
+{
+    float gain = config->GetFloat(HEADAMP_GAIN, input);
+    bool phantom = config->GetBool(HEADAMP_PHANTOM, input);
+    if (input >= FPGA_INPUT_IDX_XLR && input < FPGA_INPUT_IDX_XLR + 32)
+    {
+        uint8_t boardId = adda->GetXlrInBoardId(input);
+        if (boardId < 4)
         {
-            // send value to adda-board
-            uint8_t boardId = adda->GetXlrInBoardId(externalDspSourceIndex);
-            if (boardId < 4) {
-                uint8_t addaChannel = externalDspSourceIndex;
-                while (addaChannel > 8) {
-                    addaChannel -= 8;
-                }
-                adda->SetGain(boardId, addaChannel, config->GetFloat(CHANNEL_GAIN,  dspChannel), config->GetFloat(CHANNEL_PHANTOM,  dspChannel));
-
-                // update channel-volume for virtual gain-resolution-increment
-                // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
-                dsp->SendChannelVolume(dspChannel);
-            }
+            adda->SetGain(boardId, (input - FPGA_INPUT_IDX_XLR) % 8 + 1, gain, phantom);
         }
-        // AES50A input
-        else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50A) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50A + 48)))
-        {
-            fpga->AES50SetHeadampGain(0, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50A + 1, config->GetFloat(CHANNEL_GAIN,  dspChannel));
-
-            // update channel-volume for virtual gain-resolution-increment
-            // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
-            dsp->SendChannelVolume(dspChannel);
-
-        }else if ((externalDspSourceIndex >= FPGA_OUTPUT_IDX_AES50B) && (externalDspSourceIndex < (FPGA_OUTPUT_IDX_AES50B + 48))) {
-            // AES50B input (never thought that we get this far in the reverse-engineering process, but here we are... :) )
-            fpga->AES50SetHeadampGain(1, externalDspSourceIndex - FPGA_OUTPUT_IDX_AES50B + 1, config->GetFloat(CHANNEL_GAIN,  dspChannel));
-
-            // update channel-volume for virtual gain-resolution-increment
-            // as hardware is switched in 2.5dB steps, we are using channel-volume to increase the resolution
-            dsp->SendChannelVolume(dspChannel);
-        }
+    }
+    else if (input >= FPGA_INPUT_IDX_AES50A && input < FPGA_INPUT_IDX_AES50A + 48)
+    {
+        uint channel = input - FPGA_INPUT_IDX_AES50A + 1;
+        fpga->AES50SetHeadampGain(0, channel, std::clamp(gain, -2.0f, 45.5f));
+        fpga->AES50SetPhantomPowerState(0, channel, phantom);
     }
 }
 

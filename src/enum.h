@@ -502,8 +502,11 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    HEADAMP_GAIN = 282,
+    HEADAMP_PHANTOM = 283,
+
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 282
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 284
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

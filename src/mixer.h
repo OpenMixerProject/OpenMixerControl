@@ -31,7 +31,7 @@ class Mixer : public X32Base
         // solo is (somewhere) activated
         bool solo = false;
 
-        void halSendGain(uint8_t dspChannel);
+        void halSendHeadamp(uint input);
 
     public:
                   

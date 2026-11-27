@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <functional>
+#include <optional>
 #include <vector>
 #include "../lib/WString.h"
 #include "../lib_ext/glaze/include/glaze/glaze.hpp"
@@ -85,6 +87,8 @@ class Mixerparameter
         String osc_path = "";
 
         bool silent = false;
+
+        std::function<std::optional<float>(uint)> readOverride;
 
 
         /// @brief Checks if the index is within the specified size of the Mixerparameter.
@@ -500,10 +504,19 @@ class Mixerparameter
             return GetFloat(index);
         }
 
+        void SetReadOverride(std::function<std::optional<float>(uint)> reader)
+        {
+            readOverride = std::move(reader);
+        }
+
         float GetFloat(uint index = 0)
         {
             if (index < instances)
             {
+                if (readOverride)
+                {
+                    if (auto result = readOverride(index)) { return *result; }
+                }
                 return value[index];
             }
 
@@ -514,7 +527,7 @@ class Mixerparameter
         {
             if (index < instances)
             {            
-                return (int)value[index];
+                return (int)GetFloat(index);
             }
 
             return 0;
@@ -524,7 +537,7 @@ class Mixerparameter
         {
             if (index < instances)
             {
-                return (uint)value[index];
+                return (uint)GetFloat(index);
             }
 
             return 0;
@@ -545,7 +558,7 @@ class Mixerparameter
             if (index < instances)
             {
                 float onehunderedpercent = value_max - value_min;
-                float value_normiert = value[index] - value_min;
+                float value_normiert = GetFloat(index) - value_min;
                 float onepercent = onehunderedpercent / 100.0f;
                 return (uint)(value_normiert / onepercent);
             }
@@ -557,7 +570,7 @@ class Mixerparameter
         {
             if (index < instances && value_type == MP_VALUE_TYPE::BOOL)
             {
-                return (bool)value[index];
+                return (bool)GetFloat(index);
             }
 
             return false;
@@ -737,7 +750,7 @@ class Mixerparameter
                 }
                 else
                 {
-                    return FormatValue_Intern(value[index], index, false);
+                    return FormatValue_Intern(GetFloat(index), index, false);
                 }
             }
             
