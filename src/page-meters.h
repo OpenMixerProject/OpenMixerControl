@@ -43,6 +43,26 @@ class PageMeters : public Page
         {
             // Maybe TODO: Implement with loop over changed Mixerparameter
 
+            // a stereo pair is shown as one channel with a stereo meter: the meter of the second channel stays,
+            // its fader is hidden
+            if (config->HasParameterChanged(CHANNEL_STEREO_LINK) || force_update)
+            {
+                for(int m = 0; m < 9; m++)
+                {
+                    for(int i = 0; i < lv_obj_get_child_count(meterBlocks[m]); i++)
+                    {
+                        uint index = i + (m * 8);
+                        if (index == (uint)X32_VCHANNEL_BLOCK::MAIN)
+                        {
+                            continue;
+                        }
+
+                        lv_obj_t* fader = lv_obj_get_child(lv_obj_get_child(meterBlocks[m], i), 6);
+                        lv_obj_set_flag(fader, LV_OBJ_FLAG_HIDDEN, config->IsStereoLinkedRight(index));
+                    }
+                }
+            }
+
             if (config->HasParametersChanged({CHANNEL_SOLO, CHANNEL_MUTE, CHANNEL_VOLUME}) || force_update)
             {
                 for(int m = 0; m < 9; m++)

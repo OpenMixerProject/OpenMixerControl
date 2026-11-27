@@ -397,19 +397,6 @@ namespace OMC
         ->DefMinMaxStandard_Uint(0, 1, 0)
         ->DefClientParameter();
 
-        // Stereo links: the OSC index selects the pair (CH 1/2 = 1, ..., AUX 7/8 = 20, ..., FX RET 7/8 = 24)
-        DefParameter(CHANNEL_LINKED, cat, "Ch Link", STEREO_LINK_PAIRS_CHANNEL)
-        ->DefStandard_Bool(false)
-        ->DefOSC("ch_link");
-
-        DefParameter(BUS_LINKED, cat, "Bus Link", STEREO_LINK_PAIRS_BUS)
-        ->DefStandard_Bool(false)
-        ->DefOSC("bus_link");
-
-        DefParameter(MATRIX_LINKED, cat, "Mtx Link", STEREO_LINK_PAIRS_MATRIX)
-        ->DefStandard_Bool(false)
-        ->DefOSC("mtx_link");
-
         DefParameter(CARD_TYPE, cat, "Card Type")
         ->DefMinMaxStandard_Uint(0, (uint)CARD::__ELEMENT_COUNTER_DO_NOT_MOVE -1, (uint)CARD::NONE)
         ->DefCycleMode(1, 1)
@@ -704,20 +691,20 @@ namespace OMC
         ->DefStepsize(2)
         ->DefOSC("ch_pan");
 
-        // Balance and width of a stereo linked pair, applied to the pans of both channels
-        DefParameter(CHANNEL_STEREO_PAN, cat, "Stereo Pan", MAX_VCHANNELS)
-        ->DefNameShort("StPan")
-        ->DefUOM(MP_UOM::PANORAMA)
-        ->DefMinMaxStandard_Float(CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX, 0.0f)
-        ->DefStepsize(2)
-        ->DefOSC("ch_stereo_pan");
+        // Stereo link with a neighbouring channel of the same block:
+        // 1 = linked with the next channel (left channel of the pair), -1 = linked with the previous channel (right channel)
+        DefParameter(CHANNEL_STEREO_LINK, cat, "Stereo Link", MAX_VCHANNELS)
+        ->DefNameShort("Link")
+        ->DefMinMaxStandard_Int(-1, 1, 0)
+        ->DefOSC("ch_link");
 
+        // Width of a stereo pair: the pan of a linked channel is the balance of the pair
         DefParameter(CHANNEL_STEREO_WIDTH, cat, "Width", MAX_VCHANNELS)
         ->DefNameShort("Width")
         ->DefUOM(MP_UOM::PERCENT)
         ->DefMinMaxStandard_Float(0.0f, 1.0f, 1.0f)
         ->DefStepsize(0.02f)
-        ->DefOSC("ch_stereo_width");
+        ->DefOSC("ch_width");
 
         DefParameter(CHANNEL_SEND_LR, cat, "Send LR", MAX_VCHANNELS)
         ->DefStandard_Bool(true)
@@ -1860,10 +1847,10 @@ namespace OMC
         else
         {
             // Process Parameter localy
-            bool wasLinked = IsStereoLinkParameter(mp) && GetBool(mp, index);
+            int oldLink = (mp == CHANNEL_STEREO_LINK) ? GetInt(mp, index) : 0;
             mpm[(uint)mp]->Set(value, index);
             SetParameterChanged(mp, index);
-            ApplyStereoLink(mp, index, wasLinked);
+            ApplyStereoLink(mp, index, oldLink);
         }
     }
 
@@ -1882,7 +1869,7 @@ namespace OMC
             // Process Parameter localy
             mpm[(uint)mp]->Set(value_string, index);
             SetParameterChanged(mp, index);
-            ApplyStereoLink(mp, index, false);
+            ApplyStereoLink(mp, index, 0);
         }
     }
 
@@ -1951,12 +1938,6 @@ namespace OMC
 
     void Config::Change(MP_ID mp, int amount, uint index)
     {
-        // the panorama of a stereo linked pair is derived from its stereo pan
-        if (mp == CHANNEL_PANORAMA && IsStereoPanActive(index))
-        {
-            mp = CHANNEL_STEREO_PAN;
-        }
-
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
         {
             // Send Parameter to Server via Callback
@@ -1968,10 +1949,15 @@ namespace OMC
         else
         {
             // Process Parameter localy
-            bool wasLinked = IsStereoLinkParameter(mp) && GetBool(mp, index);
+            int oldLink = (mp == CHANNEL_STEREO_LINK) ? GetInt(mp, index) : 0;
             mpm[(uint)mp]->Change(amount, index);
+            if (mp == SELECTED_CHANNEL && amount != 0 && IsStereoLinkedRight(GetUint(SELECTED_CHANNEL)))
+            {
+                // a stereo pair is selected as one channel: step over its second channel
+                mpm[(uint)mp]->Change(amount > 0 ? 1 : -1, index);
+            }
             SetParameterChanged(mp, index);
-            ApplyStereoLink(mp, index, wasLinked);
+            ApplyStereoLink(mp, index, oldLink);
         }
     }
 
@@ -1988,10 +1974,10 @@ namespace OMC
         else
         {
             // Process Parameter localy
-            bool wasLinked = IsStereoLinkParameter(mp) && GetBool(mp, index);
+            int oldLink = (mp == CHANNEL_STEREO_LINK) ? GetInt(mp, index) : 0;
             mpm[(uint)mp]->Toggle(index);
             SetParameterChanged(mp, index);
-            ApplyStereoLink(mp, index, wasLinked);
+            ApplyStereoLink(mp, index, oldLink);
         }
     }
 
@@ -2003,12 +1989,6 @@ namespace OMC
 
     void Config::Reset(MP_ID mp, uint index)
     {
-        // the panorama of a stereo linked pair is derived from its stereo pan
-        if (mp == CHANNEL_PANORAMA && IsStereoPanActive(index))
-        {
-            mp = CHANNEL_STEREO_PAN;
-        }
-
         if (IsClientMode() && GetParameter(mp)->IsOSC() && !(GetParameter(mp)->IsClientParameter()))
         {
             // Send Parameter to Server via Callback
@@ -2020,10 +2000,10 @@ namespace OMC
         else
         {
             // Process Parameter localy
-            bool wasLinked = IsStereoLinkParameter(mp) && GetBool(mp, index);
+            int oldLink = (mp == CHANNEL_STEREO_LINK) ? GetInt(mp, index) : 0;
             mpm[(uint)mp]->Reset(index);
             SetParameterChanged(mp, index);
-            ApplyStereoLink(mp, index, wasLinked);
+            ApplyStereoLink(mp, index, oldLink);
         }
     }
 
@@ -2031,100 +2011,167 @@ namespace OMC
     //
     // Stereo linking
     //
-    // Neighbouring vChannels (odd/even) can be linked to a stereo pair. Linked channels share all channel
-    // parameters except the panorama, which is calculated from the stereo pan and width of the pair.
+    // A vChannel can be linked with its previous or next neighbour of the same block (channels, aux, fx returns,
+    // busses, matrixes). Linked channels share all channel parameters. The panorama of the pair is its balance,
+    // the DSP gets the pans of both channels calculated from balance and width (see GetEffectivePan()).
     //
     //#####################################################################################################################
 
-    bool Config::IsStereoLinkParameter(MP_ID mp)
+    // returns the block of vChannels a channel can be stereo linked within
+    static bool GetStereoLinkBlock(uint vchannel, uint& first, uint& end)
     {
-        return mp == CHANNEL_LINKED || mp == BUS_LINKED || mp == MATRIX_LINKED;
+        const uint blocks[] = {
+            (uint)X32_VCHANNEL_BLOCK::NORMAL,
+            (uint)X32_VCHANNEL_BLOCK::AUX,
+            (uint)X32_VCHANNEL_BLOCK::FXRET,
+            (uint)X32_VCHANNEL_BLOCK::BUS,
+            (uint)X32_VCHANNEL_BLOCK::MATRIX,
+            (uint)X32_VCHANNEL_BLOCK::SPECIAL
+        };
+
+        for (uint i = 0; i + 1 < sizeof(blocks) / sizeof(blocks[0]); i++)
+        {
+            if (vchannel >= blocks[i] && vchannel < blocks[i + 1])
+            {
+                first = blocks[i];
+                end = blocks[i + 1];
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    bool Config::GetStereoLinkPair(uint vchannel, MP_ID& link, uint& pair)
+    bool Config::IsStereoLinkable(uint vchannel, uint peer)
     {
-        if (vchannel < (uint)X32_VCHANNEL_BLOCK::BUS)
-        {
-            // channels, auxes and fx returns
-            link = CHANNEL_LINKED;
-            pair = vchannel / 2;
-        }
-        else if (vchannel >= (uint)X32_VCHANNEL_BLOCK::BUS && vchannel < (uint)X32_VCHANNEL_BLOCK::MATRIX)
-        {
-            link = BUS_LINKED;
-            pair = (vchannel - (uint)X32_VCHANNEL_BLOCK::BUS) / 2;
-        }
-        else if (vchannel >= (uint)X32_VCHANNEL_BLOCK::MATRIX && vchannel < (uint)X32_VCHANNEL_BLOCK::MATRIX + STEREO_LINK_PAIRS_MATRIX * 2)
-        {
-            link = MATRIX_LINKED;
-            pair = (vchannel - (uint)X32_VCHANNEL_BLOCK::MATRIX) / 2;
-        }
-        else
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    // returns the left vChannel of a pair
-    uint Config::GetStereoLinkLeft(MP_ID link, uint pair)
-    {
-        switch (link)
-        {
-            case BUS_LINKED:
-                return (uint)X32_VCHANNEL_BLOCK::BUS + pair * 2;
-            case MATRIX_LINKED:
-                return (uint)X32_VCHANNEL_BLOCK::MATRIX + pair * 2;
-            default:
-                return pair * 2;
-        }
+        uint first, end;
+        return (peer == vchannel + 1 || peer + 1 == vchannel) && GetStereoLinkBlock(vchannel, first, end) && peer >= first && peer < end;
     }
 
     bool Config::GetStereoPeer(uint vchannel, uint& peer)
     {
-        MP_ID link;
-        uint pair;
-        if (!GetStereoLinkPair(vchannel, link, pair) || !GetBool(link, pair))
+        if (vchannel >= MAX_VCHANNELS)
         {
             return false;
         }
 
-        peer = vchannel ^ 1;
+        int link = GetInt(CHANNEL_STEREO_LINK, vchannel);
+        if (link == 0)
+        {
+            return false;
+        }
+
+        peer = vchannel + link;
         return true;
     }
 
-    // the right channel of a linked pair is controlled by the left one and hidden on the surface
+    // the second channel of a stereo pair is controlled by the first one and is never shown on its own
     bool Config::IsStereoLinkedRight(uint vchannel)
     {
-        uint peer;
-        return GetStereoPeer(vchannel, peer) && peer < vchannel;
+        return vchannel < MAX_VCHANNELS && GetInt(CHANNEL_STEREO_LINK, vchannel) < 0;
     }
 
-    // stereo pan and width apply to linked inputs and to linked busses that are routed to the main bus
-    bool Config::IsStereoPanActive(uint vchannel)
+    // panorama sent to the DSP: the pan of a stereo pair is its balance, spread by the width
+    float Config::GetEffectivePan(uint vchannel)
     {
+        float pan = GetFloat(CHANNEL_PANORAMA, vchannel);
+        if (vchannel >= MAX_VCHANNELS)
+        {
+            return pan;
+        }
+
+        int link = GetInt(CHANNEL_STEREO_LINK, vchannel);
+        if (link == 0)
+        {
+            return pan;
+        }
+
+        float width = GetFloat(CHANNEL_STEREO_WIDTH, vchannel) * CHANNEL_PANORAMA_MAX;
+        return helper->Saturate(link > 0 ? pan - width : pan + width, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX);
+    }
+
+    // meter of a channel, stereo pairs show the sum of both channels
+    int Config::GetStereoMeter(uint vchannel)
+    {
+        int level = GetInt(CHANNEL_METER_DECAYED_POST_GAIN, vchannel);
         uint peer;
         if (!GetStereoPeer(vchannel, peer))
         {
-            return false;
+            return level;
         }
 
-        if (vchannel < (uint)X32_VCHANNEL_BLOCK::BUS)
+        int peerLevel = GetInt(CHANNEL_METER_DECAYED_POST_GAIN, peer);
+        int floor = (int)mpm[(uint)CHANNEL_METER_DECAYED_POST_GAIN]->GetMin();
+        if (max(level, peerLevel) <= floor)
         {
+            return floor; // silence stays silence
+        }
+
+        float sum = 10.0f * log10f(powf(10.0f, level / 10.0f) + powf(10.0f, peerLevel / 10.0f));
+        return min(0, (int)roundf(sum));
+    }
+
+    // short name of a channel like "CH 1", "BUS 3" or "AUX 1/2" for stereo pairs
+    String Config::GetChannelLabel(uint vchannel)
+    {
+        struct { uint start; const char* name; } blocks[] = {
+            { (uint)X32_VCHANNEL_BLOCK::NORMAL, "CH" },
+            { (uint)X32_VCHANNEL_BLOCK::AUX, "AUX" },
+            { (uint)X32_VCHANNEL_BLOCK::FXRET, "FX" },
+            { (uint)X32_VCHANNEL_BLOCK::BUS, "BUS" },
+            { (uint)X32_VCHANNEL_BLOCK::MATRIX, "MTX" },
+            { (uint)X32_VCHANNEL_BLOCK::SPECIAL, "SPECIAL" },
+            { (uint)X32_VCHANNEL_BLOCK::MAINSUB, "M/C" },
+            { (uint)X32_VCHANNEL_BLOCK::DCA, "DCA" },
+            { (uint)X32_VCHANNEL_BLOCK::MAIN, "MAIN" },
+        };
+
+        uint peer;
+        bool stereo = GetStereoPeer(vchannel, peer);
+        uint first = stereo ? min(vchannel, peer) : vchannel;
+
+        for (int i = sizeof(blocks) / sizeof(blocks[0]) - 1; i >= 0; i--)
+        {
+            if (first >= blocks[i].start)
+            {
+                bool single = (i == 5 || i == 6 || i == 8); // SPECIAL, M/C and MAIN exist only once
+                if (single)
+                {
+                    return String(blocks[i].name);
+                }
+
+                String label = String(blocks[i].name) + " " + String(first - blocks[i].start + 1);
+                if (stereo)
+                {
+                    label += "/" + String(first - blocks[i].start + 2);
+                }
+                return label;
+            }
+        }
+
+        return String("");
+    }
+
+    // vChannel a send of a channel goes to: channels send to busses, busses send to matrixes
+    bool Config::GetSendTarget(uint vchannel, uint send, uint& target)
+    {
+        if (vchannel < (uint)X32_VCHANNEL_BLOCK::BUS && send < (uint)X32_VCHANNEL_BLOCK_SIZE::BUS)
+        {
+            target = (uint)X32_VCHANNEL_BLOCK::BUS + send;
             return true;
         }
 
-        if (vchannel >= (uint)X32_VCHANNEL_BLOCK::BUS && vchannel < (uint)X32_VCHANNEL_BLOCK::MATRIX)
+        if (vchannel >= (uint)X32_VCHANNEL_BLOCK::BUS && vchannel < (uint)X32_VCHANNEL_BLOCK::MATRIX && send < (uint)X32_VCHANNEL_BLOCK_SIZE::MATRIX)
         {
-            return GetBool(CHANNEL_SEND_LR, vchannel) || GetBool(CHANNEL_SEND_LR, peer);
+            target = (uint)X32_VCHANNEL_BLOCK::MATRIX + send;
+            return true;
         }
 
         return false;
     }
 
     // called after a Mixerparameter was changed localy (not for scene loading or values received from the server)
-    void Config::ApplyStereoLink(MP_ID mp, uint index, bool wasLinked)
+    void Config::ApplyStereoLink(MP_ID mp, uint index, int oldLink)
     {
         if (isSyncingStereoLink)
         {
@@ -2132,45 +2179,42 @@ namespace OMC
         }
         isSyncingStereoLink = true;
 
-        if (IsStereoLinkParameter(mp))
+        if (mp == CHANNEL_STEREO_LINK)
         {
-            bool linked = GetBool(mp, index);
-            if (linked != wasLinked)
+            ChangeStereoLink(index, oldLink);
+        }
+        else if (mp == SELECTED_CHANNEL)
+        {
+            // a stereo pair is always selected by its first channel
+            uint selected = GetUint(SELECTED_CHANNEL);
+            if (IsStereoLinkedRight(selected))
             {
-                uint left = GetStereoLinkLeft(mp, index);
-                uint right = left + 1;
-
-                if (linked)
-                {
-                    // the right channel takes over all settings of the left channel
-                    for (uint i = 0; i < (uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE; i++)
-                    {
-                        CopyToStereoPeer((MP_ID)i, left, right);
-                    }
-                }
-
-                // start with closed faders and centered pans to prevent unexpected level jumps
-                for (uint vchannel : {left, right})
-                {
-                    Set(CHANNEL_VOLUME, CHANNEL_VOLUME_MIN, vchannel);
-                    Set(CHANNEL_PANORAMA, 0.0f, vchannel);
-                    Set(CHANNEL_STEREO_PAN, 0.0f, vchannel);
-                    Set(CHANNEL_STEREO_WIDTH, 1.0f, vchannel);
-                }
-
-                ApplyStereoPanWidth(left);
+                mpm[(uint)SELECTED_CHANNEL]->Set(selected - 1);
             }
         }
         else
         {
+            vector<uint> channels = { index };
             uint peer;
             if (GetStereoPeer(index, peer))
             {
                 CopyToStereoPeer(mp, index, peer);
+                channels.push_back(peer);
+            }
 
-                if (mp == CHANNEL_STEREO_PAN || mp == CHANNEL_STEREO_WIDTH || mp == CHANNEL_PANORAMA || mp == CHANNEL_SEND_LR)
+            // sends to a stereo pair of busses or matrixes are linked as well
+            if (mp >= CHANNEL_BUS_SEND01 && mp <= CHANNEL_BUS_SEND16_TAPPOINT)
+            {
+                MP_ID base = (mp >= CHANNEL_BUS_SEND01_TAPPOINT) ? CHANNEL_BUS_SEND01_TAPPOINT : CHANNEL_BUS_SEND01;
+                uint send = (uint)mp - (uint)base;
+
+                for (uint vchannel : channels)
                 {
-                    ApplyStereoPanWidth(index);
+                    uint target, targetPeer;
+                    if (GetSendTarget(vchannel, send, target) && GetStereoPeer(target, targetPeer))
+                    {
+                        Set(MpCalcId(base, send + targetPeer - target), GetFloat(mp, index), vchannel);
+                    }
                 }
             }
         }
@@ -2178,10 +2222,120 @@ namespace OMC
         isSyncingStereoLink = false;
     }
 
+    // ends a stereo pair: the channels keep their settings, only the panorama is centered
+    void Config::UnlinkStereoPair(uint vchannel, uint peer)
+    {
+        for (uint channel : {vchannel, peer})
+        {
+            mpm[(uint)CHANNEL_STEREO_LINK]->Set(0.0f, channel);
+            SetParameterChanged(CHANNEL_STEREO_LINK, channel);
+            Set(CHANNEL_PANORAMA, 0.0f, channel);
+            Set(CHANNEL_STEREO_WIDTH, 1.0f, channel);
+        }
+    }
+
+    void Config::ChangeStereoLink(uint vchannel, int oldLink)
+    {
+        int link = GetInt(CHANNEL_STEREO_LINK, vchannel);
+        if (link == oldLink)
+        {
+            return;
+        }
+
+        uint peer = vchannel + link;
+        if (link != 0 && !IsStereoLinkable(vchannel, peer))
+        {
+            // neighbour is in another block (e.g. CH 32 and AUX 1) -> keep the old link
+            mpm[(uint)CHANNEL_STEREO_LINK]->Set(oldLink, vchannel);
+            return;
+        }
+
+        // end the old pair of this channel
+        if (oldLink != 0)
+        {
+            mpm[(uint)CHANNEL_STEREO_LINK]->Set(oldLink, vchannel);
+            UnlinkStereoPair(vchannel, vchannel + oldLink);
+        }
+
+        if (link == 0)
+        {
+            return;
+        }
+
+        // the new neighbour leaves its old pair
+        uint oldPeerOfPeer;
+        if (GetStereoPeer(peer, oldPeerOfPeer))
+        {
+            UnlinkStereoPair(peer, oldPeerOfPeer);
+        }
+
+        uint left = min(vchannel, peer);
+        uint right = max(vchannel, peer);
+        mpm[(uint)CHANNEL_STEREO_LINK]->Set(1.0f, left);
+        mpm[(uint)CHANNEL_STEREO_LINK]->Set(-1.0f, right);
+        SetParameterChanged(CHANNEL_STEREO_LINK, left);
+        SetParameterChanged(CHANNEL_STEREO_LINK, right);
+
+        // the right channel takes over all settings of the left channel
+        for (uint i = 0; i < (uint)MP_ID::__ELEMENT_COUNTER_DO_NOT_MOVE; i++)
+        {
+            CopyToStereoPeer((MP_ID)i, left, right);
+        }
+
+        // sends to the right bus/matrix take over the sends to the left one
+        for (uint source = 0; source < (uint)X32_VCHANNEL_BLOCK::MATRIX; source++)
+        {
+            for (uint send = 0; send < BUS_SENDS; send++)
+            {
+                uint target;
+                if (GetSendTarget(source, send, target) && target == left)
+                {
+                    Set(MpCalcId(CHANNEL_BUS_SEND01, send + 1), GetFloat(MpCalcId(CHANNEL_BUS_SEND01, send), source), source);
+                    Set(MpCalcId(CHANNEL_BUS_SEND01_TAPPOINT, send + 1), GetFloat(MpCalcId(CHANNEL_BUS_SEND01_TAPPOINT, send), source), source);
+                }
+            }
+        }
+
+        // start with closed faders and a centered pair to prevent unexpected level jumps
+        for (uint channel : {left, right})
+        {
+            Set(CHANNEL_VOLUME, CHANNEL_VOLUME_MIN, channel);
+            Set(CHANNEL_PANORAMA, 0.0f, channel);
+            Set(CHANNEL_STEREO_WIDTH, 1.0f, channel);
+        }
+
+        if (GetUint(SELECTED_CHANNEL) == right)
+        {
+            Set(SELECTED_CHANNEL, left);
+        }
+    }
+
+    // first source index of each group of DSP sources (the neighbour of a source has to be in the same group)
+    static bool IsSameDspSourceGroup(uint a, uint b)
+    {
+        const uint groups[] = {
+            DSP_BUF_IDX_DSPCHANNEL, DSP_BUF_IDX_AUX, DSP_BUF_IDX_DSP2_FXRET, DSP_BUF_IDX_MIXBUS, DSP_BUF_IDX_DSP2_FXINS,
+            DSP_BUF_IDX_MAINLEFT, DSP_BUF_IDX_MAINSUB, DSP_BUF_IDX_MATRIX, DSP_BUF_IDX_DSP2_AUX,
+            DSP_BUF_IDX_MONLEFT, DSP_BUF_IDX_TALKBACK, DSP_MAX_INTERNAL_CHANNELS
+        };
+
+        for (uint i = 0; i + 1 < sizeof(groups) / sizeof(groups[0]); i++)
+        {
+            bool aIn = a >= groups[i] && a < groups[i + 1];
+            bool bIn = b >= groups[i] && b < groups[i + 1];
+            if (aIn || bIn)
+            {
+                return aIn && bIn;
+            }
+        }
+
+        return false;
+    }
+
     void Config::CopyToStereoPeer(MP_ID mp, uint from, uint to)
     {
         Mixerparameter* parameter = mpm[(uint)mp];
-        if (parameter == nullptr || mp == NONE || parameter->IsReadonly() || mp == CHANNEL_PANORAMA)
+        if (parameter == nullptr || mp == NONE || parameter->IsReadonly() || mp == CHANNEL_STEREO_LINK)
         {
             return;
         }
@@ -2194,16 +2348,21 @@ namespace OMC
         if (mp == ROUTING_DSP_INPUT || mp == ROUTING_DSP_INPUT_TAPPOINT)
         {
             // the index of the DSP inputs is the index of the input channel
-            if (from >= (uint)X32_VCHANNEL_BLOCK::FXRET)
+            if (from >= MAX_FPGA_TO_DSP1_CHANNELS || to >= MAX_FPGA_TO_DSP1_CHANNELS)
             {
                 return;
             }
 
             float value = GetFloat(mp, from);
-            if (mp == ROUTING_DSP_INPUT && value > 0)
+            if (mp == ROUTING_DSP_INPUT)
             {
-                // the right channel gets the neighbouring source
-                value += (to > from) ? 1.0f : -1.0f;
+                // the other channel gets the neighbouring source, if there is one
+                uint source = (uint)value;
+                uint neighbour = (to > from) ? source + 1 : source - 1;
+                if (source != DSP_BUF_IDX_OFF && IsSameDspSourceGroup(source, neighbour))
+                {
+                    value = neighbour;
+                }
             }
             Set(mp, value, to);
             return;
@@ -2228,21 +2387,6 @@ namespace OMC
             default:
                 break;
         }
-    }
-
-    void Config::ApplyStereoPanWidth(uint vchannel)
-    {
-        uint peer;
-        if (!IsStereoPanActive(vchannel) || !GetStereoPeer(vchannel, peer))
-        {
-            return;
-        }
-
-        float center = GetFloat(CHANNEL_STEREO_PAN, vchannel);
-        float width = GetFloat(CHANNEL_STEREO_WIDTH, vchannel) * CHANNEL_PANORAMA_MAX;
-
-        Set(CHANNEL_PANORAMA, helper->Saturate(center - width, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX), min(vchannel, peer));
-        Set(CHANNEL_PANORAMA, helper->Saturate(center + width, CHANNEL_PANORAMA_MIN, CHANNEL_PANORAMA_MAX), max(vchannel, peer));
     }
 
     MP_ID Config::ParameterCalcId(SurfaceBindingParameter* binding_parameter)
@@ -4113,50 +4257,132 @@ namespace OMC
         config.Set(CHANNEL_GAIN, 12.0f, 0);
         config.Set(ROUTING_DSP_INPUT, 5.0f, 0);
         config.Set(CHANNEL_VOLUME, 0.0f, 2);
+        config.Set(CHANNEL_PANORAMA, 30.0f, 0);
 
-        // linking CH 1/2: the right channel takes over the left channel, faders close, pans go hard left/right
-        config.Toggle(CHANNEL_LINKED, 0);
+        // linking CH 1/2: the right channel takes over the left channel, faders close, the pair is centered
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, 0);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 1) == -1);
         CHECK(config.GetFloat(CHANNEL_GAIN, 1) == 12.0f);
         CHECK(config.GetUint(ROUTING_DSP_INPUT, 1) == 6);
         CHECK(config.GetFloat(CHANNEL_VOLUME, 0) == CHANNEL_VOLUME_MIN);
         CHECK(config.GetFloat(CHANNEL_VOLUME, 1) == CHANNEL_VOLUME_MIN);
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, 0) == -100.0f);
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, 1) == 100.0f);
+        CHECK(config.GetFloat(CHANNEL_PANORAMA, 0) == 0.0f);
+        CHECK(config.GetEffectivePan(0) == -100.0f);
+        CHECK(config.GetEffectivePan(1) == 100.0f);
         CHECK(config.IsStereoLinkedRight(1));
         CHECK_FALSE(config.IsStereoLinkedRight(0));
+        CHECK(config.GetChannelLabel(0) == "CH 1/2");
 
-        // changes on either channel reach the other one, but not the next pair
+        // changes on either channel reach the other one, but not the next channel
         config.Set(CHANNEL_VOLUME, -10.0f, 1);
         CHECK(config.GetFloat(CHANNEL_VOLUME, 0) == -10.0f);
         CHECK(config.GetFloat(CHANNEL_VOLUME, 2) == 0.0f);
 
-        // stereo pan and width set the pans of both channels
+        // ch_pan is the balance of the pair, the width spreads it
         config.Set(CHANNEL_STEREO_WIDTH, 0.5f, 1);
-        config.Set(CHANNEL_STEREO_PAN, 20.0f, 0);
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, 0) == doctest::Approx(-30.0f));
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, 1) == doctest::Approx(70.0f));
+        config.Set(CHANNEL_PANORAMA, 20.0f, 0);
+        CHECK(config.GetFloat(CHANNEL_PANORAMA, 1) == 20.0f);
+        CHECK(config.GetEffectivePan(0) == doctest::Approx(-30.0f));
+        CHECK(config.GetEffectivePan(1) == doctest::Approx(70.0f));
 
-        // the pan encoder of a linked channel moves the stereo pan
-        config.Change(CHANNEL_PANORAMA, 1, 0);
-        float stereoPan = config.GetFloat(CHANNEL_STEREO_PAN, 1);
-        CHECK(stereoPan > 20.0f);
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, 0) == doctest::Approx(stereoPan - 50.0f));
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, 1) == doctest::Approx(stereoPan + 50.0f));
+        // the meter of a pair is the power sum of both channels
+        config.Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 0);
+        config.Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 1);
+        CHECK(config.GetStereoMeter(0) == -7);
 
-        // unlinking centers the pans and separates the channels again
-        config.Set(CHANNEL_LINKED, 0.0f, 0);
+        // unlinking keeps all settings and only centers the pan
+        config.Set(CHANNEL_GAIN, 9.0f, 0);
+        config.Set(CHANNEL_STEREO_LINK, 0.0f, 1);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 0) == 0);
         CHECK(config.GetFloat(CHANNEL_PANORAMA, 0) == 0.0f);
         CHECK(config.GetFloat(CHANNEL_PANORAMA, 1) == 0.0f);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 1) == 9.0f);
+        CHECK(config.GetFloat(CHANNEL_VOLUME, 1) == -10.0f);
+        CHECK(config.GetEffectivePan(1) == 0.0f);
         config.Set(CHANNEL_VOLUME, -20.0f, 1);
-        CHECK(config.GetFloat(CHANNEL_VOLUME, 0) == CHANNEL_VOLUME_MIN);
+        CHECK(config.GetFloat(CHANNEL_VOLUME, 0) == -10.0f);
+        CHECK(config.GetChannelLabel(0) == "CH 1");
 
-        // FX returns 1/2 are the 21st pair
+        // a pair can start on an even channel: CH 2/3, linked from CH 3 to its previous channel
+        config.Set(CHANNEL_GAIN, 3.0f, 1);
+        config.Set(CHANNEL_STEREO_LINK, -1.0f, 2);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 1) == 1);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 2) == -1);
+        CHECK(config.GetFloat(CHANNEL_GAIN, 2) == 3.0f);
+        CHECK(config.GetChannelLabel(1) == "CH 2/3");
+
+        // linking CH 3/4 ends the pair CH 2/3
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, 2);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 1) == 0);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 2) == 1);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, 3) == -1);
+
+        // pairs never cross a block: CH 32 can not link with AUX 1
+        const uint aux = (uint)X32_VCHANNEL_BLOCK::AUX;
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, aux - 1);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, aux - 1) == 0);
+        CHECK(config.GetInt(CHANNEL_STEREO_LINK, aux) == 0);
+
+        // FX returns 1/2
         const uint fx = (uint)X32_VCHANNEL_BLOCK::FXRET;
         config.Set(CHANNEL_GAIN, 6.0f, fx);
-        config.Set(CHANNEL_LINKED, 1.0f, 20);
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, fx);
         CHECK(config.GetFloat(CHANNEL_GAIN, fx + 1) == 6.0f);
         CHECK(config.IsStereoLinkedRight(fx + 1));
-        CHECK(config.GetFloat(CHANNEL_PANORAMA, fx + 1) == 100.0f);
-        CHECK_FALSE(config.IsStereoLinkedRight((uint)X32_VCHANNEL_BLOCK::BUS + 1));
+        CHECK(config.GetEffectivePan(fx + 1) == 100.0f);
+    }
+
+    TEST_CASE("Config - stereo link routing stays in its source group")
+    {
+        using enum MP_ID;
+
+        Helper helper;
+        Config config("X32", &helper, false);
+
+        // source 40 is AUX 8, its neighbour 41 is already FX return 1
+        config.Set(ROUTING_DSP_INPUT, 40.0f, 0);
+        config.Set(ROUTING_DSP_INPUT, 7.0f, 1);
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, 0);
+        CHECK(config.GetUint(ROUTING_DSP_INPUT, 1) != 41);
+        CHECK(config.GetUint(ROUTING_DSP_INPUT, 1) == 40);
+
+        // the right channel of a pair routed to source 39 gets AUX 8
+        config.Set(CHANNEL_STEREO_LINK, 0.0f, 0);
+        config.Set(ROUTING_DSP_INPUT, 39.0f, 0);
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, 0);
+        CHECK(config.GetUint(ROUTING_DSP_INPUT, 1) == 40);
+    }
+
+    TEST_CASE("Config - stereo linked busses")
+    {
+        using enum MP_ID;
+
+        Helper helper;
+        Config config("X32", &helper, false);
+        const uint bus = (uint)X32_VCHANNEL_BLOCK::BUS;
+
+        // a mono bus keeps its own pan, a linked bus pair is spread to both sides
+        config.Set(CHANNEL_PANORAMA, 40.0f, bus + 4);
+        CHECK(config.GetEffectivePan(bus + 4) == 40.0f);
+
+        config.Set(CHANNEL_BUS_SEND01, -6.0f, 0);
+        config.Set(CHANNEL_BUS_SEND02, -30.0f, 0);
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, bus);
+        CHECK(config.GetEffectivePan(bus) == -100.0f);
+        CHECK(config.GetEffectivePan(bus + 1) == 100.0f);
+        CHECK(config.GetChannelLabel(bus) == "BUS 1/2");
+
+        // the send to the right bus takes over the send to the left bus and both stay linked
+        CHECK(config.GetFloat(CHANNEL_BUS_SEND02, 0) == -6.0f);
+        config.Set(CHANNEL_BUS_SEND02, -12.0f, 0);
+        CHECK(config.GetFloat(CHANNEL_BUS_SEND01, 0) == -12.0f);
+        CHECK(config.GetFloat(CHANNEL_BUS_SEND03, 0) != -12.0f);
+
+        // busses send to matrixes: a send of bus 1/2 to a matrix pair is linked as well
+        const uint matrix = (uint)X32_VCHANNEL_BLOCK::MATRIX;
+        config.Set(CHANNEL_STEREO_LINK, 1.0f, matrix);
+        config.Set(CHANNEL_BUS_SEND01, -3.0f, bus);
+        CHECK(config.GetFloat(CHANNEL_BUS_SEND02, bus) == -3.0f);
+        CHECK(config.GetFloat(CHANNEL_BUS_SEND02, bus + 1) == -3.0f);
     }
 }

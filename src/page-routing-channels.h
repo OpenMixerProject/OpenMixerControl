@@ -289,7 +289,7 @@ class PageRoutingChannels: public Page
 
 		void OnChange(bool force) override
 		{
-            if (config->HasParametersChanged({CHANNEL_LINKED, ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT}) || force)
+            if (config->HasParametersChanged({CHANNEL_STEREO_LINK, ROUTING_DSP_INPUT, ROUTING_DSP_INPUT_TAPPOINT}) || force)
             {
                 RebuildTable();
             }

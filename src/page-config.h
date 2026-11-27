@@ -213,7 +213,7 @@ class PageConfig : public Page
 
         void OnUpdateMeters() override
         {
-            int dbValue = config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, config->GetUint(MP_ID::SELECTED_CHANNEL));
+            int dbValue = config->GetStereoMeter(config->GetUint(MP_ID::SELECTED_CHANNEL));
             
             uint imageOffset = get_vu_pixels_non_linear(dbValue);
             uint newImageOffset = imageOffset * -lv_obj_get_width(objects.config_vumeter);

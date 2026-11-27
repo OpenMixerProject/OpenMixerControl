@@ -45,6 +45,7 @@ namespace OMC
             int8_t Init();
             void UdpHandleCommunication();
             void Sync();
+            void SyncMeters();
 
             void SetRecorder(Card* card) { recorder = card; }
             void SendUdpPacket(char* buffer, uint16_t size);

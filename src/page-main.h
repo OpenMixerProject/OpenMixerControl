@@ -16,11 +16,19 @@ class PageMain : public Page
         uint bankingSendsBefore = 0;
         bool stereoControlsBound = false;
 
+        // matrixes have no panorama, so their width is meaningless
+        bool HasStereoWidth()
+        {
+            uint peer;
+            uint selected = config->GetUint(SELECTED_CHANNEL);
+            return selected < (uint)X32_VCHANNEL_BLOCK::MATRIX && config->GetStereoPeer(selected, peer);
+        }
+
         void BindEncoders()
         {
-            // stereo linked channels get balance and width instead of the panorama
-            stereoControlsBound = config->IsStereoPanActive(config->GetUint(SELECTED_CHANNEL));
-            MP_ID pan = stereoControlsBound ? CHANNEL_STEREO_PAN : CHANNEL_PANORAMA;
+            // stereo pairs get the width next to their balance
+            stereoControlsBound = HasStereoWidth();
+            MP_ID pan = CHANNEL_PANORAMA;
 
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_1, MixerparameterAction::CHANGE_SELECTED_CHANNEL, CHANNEL_VOLUME);
             config->SurfaceBind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, MixerparameterAction::TOGGLE_SELECTED_CHANNEL, CHANNEL_SEND_LR);
@@ -61,7 +69,7 @@ class PageMain : public Page
 
         void OnChange(bool force_update) override
         {
-            if (config->IsStereoPanActive(config->GetUint(SELECTED_CHANNEL)) != stereoControlsBound)
+            if (HasStereoWidth() != stereoControlsBound)
             {
                 BindEncoders();
             }

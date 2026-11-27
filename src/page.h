@@ -74,6 +74,7 @@ class Page : public X32Base
         virtual void OnInit() {}
         virtual void OnUpdateMeters() {}
         virtual void OnShow() {}
+        virtual void OnHide() {}
         virtual void OnChange(bool force_update) {}
         virtual void OnChangeCustomButton(SurfaceElementId surface_element_id) {}
         virtual void OnChangeCustomEncoder(SurfaceElementId surface_element_id, int amount) {}
@@ -83,6 +84,7 @@ class Page : public X32Base
 
         void Init();
         void Show();
+        void Hide() { OnHide(); }
         void ResetEncoderBinding();
         void UpdateMeters();
         void Change(bool syncAll = false);

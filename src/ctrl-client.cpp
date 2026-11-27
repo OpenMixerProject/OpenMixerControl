@@ -455,7 +455,12 @@ void CtrlClient::syncGuiOrLcd() {
 
 	if (config->HasParameterChanged(ACTIVE_PAGE)){
 		Page* newPage = pages.at((X32_PAGE)config->GetUint(ACTIVE_PAGE));
+		if (shownPage != nullptr && shownPage != newPage)
+		{
+			shownPage->Hide();
+		}
 		newPage->Show();
+		shownPage = newPage;
 	}
 
 	//####################################
@@ -467,7 +472,8 @@ void CtrlClient::syncGuiOrLcd() {
 		config->HasParametersChanged({
 			SELECTED_CHANNEL,
 			CHANNEL_NAME,
-			CHANNEL_COLOR}, chanIndex)
+			CHANNEL_COLOR,
+			CHANNEL_STEREO_LINK}, chanIndex)
 		)
 	{
 		lv_color_t color;
@@ -501,7 +507,7 @@ void CtrlClient::syncGuiOrLcd() {
 		}
 
 		lv_label_set_text(objects.current_channel_number, config->GetString(CHANNEL_NAME, chanIndex).c_str());
-		lv_label_set_text(objects.current_channel_name, config->GetString(CHANNEL_NAME_INTERN, chanIndex).c_str());
+		lv_label_set_text(objects.current_channel_name, config->GetChannelLabel(chanIndex).c_str());
 		lv_obj_set_style_bg_color(objects.current_channel_color, color, 0);
 	}
 }
@@ -515,15 +521,16 @@ void CtrlClient::syncSurface(bool fullSync)
 	//
 	// ######################################
 
+	// stereo pairs take one channel strip
+	bool stereoLinkChanged = config->HasParameterChanged(CHANNEL_STEREO_LINK);
+	if (stereoLinkChanged)
+	{
+		surface->UpdateStereoLinkedBanks();
+	}
+
 	if (config->IsModelX32FullOrCompactOrProducerOrM32OrM32R())
 	{
-		bool faderBankChanged = false;
-
-		if (config->HasParametersChanged({CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED}))
-		{
-			surface->UpdateStereoLinkedBanks();
-			faderBankChanged = true;
-		}
+		bool faderBankChanged = stereoLinkChanged;
 
 		if (config->HasParameterChanged(BANKING_INPUT))
 		{
@@ -659,7 +666,8 @@ void CtrlClient::syncSurface(bool fullSync)
 						{
 							X32FaderBank* banktoUse = (nextSurfaceChannelStrip < 8) ? surface->GetBank(OMCBankId::FLEX1) : surface->GetBank(OMCBankId::FLEX2);
 
-							if (config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex))
+							// a stereo pair is spilled as one channel
+							if (config->GetBool(config->MpCalcId(DCA_GROUP_1, i), chanIndex) && !config->IsStereoLinkedRight(chanIndex))
 							{
 								// channel is part of the spilled DCA Group -> bind it to the next free channel strip in the bank
 								surface->SetChannelstripBinding(banktoUse, nextSurfaceChannelStrip % 8, chanIndex);
@@ -927,18 +935,18 @@ void CtrlClient::syncSurface(bool fullSync)
 					switch(config->GetUint(CHANNEL_LCD_MODE))
 					{
 						case 0:
-							if (config->HasParametersChanged({CHANNEL_PANORAMA, CHANNEL_STEREO_PAN, CHANNEL_STEREO_WIDTH, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED	}, binding_parameter->mp_index) ||
-								config->HasParametersChanged({CHANNEL_LCD_MODE, CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED})
+							if (config->HasParametersChanged({CHANNEL_PANORAMA, CHANNEL_STEREO_WIDTH, CHANNEL_STEREO_LINK, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED	}, binding_parameter->mp_index) ||
+								config->HasParameterChanged(CHANNEL_LCD_MODE)
 							)
 							{
 								hasChanged = true;
 							}
 							break;
 						case 1:
-							if (config->HasParametersChanged({CHANNEL_PHASE_INVERT, CHANNEL_VOLUME, CHANNEL_PANORAMA, CHANNEL_STEREO_PAN, CHANNEL_STEREO_WIDTH, CHANNEL_GAIN,	CHANNEL_GATE_TRESHOLD,
+							if (config->HasParametersChanged({CHANNEL_PHASE_INVERT, CHANNEL_VOLUME, CHANNEL_PANORAMA, CHANNEL_STEREO_WIDTH, CHANNEL_STEREO_LINK, CHANNEL_GAIN,	CHANNEL_GATE_TRESHOLD,
 									CHANNEL_DYNAMICS_TRESHOLD, CHANNEL_PHANTOM, CHANNEL_NAME, CHANNEL_COLOR, CHANNEL_COLOR_INVERTED }, binding_parameter->mp_index) ||
 								config->HasParametersChanged({MP_CAT::CHANNEL_EQ}, binding_parameter->mp_index) || 
-								config->HasParametersChanged({CHANNEL_LCD_MODE, CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED})
+								config->HasParameterChanged(CHANNEL_LCD_MODE)
 							)
 							{
 								hasChanged = true;
@@ -1308,16 +1316,14 @@ void CtrlClient::SetBalanceText(char* balanceText, uint channelIndex)
 		return 3;
 	};
 
-	bool stereo = config->IsStereoPanActive(channelIndex);
-	float balance = config->GetFloat(stereo ? CHANNEL_STEREO_PAN : CHANNEL_PANORAMA, channelIndex);
-	uint8_t center = position(balance);
+	// the panorama of a stereo pair is its balance
+	uint8_t center = position(config->GetFloat(CHANNEL_PANORAMA, channelIndex));
 
-	if (stereo && config->GetFloat(CHANNEL_STEREO_WIDTH, channelIndex) < 0.995f)
+	uint peerIndex;
+	if (config->GetStereoPeer(channelIndex, peerIndex) && config->GetFloat(CHANNEL_STEREO_WIDTH, channelIndex) < 0.995f)
 	{
-		uint peerIndex;
-		config->GetStereoPeer(channelIndex, peerIndex);
-		uint8_t left = position(config->GetFloat(CHANNEL_PANORAMA, min(channelIndex, peerIndex)));
-		uint8_t right = position(config->GetFloat(CHANNEL_PANORAMA, max(channelIndex, peerIndex)));
+		uint8_t left = position(config->GetEffectivePan(min(channelIndex, peerIndex)));
+		uint8_t right = position(config->GetEffectivePan(max(channelIndex, peerIndex)));
 		if (left == center && left > 0) { left--; }
 		if (right == center && right < 6) { right++; }
 		balanceText[left] = ':';
@@ -1372,7 +1378,7 @@ void CtrlClient::SetLcdFromChannel(uint8_t p_boardId, uint8_t lcdIndex, uint8_t 
 				textIndex++;
 
 				// Channel Internal Name
-				data->texts[textIndex].text = config->GetString(CHANNEL_NAME_INTERN, channelIndex);
+				data->texts[textIndex].text = config->GetChannelLabel(channelIndex);
 				data->texts[textIndex].size = 0;
 				data->texts[textIndex].x = 35;
 				data->texts[textIndex].y = 51;
@@ -1600,13 +1606,13 @@ void CtrlClient::UpdateMeters()
 
 	if (config->IsModelX32Core())
 	{
-		surface->SetMeterLed(X32_BOARD_MAIN, 0, helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)));
+		surface->SetMeterLed(X32_BOARD_MAIN, 0, helper->GetMeter8Info(config->GetStereoMeter(selectedChannel)));
 	}
 
 	if (config->IsModelX32Rack())
 	{
 		surface->SetMeterLedMain_Rack(
-			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),
+			helper->GetMeter8Info(config->GetStereoMeter(selectedChannel)),
 			helper->GetMeter18Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
 			helper->GetMeter18Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
 			helper->GetMeter18Info(config->GetInt(SUB_METER_DECAYED_POST_GAIN))
@@ -1616,7 +1622,7 @@ void CtrlClient::UpdateMeters()
 	if (config->HasSmallDisplay())
 	{
 		surface->SetMeterLedMain_Producer(
-			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),
+			helper->GetMeter8Info(config->GetStereoMeter(selectedChannel)),
 			surfaceCalcDynamicMeter(selectedChannel),
 			helper->GetMeter18Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
 			helper->GetMeter18Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
@@ -1627,7 +1633,7 @@ void CtrlClient::UpdateMeters()
 	if (config->HasBigDisplay())
 	{
 		surface->SetMeterLedMain_FullOrCompact(
-			helper->GetMeter8Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, selectedChannel)),
+			helper->GetMeter8Info(config->GetStereoMeter(selectedChannel)),
 			surfaceCalcDynamicMeter(selectedChannel),		
 			helper->GetMeter24Info(config->GetInt(MAIN_L_METER_DECAYED_POST_GAIN)),
 			helper->GetMeter24Info(config->GetInt(MAIN_R_METER_DECAYED_POST_GAIN)),
@@ -1663,7 +1669,8 @@ uint8_t CtrlClient::CalcChannelStripMeter(SurfaceElementId elementId)
 	SurfaceBindingParameter* binding = config->GetSurfaceBinding(elementId);
 	if (binding && binding->mp_action == MixerparameterAction::VUMETER && binding->mp_index < MAX_VCHANNELS)
 	{
-		return helper->GetMeter6Info(config->GetInt(CHANNEL_METER_DECAYED_POST_GAIN, binding->mp_index));
+		// stereo pairs show the sum of both channels
+		return helper->GetMeter6Info(config->GetStereoMeter(binding->mp_index));
 	}
 
 	return 0;
@@ -2372,6 +2379,50 @@ TEST_CASE("CtrlClient::CalcChannelStripMeter ignores unbound VU meters on DCA, D
 	{
 		CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + i)) == 0);
 	}
+}
+
+
+TEST_CASE("Surface::UpdateStereoLinkedBanks hides the second channel of a stereo pair")
+{
+	auto testState = std::make_unique<State>();
+	testState->bodyless = true;
+	auto testHelper = std::make_unique<Helper>();
+	auto testConfig = std::make_unique<Config>("X32", testHelper.get(), false);
+	auto basepar = std::make_unique<X32BaseParameter>(nullptr, testConfig.get(), testState.get(), testHelper.get());
+
+	auto testSurface = std::make_unique<Surface>(basepar.get());
+	testSurface->Init(nullptr, nullptr);
+	auto testClient = std::make_unique<CtrlClient>(basepar.get());
+
+	auto faderIndex = [&](SurfaceElementId first, uint strip)
+	{
+		return testConfig->GetSurfaceBinding((SurfaceElementId)((uint)first + strip))->mp_index;
+	};
+
+	// CH 2/3 is one strip, the following channels move up by one and CH 9 fills the bank
+	testConfig->Set(CHANNEL_STEREO_LINK, 1.0f, 1);
+	testSurface->UpdateStereoLinkedBanks();
+	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::CH1_8);
+	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 0) == 0);
+	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 1) == 1);
+	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 2) == 3);
+	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 7) == 8);
+
+	// the VU meter of the pair shows the sum of both channels
+	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 1);
+	testConfig->Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 2);
+	CHECK(testClient->CalcChannelStripMeter((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_VUMETER_1 + 1)) == testHelper->GetMeter6Info(-7));
+
+	// the last bank has one strip less
+	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::CH25_32);
+	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 6) == 31);
+	CHECK(testConfig->GetSurfaceBinding((SurfaceElementId)((uint)SurfaceElementId::BOARD_L_FADER_1 + 7))->mp_id == NONE);
+
+	// unlinking shows all channels again
+	testConfig->Set(CHANNEL_STEREO_LINK, 0.0f, 1);
+	testSurface->UpdateStereoLinkedBanks();
+	testSurface->LoadBank(OMCBankTarget::InputSection, OMCBankId::CH1_8);
+	CHECK(faderIndex(SurfaceElementId::BOARD_L_FADER_1, 2) == 2);
 }
 
 }

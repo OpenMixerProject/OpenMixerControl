@@ -224,7 +224,7 @@ void Mixer::Sync()
     }
 
     // Volume
-    filter = {CHANNEL_GAIN, CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB};
+    filter = {CHANNEL_GAIN, CHANNEL_VOLUME, CHANNEL_VOLUME_SUB, CHANNEL_MUTE, CHANNEL_PANORAMA, CHANNEL_SEND_LR, CHANNEL_SEND_SUB, CHANNEL_STEREO_LINK, CHANNEL_STEREO_WIDTH};
     if (config->HasParametersChanged(filter))
     {
         vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter);
@@ -322,6 +322,34 @@ void Mixer::Sync()
         {
             dsp->SendChannelSend(changedIndex);
             dsp->ChannelSendTapPoints(changedIndex);
+        }
+    }
+
+    // Sends into stereo linked busses and matrixes are panned
+    filter = {CHANNEL_PANORAMA, CHANNEL_STEREO_LINK, CHANNEL_STEREO_WIDTH};
+    if (config->HasParametersChanged(filter))
+    {
+        vector<uint> changedIndexes = config->GetChangedParameterIndexes(filter);
+        bool targetLinkChanged = false;
+        for (auto const& changedIndex : changedIndexes)
+        {
+            if (changedIndex < (uint)X32_VCHANNEL_BLOCK::MATRIX)
+            {
+                dsp->SendChannelSend(changedIndex);
+            }
+            if (changedIndex >= (uint)X32_VCHANNEL_BLOCK::BUS && config->HasParameterChanged(CHANNEL_STEREO_LINK, changedIndex))
+            {
+                targetLinkChanged = true;
+            }
+        }
+
+        // a bus or matrix pair was linked or unlinked -> all sends into it change
+        if (targetLinkChanged)
+        {
+            for (uint chanIndex = 0; chanIndex < (uint)X32_VCHANNEL_BLOCK::MATRIX; chanIndex++)
+            {
+                dsp->SendChannelSend(chanIndex);
+            }
         }
     }
 

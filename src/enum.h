@@ -51,13 +51,13 @@ enum class X32_PAGE :int
         // sub-pages of setup
         SETUP_CARD,
         SETUP_SURFACE,
-        SETUP_MIXER_CONFIG,
         ABOUT,
         DEBUG,
         PROTOTYPEGUI,
     LIBRARY,
     EFFECTS,
     SCENES,
+    SETUP_MIXER_CONFIG, // sub-page of setup, appended to keep the stored numbers of the other pages
 
     __ELEMENT_COUNTER_DO_NOT_MOVE
 };
@@ -503,15 +503,14 @@ enum class MP_ID {
     OSC_FREQUENCY = 280,
     OSC_LEVEL = 281,
 
+    // 282..299 are reserved for parameters of open feature branches (FX, gate and dynamics)
+
     // Stereo linking
-    CHANNEL_LINKED = 282,
-    BUS_LINKED = 283,
-    MATRIX_LINKED = 284,
-    CHANNEL_STEREO_PAN = 285,
-    CHANNEL_STEREO_WIDTH = 286,
+    CHANNEL_STEREO_LINK = 300,
+    CHANNEL_STEREO_WIDTH = 301,
 
     // Next free Number
-    __ELEMENT_COUNTER_DO_NOT_MOVE = 287
+    __ELEMENT_COUNTER_DO_NOT_MOVE = 302
 
 
     // !!!!!!!!!!!!!!!!!!!!  Danger Zone  !!!!!!!!!!!!!!!!!!

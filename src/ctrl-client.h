@@ -36,6 +36,7 @@ class CtrlClient : public X32Base
         OMCBankId preSpillLoadedBank = OMCBankId::None;
 
         map<X32_PAGE, Page*> pages;
+        Page* shownPage = nullptr; // page that was shown last, gets OnHide() when another page is shown
         X32_PAGE lastPage = X32_PAGE::HOME;
 
         sTouchControl touchcontrol;

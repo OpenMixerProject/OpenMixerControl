@@ -80,8 +80,52 @@ class PageHome : public Page
             config->SurfaceUnbind(SurfaceElementId::DISPLAY_ENCODER_BUTTON_6);
         }
 
+        // a stereo pair is shown once: its second channel moves on to the next channel that is not shown yet
+        bool SkipStereoLinkedRight()
+        {
+            bool moved = false;
+            for (uint i = 0; i < 6; i++)
+            {
+                bool duplicate = false;
+                for (uint j = 0; j < i; j++)
+                {
+                    duplicate |= channelindex[j] == channelindex[i];
+                }
+
+                if (!config->IsStereoLinkedRight(channelindex[i]) && !duplicate)
+                {
+                    continue;
+                }
+
+                uint next = (i > 0 ? max(channelindex[i - 1], channelindex[i]) : channelindex[i]) + 1;
+                while (next < MAX_VCHANNELS - 1 && config->IsStereoLinkedRight(next))
+                {
+                    next++;
+                }
+                channelindex[i] = min(next, (uint)MAX_VCHANNELS - 1);
+                moved = true;
+            }
+            return moved;
+        }
+
         void OnChange(bool force_update) override
         {
+            if (config->HasParameterChanged(CHANNEL_STEREO_LINK) || force_update)
+            {
+                if (SkipStereoLinkedRight())
+                {
+                    force_update = true;
+                    if (config->GetBool(DISPLAY_UTILITY))
+                    {
+                        EncoderBind_EditMode();
+                    }
+                    else
+                    {
+                        EncoderBind_NormalMode();
+                    }
+                }
+            }
+
             if (config->HasParameterChanged(CHANNEL_NAME) || force_update)
             {
                 lv_label_set_text(objects.home_ch_1, config->GetString(CHANNEL_NAME, channelindex[0]).c_str());
@@ -118,6 +162,11 @@ class PageHome : public Page
                     {
                         uint array_index = (uint)surface_element_id - (uint)SurfaceElementId::DISPLAY_ENCODER_1;
                         channelindex[array_index] = helper->CheckBoundaries(channelindex[array_index], amount, 0, MAX_VCHANNELS-1);
+                        if (config->IsStereoLinkedRight(channelindex[array_index]))
+                        {
+                            // a stereo pair is shown as one channel
+                            channelindex[array_index] = helper->CheckBoundaries(channelindex[array_index], amount > 0 ? 1 : -1, 0, MAX_VCHANNELS-1);
+                        }
 
                         EncoderBind_EditMode();
                         OnChange(true);

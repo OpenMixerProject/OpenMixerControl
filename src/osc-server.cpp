@@ -372,6 +372,39 @@ namespace OMC
     }
 
 
+    // sends the meters of all channels as /meter/ch/<n> in dBFS
+    // a stereo pair is one channel: it sends left, right and their sum, its second channel is left out
+    void OscServer::SyncMeters()
+    {
+        if (!hasClients)
+        {
+            return;
+        }
+
+        for (uint vchannel = 0; vchannel < MAX_VCHANNELS; vchannel++)
+        {
+            if (config->IsStereoLinkedRight(vchannel))
+            {
+                continue;
+            }
+
+            String path = String("/meter/ch/") + String(vchannel + 1);
+            float level = config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, vchannel);
+            uint peer;
+            int len;
+            if (config->GetStereoPeer(vchannel, peer))
+            {
+                len = tosc_writeMessage(TxMessage, 450, path.c_str(), "fff", level, (float)config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, peer), (float)config->GetStereoMeter(vchannel));
+            }
+            else
+            {
+                len = tosc_writeMessage(TxMessage, 450, path.c_str(), "f", level);
+            }
+            SendUdpPacket(TxMessage, len);
+        }
+    }
+
+
     ////////////////////////////////////
     // low-level communication functions
     ////////////////////////////////////

@@ -145,6 +145,9 @@ void CtrlServer::Tick100ms()
 	// request data from all known clients
 	wsm->RequestDataFromClients();
 
+	// meter levels for OSC clients
+	osc_server->SyncMeters();
+
 	// // DSP-Activity Light
     // if (!(state->dsp_disable_activity_light)) {
    	//     // toggle the LED on DSP1 and DSP2 to show some activity
