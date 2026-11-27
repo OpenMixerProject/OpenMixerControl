@@ -27,6 +27,11 @@ namespace OMC
     OscState::OscState(X32BaseParameter* basepar, int udpSocket, std::map<String, MP_ID>* oscPaths)
         : X32Base(basepar), paths(oscPaths), socket(udpSocket)
     {
+        AddAliases(config, paths);
+    }
+
+    void OscState::AddAliases(Config* config, std::map<String, MP_ID>* paths)
+    {
         // Add aliases only for parameters already exposed over OSC.
         auto alias = [&](String name, MP_ID id)
         {

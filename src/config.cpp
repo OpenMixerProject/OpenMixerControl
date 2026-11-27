@@ -3833,4 +3833,49 @@ namespace OMC
         printf("\n");
         printf("\n");
     }
+
+    /// One OSC parameter in the machine-readable list written by --osc-params.
+    struct OscParamInfo
+    {
+        std::string osc;
+        std::optional<std::string> alias_of; // canonical OSC name if this is an alias
+        std::string name;
+        std::string value_type; // float, uint, int, bool or string
+        uint instances;
+        std::optional<float> min;
+        std::optional<float> max;
+        bool readonly;
+    };
+
+    /// Writes all OSC parameters as JSON, so clients can generate typed code from it.
+    bool Config::WriteOscParams(const std::string& file, const std::map<String, MP_ID>& paths)
+    {
+        std::vector<OscParamInfo> params;
+        for (const auto& [path, id] : paths)
+        {
+            Mixerparameter* parameter = GetParameter(id);
+            OscParamInfo info{path.c_str(), {}, parameter->GetName().c_str(), "float", parameter->GetInstances(), {}, {}, parameter->IsReadonly()};
+            switch (parameter->GetType())
+            {
+                case MP_VALUE_TYPE::UINT: info.value_type = "uint"; break;
+                case MP_VALUE_TYPE::INT: info.value_type = "int"; break;
+                case MP_VALUE_TYPE::BOOL: info.value_type = "bool"; break;
+                case MP_VALUE_TYPE::STRING: info.value_type = "string"; break;
+                default: break;
+            }
+            if (parameter->GetOSC() != path) { info.alias_of = parameter->GetOSC().c_str(); }
+            if (parameter->GetType() != MP_VALUE_TYPE::STRING)
+            {
+                info.min = parameter->GetMin();
+                info.max = parameter->GetMax();
+            }
+            params.push_back(std::move(info));
+        }
+
+        std::string json;
+        if (glz::write<glz::opts{.prettify = true}>(params, json)) { return false; }
+        std::ofstream out(file);
+        out << json << "\n";
+        return bool(out);
+    }
 }

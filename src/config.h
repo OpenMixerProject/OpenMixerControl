@@ -179,6 +179,7 @@ namespace OMC
             OMCAssignBank* GetAssignBank(X32AssignBankId id);
 
             void PrintOscDoc();
+            bool WriteOscParams(const std::string& file, const std::map<String, MP_ID>& paths);
     };
 
     class X32ConfigFileEntry

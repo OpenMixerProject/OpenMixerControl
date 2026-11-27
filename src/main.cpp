@@ -49,6 +49,7 @@
 #include "defines.h"
 #include "version.h"
 #include "omc.h"
+#include "osc-state.h"
 
 #define DOCTEST_CONFIG_IMPLEMENT // we start doctest within our own main()
 #include "../lib_ext/doctest/doctest/doctest.h"
@@ -336,6 +337,9 @@ namespace OMC
 			->option_text("127.0.0.1");
 		app->add_flag("--osc-doc", "Print OSC-Documentation")
 			->configurable(false);
+		app->add_option("--osc-params", "Write all OSC parameters as JSON and exit")
+			->option_text("FILE")
+			->configurable(false);
 		app->add_flag("--version", "Get the version number, builddate and a nice logo")
 			->configurable(false);
 		app->add_flag("-p,--print", "Print configuration and exit")
@@ -551,6 +555,13 @@ namespace OMC
 		{
 			config->PrintOscDoc();
 			exit(0);
+		}
+
+		if (app->count("--osc-params") > 0)
+		{
+			auto* paths = config->GetOscPaths();
+			OscState::AddAliases(config, paths);
+			exit(config->WriteOscParams(app->get_option("--osc-params")->as<std::string>(), *paths) ? 0 : 1);
 		}
 
 		if (debug_parameters.size() > 0) {

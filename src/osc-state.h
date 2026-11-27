@@ -30,6 +30,10 @@ namespace OMC
         std::string Metadata(const String& name, Mixerparameter* parameter);
 
     public:
+        /// Adds the discovery aliases (e.g. ch_sub_level) to a map of OSC paths.
+        static void AddAliases(Config* config, std::map<String, MP_ID>* paths);
+
+    public:
         OscState(X32BaseParameter* basepar, int udpSocket, std::map<String, MP_ID>* oscPaths);
         bool Handle(const std::vector<std::string>& address, tosc_message* message, in_addr_t ip);
         void Pump();
