@@ -70,6 +70,11 @@ namespace OMC
             config->oscCapabilities.insert("recorder_xlive_transport");
         }
         config->oscCapabilities.insert("surface_subscription");
+        if (config->IsModelAnyWing())
+        {
+            // display + SELECT encoder turns are only forwarded; the client applies them
+            config->oscCapabilities.insert("client_display_encoders");
+        }
 
         config->surfaceObserver = [this](SurfaceElement* element, const char* action, float value)
         {

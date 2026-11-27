@@ -2045,6 +2045,25 @@ void CtrlClient::ProcessSurface(OMC_BOARD board, char command, uint8_t index, ui
 			amount
 		);
 
+		// On WING the OSC client (OpenWING UI) owns the display encoders and the
+		// touch & turn encoder: they are only forwarded as /turn/<name>/1.
+		if (config->IsModelAnyWing())
+		{
+			switch (encoder->GetId())
+			{
+				case SurfaceElementId::DISPLAY_ENCODER_1:
+				case SurfaceElementId::DISPLAY_ENCODER_2:
+				case SurfaceElementId::DISPLAY_ENCODER_3:
+				case SurfaceElementId::DISPLAY_ENCODER_4:
+				case SurfaceElementId::DISPLAY_ENCODER_5:
+				case SurfaceElementId::DISPLAY_ENCODER_6:
+				case SurfaceElementId::WING_DISPLAY_ENCODER:
+					return;
+				default:
+					break;
+			}
+		}
+
 		SurfaceBindingParameter* bindingParameterEncoder = config->GetSurfaceBinding(encoder->GetId());
 
 		if (bindingParameterEncoder != 0 && bindingParameterEncoder->mp_action != MixerparameterAction::NONE)
