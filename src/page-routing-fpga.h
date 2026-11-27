@@ -25,12 +25,13 @@ class PageRoutingFpga: public Page
 
         PageRoutingFpga(PageBaseParameter* pagebasepar) : Page(pagebasepar)
         {
-            prevPage = X32_PAGE::ROUTING;
-            nextPage = X32_PAGE::ROUTING_DSP1;
+            // raw FPGA routing, shown as the "Advanced" tab
+            prevPage = X32_PAGE::ROUTING_OUTPUTS;
+            nextPage = X32_PAGE::NONE;
             tabLayer0 = objects.maintab;
             tabIndex0 = 2;
             tabLayer1 = objects.routingtab;
-            tabIndex1 = 1;
+            tabIndex1 = 2;
         }
 
         void OnShow() override

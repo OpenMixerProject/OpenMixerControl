@@ -573,6 +573,11 @@ class Mixerparameter
             return value_max;
         }
 
+        float GetStepsize()
+        {
+            return stepsize;
+        }
+
         bool GetBlink()
         {
             return button_blink;

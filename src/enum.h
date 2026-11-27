@@ -44,9 +44,10 @@ enum class X32_PAGE :int
         RTA,
     ROUTING,
         // sub-pages of routing
-        ROUTING_FPGA,
-        ROUTING_DSP1,
-        ROUTING_DSP2,
+        // ACTIVE_PAGE is saved: keep the slots of the former FPGA, DSP input and DSP output pages
+        ROUTING_ADVANCED,
+        ROUTING_UNUSED,
+        ROUTING_OUTPUTS,
     SETUP,
         // sub-pages of setup
         SETUP_CARD,

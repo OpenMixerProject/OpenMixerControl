@@ -319,6 +319,12 @@ void Page::SyncEncoderWidget(SurfaceElementId elementIdEncoder, SurfaceElementId
     {
         ClearEncoderButton(lvgl_encoder_widget);
     }
+    else if (surface_binding_button->mp_action == MixerparameterAction::CUSTOM)
+    {
+        // Custom Display Encoder Button -> just show the label
+        ClearEncoderButton(lvgl_encoder_widget);
+        lv_label_set_text(lvgl_encoder_widget->ButtonLabel, surface_binding_button->custom_label.c_str());
+    }
     else
     {
         MP_ID id = config->ParameterCalcId(surface_binding_button);

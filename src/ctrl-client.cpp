@@ -15,10 +15,8 @@
 #include "page-eq.h"
 #include "page-sends.h"
 #include "page-main.h"
-#include "page-routing.h"
+#include "page-routing-matrix.h"
 #include "page-routing-fpga.h"
-#include "page-routing-channels.h"
-#include "page-routing-dsp.h"
 #include "page-library.h"
 #include "page-effects.h"
 #include "page-setup.h"
@@ -360,10 +358,10 @@ void CtrlClient::InitPagesAndGUI()
 	pages[X32_PAGE::MAIN] = new PageMain(pagebasepar);
 	pages[X32_PAGE::METERS] = new PageMeters(pagebasepar);
 	pages[X32_PAGE::RTA] = new PageRta(pagebasepar);
-	pages[X32_PAGE::ROUTING] = new PageRouting(pagebasepar);
-	pages[X32_PAGE::ROUTING_FPGA] = new PageRoutingFpga(pagebasepar);
-	pages[X32_PAGE::ROUTING_DSP1] = new PageRoutingChannels(pagebasepar);
-	pages[X32_PAGE::ROUTING_DSP2] = new PageRoutingDsp(pagebasepar);
+	pages[X32_PAGE::ROUTING] = new PageRoutingInputs(pagebasepar);
+	pages[X32_PAGE::ROUTING_OUTPUTS] = new PageRoutingOutputs(pagebasepar);
+	pages[X32_PAGE::ROUTING_ADVANCED] = new PageRoutingFpga(pagebasepar);
+	pages[X32_PAGE::ROUTING_UNUSED] = new PageRoutingUnused(pagebasepar);
 	pages[X32_PAGE::SETUP] = new PageSetup(pagebasepar);
 	pages[X32_PAGE::SETUP_CARD] = new PageSetupCard(pagebasepar);
 	pages[X32_PAGE::SETUP_SURFACE] = new PageSetupSurface(pagebasepar);
