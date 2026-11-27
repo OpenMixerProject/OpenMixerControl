@@ -192,7 +192,13 @@ class PageRoutingChannels: public Page
          			inputChannelName = String("Aux ") + (i + 1 - 32);
 	 			}
 
-	 			lv_table_set_cell_value(objects.table_routing_dsp_input, i, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(72 + i) + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(i)).c_str());
+	 			if ((config->GetUint(ROUTING_DSP_INPUT, i) >= 1) && (config->GetUint(ROUTING_DSP_INPUT, i) <= 40)) {
+	 				// external signal from FPGA
+	 				lv_table_set_cell_value(objects.table_routing_dsp_input, i, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + config->GetUint(ROUTING_DSP_INPUT, i) - 1) + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(i)).c_str());
+	 			}else{
+	 				// internal signal within DSP
+	 				lv_table_set_cell_value(objects.table_routing_dsp_input, i, 0, config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(i).c_str());
+	 			}
 	 			lv_table_set_cell_value(objects.table_routing_dsp_input, i, 2, config->GetParameter(ROUTING_DSP_INPUT_TAPPOINT)->GetFormatedValue(i).c_str());
 	 			lv_table_set_cell_value(objects.table_routing_dsp_input, i, 4, inputChannelName.c_str());
 	 		}
@@ -227,7 +233,7 @@ class PageRoutingChannels: public Page
                  {
 	 				if ((config->GetUint(ROUTING_DSP_INPUT, index) >= 1) && (config->GetUint(ROUTING_DSP_INPUT, index) <= 40)) {
 	 					// external signal from FPGA
-	 					lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + index) + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index)).c_str());
+	 					lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, (config->GetParameter(ROUTING_FPGA)->GetFormatedValue(FPGA_OUTPUT_IDX_DSP - 1 + config->GetUint(ROUTING_DSP_INPUT, index) - 1) + " -> " + config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index)).c_str());
 	 				}else{
 	 					// internal signal within DSP
 	 					lv_table_set_cell_value(objects.table_routing_dsp_input, index, 0, config->GetParameter(ROUTING_DSP_INPUT)->GetFormatedValue(index).c_str());
