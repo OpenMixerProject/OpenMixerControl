@@ -17,8 +17,8 @@ class PageSetupMixerConfig: public Page
         static constexpr lv_coord_t ENCODER_HINT_RESERVED_HEIGHT = 60;
 
         // Navigation state for physical encoders
-        uint selected_type = 0; // 0: Channels/Auxes, 1: Busses, 2: Matrixes
-        uint selected_idx[3] = { 0, 0, 0 }; // Index within each type (0..19, 0..7, 0..2)
+        uint selected_type = 0; // 0: Channels/Auxes/FX Returns, 1: Busses, 2: Matrixes
+        uint selected_idx[3] = { 0, 0, 0 }; // Index within each type (0..23, 0..7, 0..2)
         uint pending_toggle_type = 0;
         uint pending_toggle_idx = 0;
         lv_obj_t* confirm_box = nullptr;
@@ -52,6 +52,10 @@ class PageSetupMixerConfig: public Page
         {
             if (mp_id == CHANNEL_LINKED)
             {
+                if (pair_index >= 20)
+                {
+                    return String("FX ") + String((pair_index - 20) * 2 + 1) + "/" + String((pair_index - 20) * 2 + 2);
+                }
                 if (pair_index >= 16)
                 {
                     return String("AUX ") + String((pair_index - 16) * 2 + 1) + "/" + String((pair_index - 16) * 2 + 2);
@@ -267,7 +271,7 @@ class PageSetupMixerConfig: public Page
             col_matrixes = lv_obj_create(scroll_container);
 
             lv_obj_t* cols[3] = { col_channels, col_busses, col_matrixes };
-            const char* titles[3] = { "Input Channels / Auxes", "Mix Busses", "Matrixes" };
+            const char* titles[3] = { "Inputs / Aux / FX Ret", "Mix Busses", "Matrixes" };
             uint count[3] = { STEREO_LINK_PAIRS_CHANNEL, STEREO_LINK_PAIRS_BUS, STEREO_LINK_PAIRS_MATRIX };
             MP_ID mps[3] = { CHANNEL_LINKED, BUS_LINKED, MATRIX_LINKED };
             vector<lv_obj_t*>* btn_lists[3] = { &ch_buttons, &bus_buttons, &mtx_buttons };
@@ -320,7 +324,7 @@ class PageSetupMixerConfig: public Page
         void OnShow() override
         {
             // Bind display encoders for navigation
-            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, String(LV_SYMBOL_UP) + " / " + LV_SYMBOL_DOWN + "\nCh/Aux");
+            config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_1, String(LV_SYMBOL_UP) + " / " + LV_SYMBOL_DOWN + "\nCh/Aux/FX");
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_1, "Change Mode");
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_3, String(LV_SYMBOL_UP) + " / " + LV_SYMBOL_DOWN + "\nMix Busses");
             config->SurfaceBindCustom(SurfaceElementId::DISPLAY_ENCODER_BUTTON_3, "Change Mode");

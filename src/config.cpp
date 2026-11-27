@@ -397,7 +397,7 @@ namespace OMC
         ->DefMinMaxStandard_Uint(0, 1, 0)
         ->DefClientParameter();
 
-        // Stereo links: the OSC index selects the pair (CH 1/2 = 1, ..., AUX 7/8 = 20)
+        // Stereo links: the OSC index selects the pair (CH 1/2 = 1, ..., AUX 7/8 = 20, ..., FX RET 7/8 = 24)
         DefParameter(CHANNEL_LINKED, cat, "Ch Link", STEREO_LINK_PAIRS_CHANNEL)
         ->DefStandard_Bool(false)
         ->DefOSC("ch_link");
@@ -2043,9 +2043,9 @@ namespace OMC
 
     bool Config::GetStereoLinkPair(uint vchannel, MP_ID& link, uint& pair)
     {
-        if (vchannel < (uint)X32_VCHANNEL_BLOCK::FXRET)
+        if (vchannel < (uint)X32_VCHANNEL_BLOCK::BUS)
         {
-            // channels and auxes
+            // channels, auxes and fx returns
             link = CHANNEL_LINKED;
             pair = vchannel / 2;
         }
@@ -2110,7 +2110,7 @@ namespace OMC
             return false;
         }
 
-        if (vchannel < (uint)X32_VCHANNEL_BLOCK::FXRET)
+        if (vchannel < (uint)X32_VCHANNEL_BLOCK::BUS)
         {
             return true;
         }
@@ -4149,5 +4149,14 @@ namespace OMC
         CHECK(config.GetFloat(CHANNEL_PANORAMA, 1) == 0.0f);
         config.Set(CHANNEL_VOLUME, -20.0f, 1);
         CHECK(config.GetFloat(CHANNEL_VOLUME, 0) == CHANNEL_VOLUME_MIN);
+
+        // FX returns 1/2 are the 21st pair
+        const uint fx = (uint)X32_VCHANNEL_BLOCK::FXRET;
+        config.Set(CHANNEL_GAIN, 6.0f, fx);
+        config.Set(CHANNEL_LINKED, 1.0f, 20);
+        CHECK(config.GetFloat(CHANNEL_GAIN, fx + 1) == 6.0f);
+        CHECK(config.IsStereoLinkedRight(fx + 1));
+        CHECK(config.GetFloat(CHANNEL_PANORAMA, fx + 1) == 100.0f);
+        CHECK_FALSE(config.IsStereoLinkedRight((uint)X32_VCHANNEL_BLOCK::BUS + 1));
     }
 }

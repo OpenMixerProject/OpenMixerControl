@@ -64,7 +64,7 @@ typedef unsigned int uint;
 #define ASSING_BINDINGS 20
 
 // stereo linkable pairs of neighbouring vChannels
-#define STEREO_LINK_PAIRS_CHANNEL 20 // 16 channel pairs + 4 aux pairs
+#define STEREO_LINK_PAIRS_CHANNEL 24 // 16 channel pairs + 4 aux pairs + 4 fx return pairs
 #define STEREO_LINK_PAIRS_BUS 8
 #define STEREO_LINK_PAIRS_MATRIX 3
 

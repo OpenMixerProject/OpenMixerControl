@@ -604,6 +604,7 @@ void Surface::UpdateStereoLinkedBanks()
 	fillBank(OMCBankId::CH17_24, channels, aux, 16);
 	fillBank(OMCBankId::CH25_32, channels, aux, 24);
 	fillBank(OMCBankId::AUX_USB, aux, (uint)X32_VCHANNEL_BLOCK::FXRET, 0);
+	fillBank(OMCBankId::FX_RET, (uint)X32_VCHANNEL_BLOCK::FXRET, bus, 0);
 	fillBank(OMCBankId::BUS1_8, bus, matrix, 0);
 	fillBank(OMCBankId::BUS9_16, bus, matrix, 8);
 	// Matrix 1-6 followed by Special and Main Sub
