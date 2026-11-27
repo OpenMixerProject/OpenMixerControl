@@ -126,8 +126,8 @@ class PageRoutingFpga: public Page
                     targetblocksize = 40;
                     break;
                 case 1: // AUX Out
-                    targetblockoffset = 65;
-                    targetblocksize = 6;
+                    targetblockoffset = FPGA_OUTPUT_IDX_AUX - 1;
+                    targetblocksize = 8; // Aux Out 1-6 + Control Room L/R
                     break;
                 case 2: // XLR Out
                     targetblockoffset = 0;
