@@ -2335,7 +2335,8 @@ namespace OMC
     void Config::CopyToStereoPeer(MP_ID mp, uint from, uint to)
     {
         Mixerparameter* parameter = mpm[(uint)mp];
-        if (parameter == nullptr || mp == NONE || parameter->IsReadonly() || mp == CHANNEL_STEREO_LINK)
+        // silent parameters are measurements like meters, each channel keeps its own
+        if (parameter == nullptr || mp == NONE || parameter->IsReadonly() || parameter->IsSilent() || mp == CHANNEL_STEREO_LINK)
         {
             return;
         }
@@ -4289,6 +4290,10 @@ namespace OMC
         config.Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 0);
         config.Set(CHANNEL_METER_DECAYED_POST_GAIN, -10, 1);
         CHECK(config.GetStereoMeter(0) == -7);
+
+        // meters are not linked, each channel keeps its own level
+        config.Set(CHANNEL_METER_DECAYED_POST_GAIN, -30, 1);
+        CHECK(config.GetInt(CHANNEL_METER_DECAYED_POST_GAIN, 0) == -10);
 
         // unlinking keeps all settings and only centers the pan
         config.Set(CHANNEL_GAIN, 9.0f, 0);

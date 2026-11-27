@@ -11,6 +11,11 @@ class PageConfig : public Page
     private:
         
         uint lastImageOffset;
+        uint lastImageOffsetRight;
+        int lastStereo = -1;
+
+        // second meter for the right channel of a stereo pair, both meters are shown side by side with half width
+        lv_obj_t* vumeterRight = nullptr;
 
         lv_obj_t* config_mute_group[MUTE_GROUPS];
         lv_obj_t* config_dca_group[8];
@@ -112,6 +117,13 @@ class PageConfig : public Page
 
         void OnInit() override
         {
+            vumeterRight = lv_image_create(lv_obj_get_parent(objects.config_vumeter));
+            lv_image_set_src(vumeterRight, lv_image_get_src(objects.config_vumeter));
+            lv_image_set_inner_align(vumeterRight, LV_IMAGE_ALIGN_TOP_LEFT);
+            lv_obj_set_size(vumeterRight, VUMETER_HALF, LV_SIZE_CONTENT);
+            lv_obj_set_pos(vumeterRight, lv_obj_get_x_aligned(objects.config_vumeter) + VUMETER_HALF, lv_obj_get_y_aligned(objects.config_vumeter));
+            lv_obj_set_flag(vumeterRight, LV_OBJ_FLAG_HIDDEN, true);
+
             config_mute_group[0] = objects.config_mute_group_1;
             config_mute_group[1] = objects.config_mute_group_2;
             config_mute_group[2] = objects.config_mute_group_3;
@@ -211,18 +223,40 @@ class PageConfig : public Page
 
         }
 
-        void OnUpdateMeters() override
+        static constexpr lv_coord_t VUMETER_WIDTH = 40; // width of one frame of the meter image
+        static constexpr lv_coord_t VUMETER_HALF = VUMETER_WIDTH / 2;
+
+        void SetMeter(lv_obj_t* meter, int dbValue, lv_coord_t shift, uint& last)
         {
-            int dbValue = config->GetStereoMeter(config->GetUint(MP_ID::SELECTED_CHANNEL));
-            
-            uint imageOffset = get_vu_pixels_non_linear(dbValue);
-            uint newImageOffset = imageOffset * -lv_obj_get_width(objects.config_vumeter);
+            uint newImageOffset = get_vu_pixels_non_linear(dbValue) * -VUMETER_WIDTH + shift;
 
             // only set new offset if it has changed
-            if (newImageOffset != lastImageOffset)
+            if (newImageOffset != last)
             {
-                lv_image_set_offset_x(objects.config_vumeter, newImageOffset);
-                lastImageOffset = newImageOffset;
+                lv_image_set_offset_x(meter, newImageOffset);
+                last = newImageOffset;
+            }
+        }
+
+        void OnUpdateMeters() override
+        {
+            uint selected = config->GetUint(MP_ID::SELECTED_CHANNEL);
+            uint peer;
+            bool stereo = config->GetStereoPeer(selected, peer);
+
+            // a stereo pair shows a split meter: the middle of the left frame for the left, of the right frame for the right channel
+            if ((int)stereo != lastStereo)
+            {
+                lv_obj_set_width(objects.config_vumeter, stereo ? VUMETER_HALF : VUMETER_WIDTH);
+                lv_obj_set_flag(vumeterRight, LV_OBJ_FLAG_HIDDEN, !stereo);
+                lastStereo = stereo;
+                lastImageOffset = lastImageOffsetRight = UINT_MAX;
+            }
+
+            SetMeter(objects.config_vumeter, config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, selected), stereo ? -VUMETER_HALF / 2 : 0, lastImageOffset);
+            if (stereo)
+            {
+                SetMeter(vumeterRight, config->GetInt(MP_ID::CHANNEL_METER_DECAYED_POST_GAIN, peer), -VUMETER_HALF / 2, lastImageOffsetRight);
             }
         }
 };
