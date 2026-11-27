@@ -332,6 +332,20 @@ void Mixer::Sync()
         for (auto const& changedIndex : changedIndexes)
         {
             fpga->SendRoutingToFpga(changedIndex);
+
+            // a DSP slot got a new source: send gain/phantom to the headamp of the channels reading this slot
+            if ((changedIndex >= (FPGA_OUTPUT_IDX_DSP - 1)) && (changedIndex < (FPGA_OUTPUT_IDX_DSP - 1 + MAX_FPGA_TO_DSP1_CHANNELS)))
+            {
+                uint dspSlot = changedIndex - (FPGA_OUTPUT_IDX_DSP - 1) + 1;
+                for (uint chanIndex = 0; chanIndex < MAX_FPGA_TO_DSP1_CHANNELS; chanIndex++)
+                {
+                    if (config->GetUint(ROUTING_DSP_INPUT, chanIndex) == dspSlot)
+                    {
+                        halSendGain(chanIndex);
+                        dsp->SendChannelVolume(chanIndex);
+                    }
+                }
+            }
         }
     }
 
@@ -371,6 +385,10 @@ void Mixer::Sync()
         for (auto const& changedIndex : changedIndexes)
         {
             dsp->SetInputRouting(changedIndex);
+
+            // the channel may read a different headamp now
+            halSendGain(changedIndex);
+            dsp->SendChannelVolume(changedIndex);
         }
     }
 
